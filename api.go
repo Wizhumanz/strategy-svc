@@ -105,7 +105,7 @@ type newListingPostReq struct {
 	IsPending     JSONBool    `json:"isPending"`
 }
 
-var googleProjectID = "myika-relm"
+var googleProjectID = "myika-anastasia"
 
 // helper funcs
 
@@ -155,14 +155,8 @@ func deleteElement(sli []Listing, del Listing) []Listing {
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	var data jsonResponse
 	w.Header().Set("Content-Type", "application/json")
-	if r.Method != "GET" {
-		data = jsonResponse{Msg: "Only GET Allowed", Body: "This endpoint only accepts GET requests."}
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	} else {
-		data = jsonResponse{Msg: "Strategy SVC Anastasia", Body: "Ready"}
-		w.WriteHeader(http.StatusOK)
-	}
+	data = jsonResponse{Msg: "Strategy SVC Anastasia", Body: "Ready"}
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
 	// w.Write([]byte(`{"msg": "привет сука"}`))
 }
@@ -486,14 +480,14 @@ func createNewListingHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
-	router.Methods("POST").Path("/login").HandlerFunc(loginHandler)
-	router.Methods("POST").Path("/user").HandlerFunc(createNewUserHandler)
-	router.Methods("POST").Path("/owner").HandlerFunc(createNewUserHandler)
-	router.Methods("GET").Path("/listings").HandlerFunc(getAllListingsHandler)
-	router.Methods("POST").Path("/listing").HandlerFunc(createNewListingHandler)
-	router.Methods("PUT").Path("/listing/{id}").HandlerFunc(updateListingHandler)
+	// router.Methods("POST").Path("/login").HandlerFunc(loginHandler)
+	// router.Methods("POST").Path("/user").HandlerFunc(createNewUserHandler)
+	// router.Methods("POST").Path("/owner").HandlerFunc(createNewUserHandler)
+	// router.Methods("GET").Path("/listings").HandlerFunc(getAllListingsHandler)
+	// router.Methods("POST").Path("/listing").HandlerFunc(createNewListingHandler)
+	// router.Methods("PUT").Path("/listing/{id}").HandlerFunc(updateListingHandler)
 
 	port := os.Getenv("PORT")
-	fmt.Println("relm-api listening on port " + port)
+	fmt.Println("strategy-svc listening on port " + port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
