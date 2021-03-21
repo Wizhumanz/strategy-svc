@@ -161,7 +161,10 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	// w.Write([]byte(`{"msg": "привет сука"}`))
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
+func tvWebhookHandler(w http.ResponseWriter, r *http.Request) {
+	//decode/unmarshall the body
+	//two properties: "msg", "size"
+
 	var newLoginReq loginReq
 	// decode data
 	err := json.NewDecoder(r.Body).Decode(&newLoginReq)
@@ -480,7 +483,7 @@ func createNewListingHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
-	// router.Methods("POST").Path("/login").HandlerFunc(loginHandler)
+	router.Methods("POST").Path("/tv-hook").HandlerFunc(tvWebhookHandler)
 	// router.Methods("POST").Path("/user").HandlerFunc(createNewUserHandler)
 	// router.Methods("POST").Path("/owner").HandlerFunc(createNewUserHandler)
 	// router.Methods("GET").Path("/listings").HandlerFunc(getAllListingsHandler)
