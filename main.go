@@ -26,6 +26,11 @@ type jsonResponse struct {
 	Body string `json:"body"`
 }
 
+type webHookResponse struct {
+	Msg  string `json:"message"`
+	Size string `json:"size"`
+}
+
 //for unmarshalling JSON to bools
 type JSONBool bool
 
@@ -164,31 +169,42 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 func tvWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	//decode/unmarshall the body
 	//two properties: "msg", "size"
-
-	var newLoginReq loginReq
-	// decode data
-	err := json.NewDecoder(r.Body).Decode(&newLoginReq)
+	var webHookRes webHookResponse
+	err := json.NewDecoder(r.Body).Decode(&webHookRes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var data jsonResponse
-	if authenticateUser(newLoginReq) {
-		data = jsonResponse{
-			Msg:  "Successfully logged in!",
-			Body: newLoginReq.Email,
+	fmt.Println(webHookRes.Msg)
+	fmt.Println(webHookRes.Size)
+
+	/*
+		var newLoginReq loginReq
+		// decode data
+		err := json.NewDecoder(r.Body).Decode(&newLoginReq)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
-		w.WriteHeader(http.StatusCreated)
-	} else {
-		data = jsonResponse{
-			Msg:  "Authentication failed.",
-			Body: newLoginReq.Email,
+
+		var data jsonResponse
+		if authenticateUser(newLoginReq) {
+			data = jsonResponse{
+				Msg:  "Successfully logged in!",
+				Body: newLoginReq.Email,
+			}
+			w.WriteHeader(http.StatusCreated)
+		} else {
+			data = jsonResponse{
+				Msg:  "Authentication failed.",
+				Body: newLoginReq.Email,
+			}
+			w.WriteHeader(http.StatusUnauthorized)
 		}
-		w.WriteHeader(http.StatusUnauthorized)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(data)
+	*/
 }
 
 func createNewUserHandler(w http.ResponseWriter, r *http.Request) {
