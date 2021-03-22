@@ -16,6 +16,7 @@ import (
 
 	"cloud.google.com/go/datastore"
 	"cloud.google.com/go/storage"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/iterator"
@@ -111,6 +112,10 @@ type newListingPostReq struct {
 }
 
 var googleProjectID = "myika-anastasia"
+var redisHost = os.Getenv("REDISHOST")
+var redisPort = os.Getenv("REDISPORT")
+var redisAddr = fmt.Sprintf("%s:%s", redisHost, redisPort)
+var rdb *redis.Client
 
 // helper funcs
 
@@ -496,7 +501,60 @@ func createNewListingHandler(w http.ResponseWriter, r *http.Request) {
 	addListing(w, r, false, Listing{}) //empty Listing struct passed just for compiler
 }
 
+func initRedis() {
+	if redisHost == "" {
+		redisHost = "127.0.0.1"
+		fmt.Println("Env var nil, using redis dev address -- " + redisHost)
+	}
+	if redisPort == "" {
+		redisPort = "6379"
+		fmt.Println("Env var nil, using redis dev port -- " + redisPort)
+	}
+	fmt.Println("Connected to Redis on " + redisHost + ":" + redisPort)
+	rdb = redis.NewClient(&redis.Options{
+		Addr: redisHost + ":" + redisPort,
+	})
+}
+
+func startStream() {
+	tempStreamName := "userEvents"
+	var ctxStrat = context.Background()
+
+	for {
+		newID, err := rdb.XAdd(ctxStrat, &redis.XAddArgs{
+			Stream: tempStreamName,
+			Values: []string{
+				"newEvent",
+				time.Now().Local().String(),
+			},
+		}).Result()
+		if err != nil {
+			log.Fatal("XADD error -- ", err.Error())
+		}
+
+		l, xlenErr := rdb.Do(ctxStrat, "XLEN", tempStreamName).Result()
+		if xlenErr != nil {
+			log.Fatal("XLEN error -- ", xlenErr.Error())
+		}
+
+		if newID != "" {
+			fmt.Print("Added to stream " + newID + " / len = ")
+			fmt.Println(l)
+		}
+
+		time.Sleep(1500 * time.Millisecond)
+
+		if l.(int64) > 10 {
+			fmt.Println("Resetting DB with flushall...")
+			rdb.Do(ctxStrat, "flushall").Result()
+		}
+	}
+}
+
 func main() {
+	initRedis()
+	go startStream()
+
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
 	router.Methods("POST").Path("/tv-hook").HandlerFunc(tvWebhookHandler)

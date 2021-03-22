@@ -4,7 +4,7 @@ Strategy service to call orders for Anastasia.
 
 ## Local Dev
 
-Serve command: `PORT=8000 go run api.go`
+Serve command: `PORT=8000 go run main.go`
 
 `PORT` env var must be passed for local dev. This env var is passed by default when deployed to Cloud Run.
 
