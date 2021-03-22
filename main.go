@@ -553,7 +553,7 @@ func startStream() {
 
 func main() {
 	initRedis()
-	go startStream()
+	// go startStream()
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
