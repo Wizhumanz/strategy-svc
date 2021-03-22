@@ -34,4 +34,4 @@ deploy:
     - gcloud auth activate-service-account --key-file=$GCLOUD_KEY
     - gcloud config set project $GCLOUD_PROJECT_ID
     - gcloud builds submit --tag gcr.io/$GCLOUD_PROJECT_ID/strategy-svc-$CI_COMMIT_SHORT_SHA
-    - gcloud beta run deploy strategy-svc --image gcr.io/$GCLOUD_PROJECT_ID/strategy-svc-$CI_COMMIT_SHORT_SHA --port 8000 --platform managed --min-instances 0 --max-instances 3 --allow-unauthenticated --region asia-southeast1 --memory 128Mi --cpu 1 --concurrency 5 --timeout 1000 --vpc-connector redis-streams --set-env-vars REDISHOST=10.251.91.236, REDISPORT=6379
+    - gcloud beta run deploy strategy-svc --image gcr.io/$GCLOUD_PROJECT_ID/strategy-svc-$CI_COMMIT_SHORT_SHA --port 8000 --platform managed --min-instances 0 --max-instances 3 --allow-unauthenticated --region asia-southeast1 --memory 128Mi --cpu 1 --concurrency 5 --timeout 1000 --vpc-connector redis-streams --set-env-vars REDISHOST=10.251.91.236,REDISPORT=6379
