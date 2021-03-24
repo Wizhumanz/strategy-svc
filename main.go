@@ -35,17 +35,68 @@ type SagaStep struct {
 type Saga struct {
 	//iterate through this slice to execute saga
 	//	each step runs stream listen loop to wait for new OK response,
-	//		if response OK, break listen loop and proceeds with next step
+	//		if response OK, break listen loop and proceed with next step
 	//			first OK response for each step from other svc includes message headers to listen for in next consecutive steps by the same svc
 	//		if response FAIL, break all loops and start loop for compensating transactions
 	Steps []SagaStep
+}
+
+//returns last ID and response from XREAD
+func listenStream(streamName string, lastID string) (string, []string) {
+	var ret []string
+	var retLastID string = ""
+	var ctx = context.Background()
+
+	//keep XREAD until got new response on passed stream
+	for {
+		streams, err := rdb.XRead(ctx, &redis.XReadArgs{
+			Streams: []string{streamName, lastID},
+			Block:   500,
+		}).Result()
+
+		if err != nil {
+			fmt.Println("XREAD error -- ", err.Error())
+			fmt.Println("Sleeping 5s before retry...")
+			time.Sleep(5000 * time.Millisecond)
+		} else {
+			retLastID = streams[len(streams)-1].Messages[0].ID
+			//for each message, add each key-value pair to return array
+			for _, stream := range streams[0].Messages {
+				for key, val := range stream.Values {
+					if val != "" {
+						ret = append(ret, fmt.Sprintf("Msg %s: %s = %s", stream.ID, key, val)) //use a map instead
+					}
+				}
+			}
+			//stop listening once got some result
+			break
+		}
+	}
+	return retLastID, ret
+}
+
+func (saga *Saga) Execute() {
+	lastRespID := "0" //listen from stream start by default
+	for _, step := range saga.Steps {
+		//listen for each of these response headers before moving to next step
+		// var consecutiveResponseHeaders []string
+		step.Transaction()
+		last, streamResponses := listenStream("0:order:1", lastRespID)
+		lastRespID = last
+		//TODO: store consecutive response headers to listen for
+		//TODO: for each header, listen for it
+
+		for _, r := range streamResponses {
+			fmt.Println(r)
+		}
+	}
 }
 
 var OpenLongSaga Saga
 
 // OpenLongSaga T1
 func submitTradeIntent() {
-	fmt.Println("Submitting trade intent")
+	fmt.Println("CMD: Submitting trade intent")
 }
 
 // OpenLongSaga T-1
@@ -55,7 +106,7 @@ func cancelSubmitTradeIntent() {
 
 // OpenLongSaga T2
 func checkModel() {
-	fmt.Println("Consulting ML model to decide if should take trade")
+	fmt.Println("CMD: Consulting ML model to decide if should take trade")
 	//response: trade OK
 }
 
@@ -66,7 +117,7 @@ func cancelCheckModel() {
 
 // OpenLongSaga T3
 func submitEntryOrder() {
-	fmt.Println("Submitting entry order")
+	fmt.Println("CMD: Submitting entry order")
 	//response: entryOrderSubmitted, entryOrderFilled OR entryOrderSubmitted, entryOrderFailed OR entryOrderSubmitted, SLExitedTrade/TPExitedTrade
 }
 
@@ -77,7 +128,7 @@ func cancelSubmitEntryOrder() {
 
 // OpenLongSaga T4
 func submitExitOrder() {
-	fmt.Println("Exiting trade")
+	fmt.Println("CMD: Exiting trade")
 	//response: exitOrderSubmitted, exitOrderFilled OR exitOrderSubmitted, exitOrderFailed
 }
 
@@ -169,29 +220,19 @@ func authenticateUser(req loginReq) bool {
 	return CheckPasswordHash(req.Password, userWithEmail.Password)
 }
 
-// route handlers
-
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	var data jsonResponse
-	w.Header().Set("Content-Type", "application/json")
-	data = jsonResponse{Msg: "Strategy SVC Anastasia", Body: "Ready"}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(data)
-	// w.Write([]byte(`{"msg": "привет сука"}`))
-}
-
-func tvWebhookHandler(w http.ResponseWriter, r *http.Request) {
-	//decode/unmarshall the body
-	//two properties: "msg", "size"
-	var webHookRes webHookResponse
-	err := json.NewDecoder(r.Body).Decode(&webHookRes)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+func initRedis() {
+	if redisHost == "" {
+		redisHost = "127.0.0.1"
+		fmt.Println("Env var nil, using redis dev address -- " + redisHost)
 	}
-
-	fmt.Println(webHookRes.Msg)
-	fmt.Println(webHookRes.Size)
+	if redisPort == "" {
+		redisPort = "6379"
+		fmt.Println("Env var nil, using redis dev port -- " + redisPort)
+	}
+	fmt.Println("Connected to Redis on " + redisHost + ":" + redisPort)
+	rdb = redis.NewClient(&redis.Options{
+		Addr: redisHost + ":" + redisPort,
+	})
 }
 
 func startStream() {
@@ -229,7 +270,34 @@ func startStream() {
 	}
 }
 
+// route handlers
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	var data jsonResponse
+	w.Header().Set("Content-Type", "application/json")
+	data = jsonResponse{Msg: "Strategy SVC Anastasia", Body: "Ready"}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(data)
+	// w.Write([]byte(`{"msg": "привет сука"}`))
+}
+
+func tvWebhookHandler(w http.ResponseWriter, r *http.Request) {
+	//decode/unmarshall the body
+	//two properties: "msg", "size"
+	var webHookRes webHookResponse
+	err := json.NewDecoder(r.Body).Decode(&webHookRes)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println(webHookRes.Msg)
+	fmt.Println(webHookRes.Size)
+}
+
 func main() {
+	initRedis()
+
 	//init sagas
 	OpenLongSaga = Saga{
 		Steps: []SagaStep{
@@ -239,18 +307,13 @@ func main() {
 			{Transaction: submitExitOrder, CompensatingTransaction: cancelSubmitExitOrder},
 		},
 	}
+	go OpenLongSaga.Execute()
 
-	// initRedis()
 	// go startStream()
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
 	router.Methods("POST").Path("/tv-hook").HandlerFunc(tvWebhookHandler)
-	// router.Methods("POST").Path("/user").HandlerFunc(createNewUserHandler)
-	// router.Methods("POST").Path("/owner").HandlerFunc(createNewUserHandler)
-	// router.Methods("GET").Path("/listings").HandlerFunc(getAllListingsHandler)
-	// router.Methods("POST").Path("/listing").HandlerFunc(createNewListingHandler)
-	// router.Methods("PUT").Path("/listing/{id}").HandlerFunc(updateListingHandler)
 
 	port := os.Getenv("PORT")
 	fmt.Println("strategy-svc listening on port " + port)
