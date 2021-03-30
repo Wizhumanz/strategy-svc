@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"strings"
+
 	// "encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -75,19 +77,48 @@ func listenStream(streamName string, lastID string) (string, []string) {
 	return retLastID, ret
 }
 
-func (saga *Saga) Execute() {
+//TODO: modify this function to take a lambda that executes on every key/value in msg
+func findInStreamMsg(streamResp []string, key string) string {
+	var data string
+	readKey := false
+	for _, r := range streamResp {
+		if r == key {
+			readKey = true
+		} else if readKey {
+			readKey = false
+			data = r
+		}
+	}
+	return data
+}
+
+func (saga *Saga) Execute(listenStreamName string) {
 	lastRespID := "0" //listen from stream start by default
 	for _, step := range saga.Steps {
-		//listen for each of these response headers before moving to next step
-		// var consecutiveResponseHeaders []string
+		//execute saga step, listen for response
 		step.Transaction()
-		last, streamResponses := listenStream("0:order:1", lastRespID)
+		//TODO: put "listen and parse loop" below in external function
+		last, streamResponses := listenStream(listenStreamName, lastRespID)
 		lastRespID = last
-		//TODO: store consecutive response headers to listen for
-		//TODO: for each header, listen for it
 
+		//parse response
 		for _, r := range streamResponses {
 			fmt.Println(r)
+		}
+		//check for consecutive response header
+		consecMsgHeaders := strings.Split(findInStreamMsg(streamResponses, "CONSEC_MSGS"), ",")
+
+		//listen for next consecutive messages (if any)
+		//TODO: handle unexpected messages being received
+		for _, msg := range consecMsgHeaders {
+			l, consecResp := listenStream(listenStreamName, lastRespID)
+			lastRespID = l
+			for _, d := range consecResp {
+				if d == msg {
+					fmt.Printf("Consec msg with header %s successfully received!", msg)
+				}
+				fmt.Println(d)
+			}
 		}
 	}
 }
