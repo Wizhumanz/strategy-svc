@@ -92,9 +92,14 @@ func findInStreamMsg(streamResp []string, key string) string {
 	return data
 }
 
+func (saga *Saga) UndoSaga(lastStep int) {
+
+}
+
 func (saga *Saga) Execute(listenStreamName string) {
 	lastRespID := "0" //listen from stream start by default
-	for _, step := range saga.Steps {
+	for i, step := range saga.Steps {
+		undoSaga := false
 		//execute saga step, listen for response
 		step.Transaction()
 		//TODO: put "listen and parse loop" below in external function
@@ -104,21 +109,32 @@ func (saga *Saga) Execute(listenStreamName string) {
 		//parse response
 		for _, r := range streamResponses {
 			fmt.Println(r)
-		}
-		//check for consecutive response header
-		consecMsgHeaders := strings.Split(findInStreamMsg(streamResponses, "CONSEC_MSGS"), ",")
 
-		//listen for next consecutive messages (if any)
-		//TODO: handle unexpected messages being received
-		for _, msg := range consecMsgHeaders {
-			l, consecResp := listenStream(listenStreamName, lastRespID)
-			lastRespID = l
-			for _, d := range consecResp {
-				if d == msg {
-					fmt.Printf("Consec msg with header %s successfully received!", msg)
-				}
-				fmt.Println(d)
+			if r == "ERROR" {
+				undoSaga = true
+				break
 			}
+		}
+		if !undoSaga {
+			//check for consecutive response header
+			consecMsgHeaders := strings.Split(findInStreamMsg(streamResponses, "CONSEC_MSGS"), ",")
+			//listen for next consecutive messages (if any)
+			//TODO: handle unexpected messages being received
+			for _, msg := range consecMsgHeaders {
+				l, consecResp := listenStream(listenStreamName, lastRespID)
+				lastRespID = l
+				for _, d := range consecResp {
+					if d == msg {
+						fmt.Printf("Consec msg with header %s successfully received!", msg)
+					}
+					fmt.Println(d)
+				}
+			}
+		}
+
+		//if failed at any point, begin compensating transaction loop
+		if undoSaga {
+			saga.UndoSaga(i)
 		}
 	}
 }
@@ -338,7 +354,7 @@ func main() {
 			{Transaction: submitExitOrder, CompensatingTransaction: cancelSubmitExitOrder},
 		},
 	}
-	go OpenLongSaga.Execute()
+	go OpenLongSaga.Execute("1:order:1")
 
 	// go startStream()
 
