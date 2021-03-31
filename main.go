@@ -92,8 +92,22 @@ func findInStreamMsg(streamResp []string, key string) string {
 	return data
 }
 
-func (saga *Saga) UndoSaga(lastStep int) {
+func (saga *Saga) UndoSaga(listenStreamName string, lastStep int, lastMsgID string) {
+	lastRespID := lastMsgID //listen from stream start by default
+	for i := len(saga.Steps) - 1; i >= 0; i-- {
+		if i <= lastStep {
+			//execute compensating transaction, listen for response
+			step := saga.Steps[i]
+			step.CompensatingTransaction()
+			last, streamResponses := listenStream(listenStreamName, lastRespID)
+			lastRespID = last
 
+			//parse response
+			for _, r := range streamResponses {
+				fmt.Println(r)
+			}
+		}
+	}
 }
 
 func (saga *Saga) Execute(listenStreamName string) {
@@ -134,7 +148,7 @@ func (saga *Saga) Execute(listenStreamName string) {
 
 		//if failed at any point, begin compensating transaction loop
 		if undoSaga {
-			saga.UndoSaga(i)
+			saga.UndoSaga(listenStreamName, i, lastRespID)
 		}
 	}
 }
