@@ -4,9 +4,20 @@ Strategy service to call orders for Anastasia.
 
 ## Local Dev
 
-Serve command: `PORT=8000 go run main.go`
+```
+chmod +x run.sh
+./run.sh
+```
 
-`PORT` env var must be passed for local dev. This env var is passed by default when deployed to Cloud Run.
+Inside `run.sh`:
+```
+export PORT=8000
+
+# build/ directory ignored by git
+go build -o build/api .
+
+build/api
+```
 
 ### [GCP Datastore testing](https://cloud.google.com/datastore/docs/reference/libraries#client-libraries-install-go):
 
