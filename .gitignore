@@ -19,3 +19,5 @@ api/tmp/
 
 # env vars
 .env
+
+build
