@@ -173,6 +173,12 @@ github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+gitlab.com/myikaco/msngr v0.1.0 h1:nVWfuOzqQSSXbiDYg+134YUJlujGCalf6MwpH555VwQ=
+gitlab.com/myikaco/msngr v0.1.0/go.mod h1:ksHGPXJyNWC9zrAUxKjMmLxYKtsQqDwWIYMepsRtEd8=
+gitlab.com/myikaco/msngr v0.2.0 h1:TWKLiqywxjSH7talZKU0bIBSw7YTtlqLDTEgh/DWcMY=
+gitlab.com/myikaco/msngr v0.2.0/go.mod h1:ksHGPXJyNWC9zrAUxKjMmLxYKtsQqDwWIYMepsRtEd8=
+gitlab.com/myikaco/streams-msg-broker v0.0.0-20210404045108-53b868e2d6ca h1:+mGcqnuTvt2ij5CwoCJaP0/Pn12m+K+a77373eBskyM=
+gitlab.com/myikaco/streams-msg-broker v0.0.0-20210404045108-53b868e2d6ca/go.mod h1:8wprufO5nBnJ85eBJLtKZdjzJW22/zYuAe6cgX4tKuQ=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=

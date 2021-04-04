@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
+	"gitlab.com/myikaco/msngr"
 )
 
 var googleProjectID = "myika-anastasia"
@@ -18,7 +19,7 @@ var redisAddr = fmt.Sprintf("%s:%s", redisHost, redisPort)
 var rdb *redis.Client
 
 func main() {
-	initRedis()
+	msngr.InitRedis()
 
 	//init sagas
 	OpenLongSaga = Saga{
@@ -28,9 +29,7 @@ func main() {
 			{Transaction: submitExitOrder, CompensatingTransaction: cancelSubmitExitOrder},
 		},
 	}
-	go OpenLongSaga.Execute("1:order:1")
-
-	// go startStream()
+	// go OpenLongSaga.Execute("1:order:1")
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
