@@ -23,7 +23,7 @@ func main() {
 	msngr.InitRedis()
 
 	//init sagas
-	OpenLongSaga = saga.Saga{
+	OpenTradeSaga = saga.Saga{
 		Steps: []saga.SagaStep{
 			{Transaction: checkModel, CompensatingTransaction: cancelCheckModel},
 			{Transaction: submitEntryOrder, CompensatingTransaction: cancelSubmitEntryOrder},

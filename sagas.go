@@ -6,37 +6,100 @@ import (
 	"gitlab.com/myikaco/saga"
 )
 
-var OpenLongSaga saga.Saga
+//TODO: add addToStream() in sagas pkg (for saga steps to send custom msgs)
+//TODO: modify (Saga) Execute() to take arg noListenForResponse
+//TODO: add struct to encapsulate all msngr methods for creating multiple instances
+//TODO: how to define handlers
 
-// OpenLongSaga T1
+func wakeServices() {
+	//send requests to order and analytics svc to relay stream name to listen "<user_id>:<aggregate_id>"
+}
+
+var OpenTradeSaga saga.Saga
+
+// OpenTradeSaga T1
+func calcPosSize() float64 {
+	return 69.69
+}
+
+// OpenTradeSaga T-1
+func cancelCalcPosSize() {
+	// nothing to cancel
+}
+
+// OpenTradeSaga T2
 func checkModel() {
 	fmt.Println("CMD: Consulting ML model to decide if should take trade")
 	//response: trade OK
 }
 
-// OpenLongSaga T-1
+// OpenTradeSaga T-2
 func cancelCheckModel() {
 	//nothing to compensate
 }
 
-// OpenLongSaga T2
+// OpenTradeSaga T3
 func submitEntryOrder() {
-	fmt.Println("CMD: Submitting entry order")
-	//response: entryOrderSubmitted, entryOrderFilled OR entryOrderSubmitted, entryOrderFailed OR entryOrderSubmitted, entryOrderFilled, SLExitedTrade/TPExitedTrade
+	// XADD submitEntryOrderIntent {timestamp}
+
+	// order-svc:
+	//  entryOrderSubmitted, entryOrderFilled
+	//  entryOrderFailed
+	//  entryOrderSubmitted, entryOrderFilled, SLExitedTrade/TPExitedTrade
 }
 
-// OpenLongSaga T-2
+// OpenTradeSaga T-3
 func cancelSubmitEntryOrder() {
-	//TODO: how to cancel entry order submissions?
+	// XADD cancelEntryOrderIntent {timestamp}
+
+	// order-svc:
+	//  entryOrderCancelled
 }
 
-// OpenLongSaga T3
+// stop loss and take profit (maybe partial exits), and full exit
+var ExitTradeSaga saga.Saga
+
+// OpenTradeSaga T1
+func calcCloseSize() float64 {
+	return 420.42
+}
+
+// OpenTradeSaga T-1
+func cancelCalcCloseSize() {
+	// nothing to cancel
+}
+
+// OpenTradeSaga T2
 func submitExitOrder() {
-	fmt.Println("CMD: Exiting trade")
-	//response: exitOrderSubmitted, exitOrderFilled OR exitOrderSubmitted, exitOrderFailed
+	// XADD submitExitOrderIntent {timestamp}
+
+	// order-svc:
+	//  exitOrderSubmitted, exitOrderFilled
+	//  exitOrderFailed
+	//  exitOrderSubmitted, exitOrderFilled
 }
 
-// OpenLongSaga T-3
+// OpenTradeSaga T-2
 func cancelSubmitExitOrder() {
-	//TODO: how to cancel exit order submissions?
+	// XADD cancelExitOrderIntent {timestamp}
+
+	// order-svc:
+	//  exitOrderCancelled
+}
+
+// edit SL/TP
+var EditTrade saga.Saga
+
+// OpenTradeSaga T1
+func submitModifyPos() {
+	// XADD submitModifyPosIntent {timestamp}
+
+	// order-svc:
+	//  modifyPosSubmitted, modifyPosSuccessful
+	//  modifyPosFailed
+}
+
+// OpenTradeSaga T-1
+func cancelModifyPos() {
+	// modify back
 }
