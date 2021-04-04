@@ -7,6 +7,7 @@ require (
 	github.com/go-redis/redis/v8 v8.5.0
 	github.com/gorilla/mux v1.8.0
 	gitlab.com/myikaco/msngr v0.2.0
+	gitlab.com/myikaco/saga v0.1.0
 	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210315170653-34ac3e1c2000 // indirect

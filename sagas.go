@@ -1,8 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
 
-var OpenLongSaga Saga
+	"gitlab.com/myikaco/saga"
+)
+
+var OpenLongSaga saga.Saga
 
 // OpenLongSaga T1
 func checkModel() {

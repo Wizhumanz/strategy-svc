@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/datastore"
+	"gitlab.com/myikaco/msngr"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -41,6 +42,8 @@ func authenticateUser(req loginReq) bool {
 	return CheckPasswordHash(req.Password, userWithEmail.Password)
 }
 
+// TODO: eventually replaced by analytics svc
+
 func saveMsg(streamMsg []string) {
 	//build string to store
 	var data string
@@ -55,9 +58,9 @@ func saveMsg(streamMsg []string) {
 	}
 	kind := "TradeAction"
 	newBotKey := datastore.IncompleteKey(kind, nil)
-	actionName := findInStreamMsg(streamMsg, "HEADER")
-	aggrID, _ := strconv.Atoi(findInStreamMsg(streamMsg, "AGGR_ID"))
-	sz, _ := strconv.ParseFloat(findInStreamMsg(streamMsg, "SIZE"), 32)
+	actionName := msngr.FindInStreamMsg(streamMsg, "HEADER")
+	aggrID, _ := strconv.Atoi(msngr.FindInStreamMsg(streamMsg, "AGGR_ID"))
+	sz, _ := strconv.ParseFloat(msngr.FindInStreamMsg(streamMsg, "SIZE"), 32)
 
 	newAction := TradeAction{
 		Action:      actionName,

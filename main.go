@@ -10,6 +10,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"gitlab.com/myikaco/msngr"
+	"gitlab.com/myikaco/saga"
 )
 
 var googleProjectID = "myika-anastasia"
@@ -22,8 +23,8 @@ func main() {
 	msngr.InitRedis()
 
 	//init sagas
-	OpenLongSaga = Saga{
-		Steps: []SagaStep{
+	OpenLongSaga = saga.Saga{
+		Steps: []saga.SagaStep{
 			{Transaction: checkModel, CompensatingTransaction: cancelCheckModel},
 			{Transaction: submitEntryOrder, CompensatingTransaction: cancelSubmitEntryOrder},
 			{Transaction: submitExitOrder, CompensatingTransaction: cancelSubmitExitOrder},
