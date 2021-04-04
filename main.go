@@ -23,7 +23,6 @@ func main() {
 	//init sagas
 	OpenLongSaga = Saga{
 		Steps: []SagaStep{
-			{Transaction: submitTradeIntent, CompensatingTransaction: cancelSubmitTradeIntent},
 			{Transaction: checkModel, CompensatingTransaction: cancelCheckModel},
 			{Transaction: submitEntryOrder, CompensatingTransaction: cancelSubmitEntryOrder},
 			{Transaction: submitExitOrder, CompensatingTransaction: cancelSubmitExitOrder},
