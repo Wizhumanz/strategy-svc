@@ -6,11 +6,6 @@ import (
 	"gitlab.com/myikaco/saga"
 )
 
-//TODO: add addToStream() in sagas pkg (for saga steps to send custom msgs)
-//TODO: modify (Saga) Execute() to take arg noListenForResponse
-//TODO: add struct to encapsulate all msngr methods for creating multiple instances
-//TODO: how to define handlers
-
 func wakeServices() {
 	//send requests to order and analytics svc to relay stream name to listen "<user_id>:<aggregate_id>"
 }

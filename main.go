@@ -25,9 +25,11 @@ func main() {
 	//init sagas
 	OpenTradeSaga = saga.Saga{
 		Steps: []saga.SagaStep{
-			{Transaction: checkModel, CompensatingTransaction: cancelCheckModel},
-			{Transaction: submitEntryOrder, CompensatingTransaction: cancelSubmitEntryOrder},
-			{Transaction: submitExitOrder, CompensatingTransaction: cancelSubmitExitOrder},
+			{
+				Transaction:             checkModel,
+				CompensatingTransaction: cancelCheckModel,
+				ListenForResponse:       false,
+			},
 		},
 	}
 	// go OpenLongSaga.Execute("1:order:1")
