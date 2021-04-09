@@ -34,6 +34,7 @@ func main() {
 		},
 	}
 
+	//TODO: mechanism for storing lastID to only process new trades
 	//continuously listen for new trades to manage in webhookTrades stream
 	go streamListenLoop("webhookTrades", "0")
 
