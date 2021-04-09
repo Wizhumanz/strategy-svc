@@ -13,14 +13,15 @@ import (
 	"gitlab.com/myikaco/saga"
 )
 
-var googleProjectID = "myika-anastasia"
 var redisHost = os.Getenv("REDISHOST")
 var redisPort = os.Getenv("REDISPORT")
 var redisAddr = fmt.Sprintf("%s:%s", redisHost, redisPort)
 var rdb *redis.Client
 
 func main() {
+	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
+	msngr.InitDatastore()
 
 	//init sagas
 	OpenTradeSaga = saga.Saga{
@@ -32,11 +33,13 @@ func main() {
 			},
 		},
 	}
-	// go OpenLongSaga.Execute("1:order:1")
+
+	//continuously listen for new trades to manage in webhookTrades stream
+	go streamListenLoop("webhookTrades", "0")
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
-	router.Methods("POST").Path("/tv-hook").HandlerFunc(tvWebhookHandler)
+	router.Methods("POST").Path("/trade").HandlerFunc(newTradeHandler)
 
 	port := os.Getenv("PORT")
 	fmt.Println("strategy-svc listening on port " + port)

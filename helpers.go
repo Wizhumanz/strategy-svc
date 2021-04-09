@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"cloud.google.com/go/datastore"
+	"gitlab.com/myikaco/msngr"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -37,4 +39,16 @@ func authenticateUser(req loginReq) bool {
 
 	// check password hash and return
 	return CheckPasswordHash(req.Password, userWithEmail.Password)
+}
+
+func streamListenLoop(listenStreamName, lastRespID string) {
+	for {
+		last, streamMsg := msngr.ListenStream(listenStreamName, lastRespID)
+		lastRespID = last
+
+		//parse response
+		for _, r := range streamMsg {
+			fmt.Println(r)
+		}
+	}
 }

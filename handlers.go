@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -15,16 +14,11 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	// w.Write([]byte(`{"msg": "привет сука"}`))
 }
 
-func tvWebhookHandler(w http.ResponseWriter, r *http.Request) {
-	//decode/unmarshall the body
-	//two properties: "msg", "size"
-	var webHookRes webHookResponse
-	err := json.NewDecoder(r.Body).Decode(&webHookRes)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+//Process for executing trade actions
+// 1. TV webhook calls api-gateway /webhook route
+// 2. api-gateway adds new trade info (<userID>:<aggregateID>) into webhookTrades stream
+// 3. strategy-svc executes saga for each msg in webhookTrades stream
 
-	fmt.Println(webHookRes.Msg)
-	fmt.Println(webHookRes.Size)
+func newTradeHandler(w http.ResponseWriter, r *http.Request) {
+	//PASSED FROM CALLER: []{userID, trade aggregateID, botData} (run trade on each), signal data (long/short, SL/TP, etc)
 }

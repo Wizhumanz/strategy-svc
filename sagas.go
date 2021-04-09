@@ -6,10 +6,6 @@ import (
 	"gitlab.com/myikaco/saga"
 )
 
-func wakeServices() {
-	//send requests to order and analytics svc to relay stream name to listen "<user_id>:<aggregate_id>"
-}
-
 var OpenTradeSaga saga.Saga
 
 // OpenTradeSaga T1
