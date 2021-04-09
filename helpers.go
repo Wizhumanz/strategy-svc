@@ -26,17 +26,7 @@ func streamListenLoop(listenStreamName string, lastRespID string) {
 		//parse response
 		for _, r := range streamMsg {
 			fmt.Println(r)
-
-			switch r {
-			case "CMD = ENTER":
-				fmt.Println("ENTER cmd received")
-			case "CMD = EXIT":
-				fmt.Println("EXIT cmd received")
-			case "CMD = SL":
-				fmt.Println("SL cmd received")
-			case "CMD = TP":
-				fmt.Println("TP cmd received")
-			}
+			//TODO: switch statement with fancy new map return type
 		}
 	}
 }

@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/datastore v1.5.0
 	github.com/go-redis/redis/v8 v8.5.0
 	github.com/gorilla/mux v1.8.0
-	gitlab.com/myikaco/msngr v0.3.1
+	gitlab.com/myikaco/msngr v0.3.2
 	gitlab.com/myikaco/saga v0.2.0
 	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b
 	golang.org/x/mod v0.4.2 // indirect
