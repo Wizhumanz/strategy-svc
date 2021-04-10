@@ -40,7 +40,6 @@ func main() {
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
-	router.Methods("POST").Path("/trade").HandlerFunc(newTradeHandler)
 
 	port := os.Getenv("PORT")
 	fmt.Println("strategy-svc listening on port " + port)
