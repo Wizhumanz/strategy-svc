@@ -2,6 +2,14 @@
 
 Strategy service to call orders for Anastasia.
 
+## Theory
+
+Process for executing trade actions
+1. TV webhook calls `/webhook` route in `api-gateway`
+2. api-gateway adds new trade with key `<aggregateID>:<userID>:<botID>` into `webhookTrades` stream
+3. `strategy-svc` starts saga for each msg in `webhookTrades` stream
+4. Saga started by `strategy-svc` listened by `analytics-svc` and `order-svc`
+
 ## Local Dev
 
 ```
