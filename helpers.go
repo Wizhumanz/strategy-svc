@@ -33,7 +33,7 @@ func streamListenLoop(listenStreamName string, lastRespID string) {
 				msgs = append(msgs, "Order Size")
 				msgs = append(msgs, "100x long bitch")
 				msgs = append(msgs, "END")
-				msgs = append(msgs, "Kys")
+				msgs = append(msgs, "END")
 
 				switch m {
 				case "ENTER":
