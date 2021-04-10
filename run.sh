@@ -1,5 +1,5 @@
 export PORT=8001
 
-go build -o build/api .
+go build -o build/strat .
 
-build/api
+build/strat

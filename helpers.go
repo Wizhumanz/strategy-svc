@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"gitlab.com/myikaco/msngr"
 	"golang.org/x/crypto/bcrypt"
@@ -19,14 +20,41 @@ func CheckPasswordHash(password, hash string) bool {
 
 func streamListenLoop(listenStreamName string, lastRespID string) {
 	for {
-		fmt.Println("Listening...")
-		last, streamMsg := msngr.ListenStream(listenStreamName, lastRespID)
+		fmt.Println("\nListening...")
+		last, streamMsgs := msngr.ListenStream(listenStreamName, lastRespID)
 		lastRespID = last
 
 		//parse response
-		for _, r := range streamMsg {
-			fmt.Println(r)
-			//TODO: switch statement with fancy new map return type
+		for _, strMsg := range streamMsgs {
+			for _, m := range strMsg.MsgVals {
+				msgs := []string{}
+				msgs = append(msgs, "MSG")
+				msgs = append(msgs, "hey there")
+				msgs = append(msgs, "Order Size")
+				msgs = append(msgs, "100x long bitch")
+				msgs = append(msgs, "END")
+				msgs = append(msgs, "Kys")
+
+				switch m {
+				case "ENTER":
+					//find new trade stream name
+					var newTradeStrName string
+					for _, im := range strMsg.MsgVals {
+						if strings.Contains(im, ":") {
+							newTradeStrName = im
+						}
+					}
+					//trigger other services
+					fmt.Println("Adding to stream " + newTradeStrName)
+					msngr.AddToStream(newTradeStrName, msgs)
+				case "EXIT":
+					fmt.Println("EXIT cmd received")
+				case "SL":
+					fmt.Println("SL cmd received")
+				case "TP":
+					fmt.Println("TP cmd received")
+				}
+			}
 		}
 	}
 }
