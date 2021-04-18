@@ -17,8 +17,11 @@ var redisHost = os.Getenv("REDISHOST")
 var redisPort = os.Getenv("REDISPORT")
 var redisAddr = fmt.Sprintf("%s:%s", redisHost, redisPort)
 var rdb *redis.Client
+var lastIDSaveKey string
 
 func main() {
+	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
+
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
 	msngr.InitDatastore()
@@ -34,9 +37,12 @@ func main() {
 		},
 	}
 
-	//TODO: mechanism for storing lastID to only process new trades
 	//continuously listen for new trades to manage in webhookTrades stream
-	go streamListenLoop("webhookTrades", "0")
+	l, _ := msngr.GetLastID(lastIDSaveKey)
+	if l == "" {
+		l = "0"
+	}
+	go streamListenLoop("webhookTrades", l)
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)

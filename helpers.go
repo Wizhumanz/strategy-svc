@@ -8,6 +8,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// func initRedis() {
+// 	// default to dev redis instance
+// 	if redisHost == "" {
+// 		redisHost = "127.0.0.1"
+// 		fmt.Println("Env var nil, using redis dev address -- " + redisHost)
+// 	}
+// 	if redisPort == "" {
+// 		redisPort = "6379"
+// 		fmt.Println("Env var nil, using redis dev port -- " + redisPort)
+// 	}
+// 	fmt.Println("Connecting to Redis on " + redisHost + ":" + redisPort)
+// 	rdb = redis.NewClient(&redis.Options{
+// 		Addr: redisHost + ":" + redisPort,
+// 	})
+// }
+
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 2)
 	return string(bytes), err
@@ -22,7 +38,13 @@ func streamListenLoop(listenStreamName string, lastRespID string) {
 	for {
 		fmt.Println("\nListening...")
 		last, streamMsgs := msngr.ListenStream(listenStreamName, lastRespID)
+
+		//save last ID to only get new msgs later
 		lastRespID = last
+		saveErr := msngr.SaveLastID(lastIDSaveKey, last)
+		if saveErr != nil {
+			fmt.Println(saveErr.Error())
+		}
 
 		//parse response
 		for _, strMsg := range streamMsgs {

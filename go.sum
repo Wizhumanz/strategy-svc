@@ -69,6 +69,8 @@ github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200222043503-6f7a984d4dc4/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
+github.com/go-redis/redis v6.15.9+incompatible h1:K0pv1D7EQUjfyoMql+r/jZqCLizCGKFlFgcHWWmHQjg=
+github.com/go-redis/redis v6.15.9+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/go-redis/redis/v8 v8.5.0 h1:L3r1Q3I5WOUdXZGCP6g44EruKh0u3n6co5Hl5xWkdGA=
 github.com/go-redis/redis/v8 v8.5.0/go.mod h1:YmEcgBDttjnkbMzDAhDtQxY9yVA7jMN6PCR5HeMvqFE=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
@@ -183,6 +185,8 @@ gitlab.com/myikaco/msngr v0.3.2 h1:6bD9RNDk/+OlAXY5TL1pRImQ1c/AJFDGWZ1IBsFkE+k=
 gitlab.com/myikaco/msngr v0.3.2/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
 gitlab.com/myikaco/msngr v0.3.3 h1:8z5wihx3JVWXBCXR5369ARlHLUWaETx8X2VU5B1hutg=
 gitlab.com/myikaco/msngr v0.3.3/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
+gitlab.com/myikaco/msngr v0.3.5 h1:QvXgwK5M76RiIZ+nyp89w1zSGQAsItyTMm6hvWxN6o0=
+gitlab.com/myikaco/msngr v0.3.5/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
 gitlab.com/myikaco/saga v0.1.0 h1:tyRDha3vNjbOm7SDgzTrDkO8lIs2jx71gYFMFz53xUI=
 gitlab.com/myikaco/saga v0.1.0/go.mod h1:5T18vDgtMHLqfHErxaPH7fyha0uItevFUErnb2Tbaf0=
 gitlab.com/myikaco/saga v0.2.0 h1:O4v4omEVbak4OBerVxgANvgrSHNl616Cgl28/oMxpFQ=
