@@ -3,7 +3,6 @@ module gitlab.com/anastasia-bot/strategy-svc
 go 1.16
 
 require (
-	cloud.google.com/go/datastore v1.5.0
 	github.com/go-redis/redis/v8 v8.5.0
 	github.com/gorilla/mux v1.8.0
 	gitlab.com/myikaco/msngr v0.3.5
