@@ -24,7 +24,6 @@ func main() {
 
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
-	msngr.InitDatastore()
 
 	//init sagas
 	OpenTradeSaga = saga.Saga{

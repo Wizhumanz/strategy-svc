@@ -37,7 +37,7 @@ func CheckPasswordHash(password, hash string) bool {
 func streamListenLoop(listenStreamName string, lastRespID string) {
 	for {
 		fmt.Println("\nListening...")
-		last, streamMsgs := msngr.ListenStream(listenStreamName, lastRespID)
+		last, streamMsgs := msngr.ReadStream(listenStreamName, lastRespID, "", "", 1)
 
 		//save last ID to only get new msgs later
 		lastRespID = last
@@ -48,7 +48,7 @@ func streamListenLoop(listenStreamName string, lastRespID string) {
 
 		//parse response
 		for _, strMsg := range streamMsgs {
-			for _, m := range strMsg.MsgVals {
+			for _, m := range strMsg.Messages {
 				msgs := []string{}
 				msgs = append(msgs, "MSG")
 				msgs = append(msgs, "hey there")
@@ -57,13 +57,14 @@ func streamListenLoop(listenStreamName string, lastRespID string) {
 				msgs = append(msgs, "END")
 				msgs = append(msgs, "END")
 
-				switch m {
+				switch m.Values["CMD"] {
 				case "ENTER":
 					//find new trade stream name
 					var newTradeStrName string
-					for _, im := range strMsg.MsgVals {
-						if strings.Contains(im, ":") {
-							newTradeStrName = im
+					for _, fm := range strMsg.Messages {
+						str := fm.Values["CMD"].(string)
+						if strings.Contains(str, ":") {
+							newTradeStrName = str
 						}
 					}
 					//trigger other services
