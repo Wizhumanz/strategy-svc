@@ -34,10 +34,10 @@ func CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func streamListenLoop(listenStreamName string, lastRespID string) {
+func streamListenLoop(listenStreamName, lastRespID, consumerGroup, consumerID string) {
 	for {
 		fmt.Println("\nListening...")
-		last, streamMsgs := msngr.ReadStream(listenStreamName, lastRespID, "", "", 1)
+		last, streamMsgs := msngr.ReadStream(listenStreamName, lastRespID, consumerGroup, consumerID, 1)
 
 		//save last ID to only get new msgs later
 		lastRespID = last
@@ -47,35 +47,39 @@ func streamListenLoop(listenStreamName string, lastRespID string) {
 		}
 
 		//parse response
-		for _, strMsg := range streamMsgs {
-			for _, m := range strMsg.Messages {
-				msgs := []string{}
-				msgs = append(msgs, "MSG")
-				msgs = append(msgs, "hey there")
-				msgs = append(msgs, "Order Size")
-				msgs = append(msgs, "100x long bitch")
-				msgs = append(msgs, "END")
-				msgs = append(msgs, "END")
+		if len(streamMsgs) > 0 {
+			for _, strMsg := range streamMsgs {
+				for _, m := range strMsg.Messages {
+					msgs := []string{}
+					msgs = append(msgs, "MSG")
+					msgs = append(msgs, "hey there")
+					msgs = append(msgs, "Order Size")
+					msgs = append(msgs, "100x long bitch")
+					msgs = append(msgs, "END")
+					msgs = append(msgs, "END")
 
-				switch m.Values["CMD"] {
-				case "ENTER":
-					//find new trade stream name
-					var newTradeStrName string
-					for _, fm := range strMsg.Messages {
-						str := fm.Values["CMD"].(string)
-						if strings.Contains(str, ":") {
-							newTradeStrName = str
+					switch m.Values["CMD"] {
+					case "ENTER":
+						//TODO: start OpenTradeSaga
+
+						//find new trade stream name
+						var newTradeStrName string
+						for _, fm := range strMsg.Messages {
+							str := fm.Values["CMD"].(string)
+							if strings.Contains(str, ":") {
+								newTradeStrName = str
+							}
 						}
+						//trigger other services
+						fmt.Println("Adding to stream " + newTradeStrName)
+						msngr.AddToStream(newTradeStrName, msgs)
+					case "EXIT":
+						fmt.Println("EXIT cmd received")
+					case "SL":
+						fmt.Println("SL cmd received")
+					case "TP":
+						fmt.Println("TP cmd received")
 					}
-					//trigger other services
-					fmt.Println("Adding to stream " + newTradeStrName)
-					msngr.AddToStream(newTradeStrName, msgs)
-				case "EXIT":
-					fmt.Println("EXIT cmd received")
-				case "SL":
-					fmt.Println("SL cmd received")
-				case "TP":
-					fmt.Println("TP cmd received")
 				}
 			}
 		}

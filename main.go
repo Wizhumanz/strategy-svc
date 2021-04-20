@@ -17,11 +17,15 @@ var redisHost = os.Getenv("REDISHOST")
 var redisPort = os.Getenv("REDISPORT")
 var redisAddr = fmt.Sprintf("%s:%s", redisHost, redisPort)
 var rdb *redis.Client
+var newTradeReqStream string
+var svcConsumerGroupName string
 var lastIDSaveKey string
+var redisConsumerID string
 
 func main() {
+	newTradeReqStream = "webhookTrades"
+	svcConsumerGroupName = "strategy-svc"
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
-
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
 
@@ -36,12 +40,20 @@ func main() {
 		},
 	}
 
-	//continuously listen for new trades to manage in webhookTrades stream
-	l, _ := msngr.GetLastID(lastIDSaveKey)
-	if l == "" {
-		l = "0"
+	//create new redis consumer group for webhookTrades stream
+	_, err := msngr.CreateNewConsumerGroup(newTradeReqStream, svcConsumerGroupName, "0")
+	if err != nil {
+		fmt.Printf("%s Redis consumer group - %v", svcConsumerGroupName, err.Error())
 	}
-	go streamListenLoop("webhookTrades", l)
+	//create new redis consumer group ID
+	redisConsumerID = msngr.GenerateNewConsumerID("strat")
+
+	//continuously listen for new trades to manage in webhookTrades stream
+	lastID, _ := msngr.GetLastID(lastIDSaveKey)
+	if lastID == "" {
+		lastID = "0"
+	}
+	go streamListenLoop(newTradeReqStream, lastID, svcConsumerGroupName, redisConsumerID)
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
