@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -21,11 +22,13 @@ var newTradeReqStream string
 var svcConsumerGroupName string
 var lastIDSaveKey string
 var redisConsumerID string
+var minIdleAutoclaim string
 
 func main() {
 	newTradeReqStream = "webhookTrades"
 	svcConsumerGroupName = "strategy-svc"
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
+	minIdleAutoclaim = "300000" // 5 mins
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
 
@@ -46,15 +49,23 @@ func main() {
 		fmt.Printf("%s Redis consumer group - %v", svcConsumerGroupName, err.Error())
 	}
 	//create new redis consumer group ID
+	//always create new ID because dead consumers' pending msgs will be autoclaimed
 	redisConsumerID = msngr.GenerateNewConsumerID("strat")
 
+	//live servicing
+
+	//autoclaim pending messages from dead consumers in same group
+	go autoClaimMsgsLoop(newTradeReqStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1")
+
 	//continuously listen for new trades to manage in webhookTrades stream
-	lastID, _ := msngr.GetLastID(lastIDSaveKey)
+	var ctx = context.Background()
+	lastID, _ := rdb.Get(ctx, lastIDSaveKey).Result()
 	if lastID == "" {
 		lastID = "0"
 	}
 	go streamListenLoop(newTradeReqStream, lastID, svcConsumerGroupName, redisConsumerID)
 
+	//regular REST API
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
 

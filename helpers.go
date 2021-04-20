@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-redis/redis/v8"
 	"gitlab.com/myikaco/msngr"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // func initRedis() {
@@ -24,20 +24,41 @@ import (
 // 	})
 // }
 
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 2)
-	return string(bytes), err
+// readAndParse takes a stream reader function <readFunc> and stream message parser function <parserFunc>.
+// It runs <readFunc> to get new stream messages and passes the result to <parserFunc> for processing.
+// It returns a string which is either the lastID of the latest message read, or a message "OK" on successful claiming of a pending consumer group message.
+func readAndParse(
+	readFunc func(...string) (interface{}, interface{}),
+	parserFunc func([]redis.XStream),
+	newTradeStream, consGroup, cons, minIdle, startID, count string) string {
+	var ret string
+	if minIdle != "" {
+		msg, _ := readFunc(newTradeStream, consGroup, cons, startID, count, minIdle)
+		ret = msg.(string)
+	} else {
+		lastID, _ := readFunc(newTradeStream, consGroup, cons, startID, count)
+		ret = lastID.(string)
+	}
+
+	return ret
 }
 
-func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+//TODO: two funcs below use new readAndParse func
+//TODO: refactor out parser func
+
+func autoClaimMsgsLoop(newTradeStream, consGroup, cons, minIdle, startID, count string) {
+	msngr.AutoClaimPendingMsgs(newTradeStream, consGroup, cons, startID, count, minIdle)
 }
 
-func streamListenLoop(listenStreamName, lastRespID, consumerGroup, consumerID string) {
+func streamListenLoop(listenStreamName, lastRespID, consumerGroup, consumerID, count string) {
 	for {
 		fmt.Println("\nListening...")
-		last, streamMsgs := msngr.ReadStream(listenStreamName, lastRespID, consumerGroup, consumerID, 1)
+		last, streamMsgs := msngr.ReadStream(
+			listenStreamName,
+			consumerGroup,
+			consumerID,
+			lastRespID,
+			count)
 
 		//save last ID to only get new msgs later
 		lastRespID = last
