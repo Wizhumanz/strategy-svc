@@ -31,6 +31,7 @@ func main() {
 	minIdleAutoclaim = "300000" // 5 mins
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
+	initRedis()
 
 	//init sagas
 	OpenTradeSaga = saga.Saga{

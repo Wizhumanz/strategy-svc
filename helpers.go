@@ -9,21 +9,19 @@ import (
 	"gitlab.com/myikaco/msngr"
 )
 
-// func initRedis() {
-// 	// default to dev redis instance
-// 	if redisHost == "" {
-// 		redisHost = "127.0.0.1"
-// 		fmt.Println("Env var nil, using redis dev address -- " + redisHost)
-// 	}
-// 	if redisPort == "" {
-// 		redisPort = "6379"
-// 		fmt.Println("Env var nil, using redis dev port -- " + redisPort)
-// 	}
-// 	fmt.Println("Connecting to Redis on " + redisHost + ":" + redisPort)
-// 	rdb = redis.NewClient(&redis.Options{
-// 		Addr: redisHost + ":" + redisPort,
-// 	})
-// }
+func initRedis() {
+	// default to dev redis instance
+	if redisHost == "" {
+		redisHost = "127.0.0.1"
+	}
+	if redisPort == "" {
+		redisPort = "6379"
+	}
+	fmt.Println(redisConsumerID + " Redis conn " + redisHost + ":" + redisPort)
+	rdb = redis.NewClient(&redis.Options{
+		Addr: redisHost + ":" + redisPort,
+	})
+}
 
 func parseStream(stream []redis.XStream) {
 	//parse response
@@ -35,8 +33,6 @@ func parseStream(stream []redis.XStream) {
 				msgs = append(msgs, "hey there")
 				msgs = append(msgs, "Order Size")
 				msgs = append(msgs, "100x long bitch")
-				msgs = append(msgs, "END")
-				msgs = append(msgs, "END")
 
 				switch m.Values["CMD"] {
 				case "ENTER":
@@ -106,7 +102,7 @@ func streamListenLoop(listenStreamName, lastRespID, consumerGroup, consumerID, c
 	args["count"] = count
 
 	for {
-		fmt.Println("\n %s listening on new trade stream %s...", consumerID, newTradeCmdStream)
+		fmt.Printf("\n %v listening on new trade stream %v...", consumerID, newTradeCmdStream)
 		newLastMsgID := readAndParse(msngr.AutoClaimPendingMsgs, parseStream, args)
 		args["start"] = newLastMsgID
 
