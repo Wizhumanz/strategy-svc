@@ -18,14 +18,14 @@ var redisHost = os.Getenv("REDISHOST")
 var redisPort = os.Getenv("REDISPORT")
 var redisAddr = fmt.Sprintf("%s:%s", redisHost, redisPort)
 var rdb *redis.Client
-var newTradeReqStream string
+var newTradeCmdStream string
 var svcConsumerGroupName string
 var lastIDSaveKey string
 var redisConsumerID string
 var minIdleAutoclaim string
 
 func main() {
-	newTradeReqStream = "webhookTrades"
+	newTradeCmdStream = "webhookTrades"
 	svcConsumerGroupName = "strategy-svc"
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
 	minIdleAutoclaim = "300000" // 5 mins
@@ -44,7 +44,7 @@ func main() {
 	}
 
 	//create new redis consumer group for webhookTrades stream
-	_, err := msngr.CreateNewConsumerGroup(newTradeReqStream, svcConsumerGroupName, "0")
+	_, err := msngr.CreateNewConsumerGroup(newTradeCmdStream, svcConsumerGroupName, "0")
 	if err != nil {
 		fmt.Printf("%s Redis consumer group - %v", svcConsumerGroupName, err.Error())
 	}
@@ -55,7 +55,7 @@ func main() {
 	//live servicing
 
 	//autoclaim pending messages from dead consumers in same group
-	go autoClaimMsgsLoop(newTradeReqStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1")
+	go autoClaimMsgsLoop(newTradeCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1")
 
 	//continuously listen for new trades to manage in webhookTrades stream
 	var ctx = context.Background()
@@ -63,7 +63,7 @@ func main() {
 	if lastID == "" {
 		lastID = "0"
 	}
-	go streamListenLoop(newTradeReqStream, lastID, svcConsumerGroupName, redisConsumerID)
+	go streamListenLoop(newTradeCmdStream, lastID, svcConsumerGroupName, redisConsumerID, "1")
 
 	//regular REST API
 	router := mux.NewRouter().StrictSlash(true)
