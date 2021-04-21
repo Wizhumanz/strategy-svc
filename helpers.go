@@ -65,15 +65,18 @@ func parseStream(stream []redis.XStream) {
 // It runs <readFunc> to get new stream messages and passes the result to <parserFunc> for processing.
 // It returns a string which is either the lastID of the latest message read, or a message "OK" on successful claiming of a pending consumer group message.
 func readAndParse(
-	readFunc func(map[string]string) (interface{}, interface{}),
+	readFunc func(map[string]string) (interface{}, interface{}, error),
 	parserFunc func([]redis.XStream),
-	args map[string]string) string {
+	args map[string]string) (string, error) {
 	var ret string
 
-	msg, _ := readFunc(args)
-	ret = msg.(string)
+	a, b, error := readFunc(args)
+	if lastID, ok := a.(string); ok {
+		parserFunc(b.([]redis.XStream))
+		return lastID, error
+	}
 
-	return ret
+	return fmt.Sprint(ret), nil
 }
 
 func autoClaimMsgsLoop(newTradeStream, consGroup, cons, minIdle, startID, count string) {
@@ -87,9 +90,14 @@ func autoClaimMsgsLoop(newTradeStream, consGroup, cons, minIdle, startID, count 
 
 	for {
 		fmt.Println("\n Autoclaim old pending msgs...")
-		msg := readAndParse(msngr.AutoClaimPendingMsgs, parseStream, args)
-		fmt.Printf("Auto claim old msgs response: %v \nWaiting 10 secs before next listen...", msg)
-		time.Sleep(10000)
+		msg, err := readAndParse(msngr.AutoClaimPendingMsgs, parseStream, args)
+		if err != nil {
+			fmt.Printf("%s \nSleeping 5 secs before retry", err.Error())
+			time.Sleep(5000 * time.Millisecond)
+		} else {
+			fmt.Printf("Auto claim old msgs response: %v \nWaiting 10 secs before next listen...", msg)
+			time.Sleep(10000 * time.Millisecond)
+		}
 	}
 }
 
@@ -103,12 +111,16 @@ func streamListenLoop(listenStreamName, lastRespID, consumerGroup, consumerID, c
 
 	for {
 		fmt.Printf("\n %v listening on new trade stream %v...", consumerID, newTradeCmdStream)
-		newLastMsgID := readAndParse(msngr.AutoClaimPendingMsgs, parseStream, args)
-		args["start"] = newLastMsgID
-
-		saveErr := msngr.SaveLastID(lastIDSaveKey, newLastMsgID)
-		if saveErr != nil {
-			fmt.Println(saveErr.Error())
+		newLastMsgID, err := readAndParse(msngr.AutoClaimPendingMsgs, parseStream, args)
+		if err != nil {
+			fmt.Printf("%s \nSleeping 5 secs before retry", err.Error())
+			time.Sleep(5000 * time.Millisecond)
+		} else {
+			args["start"] = newLastMsgID
+			saveErr := msngr.SaveLastID(lastIDSaveKey, newLastMsgID)
+			if saveErr != nil {
+				fmt.Println(saveErr.Error())
+			}
 		}
 	}
 }
