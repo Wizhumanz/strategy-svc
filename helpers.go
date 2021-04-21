@@ -110,7 +110,7 @@ func streamListenLoop(listenStreamName, lastRespID, consumerGroup, consumerID, c
 	args["count"] = count
 
 	for {
-		fmt.Printf("\n %v listening on new trade stream %v...", consumerID, newTradeCmdStream)
+		fmt.Printf(colorRed+"\n %v listening on new trade stream %v...\n"+colorReset, consumerID, newTradeCmdStream)
 		newLastMsgID, err := readAndParse(msngr.AutoClaimPendingMsgs, parseStream, args)
 		if err != nil {
 			fmt.Printf("%s \nSleeping 5 secs before retry", err.Error())
