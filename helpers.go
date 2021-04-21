@@ -23,47 +23,57 @@ func initRedis() {
 	})
 }
 
-func parseStream(stream []redis.XStream) {
+func parseStream(stream []redis.XStream, streamName string, groupName string, consumerName string) {
 	// fmt.Println(colorYellow + "Parsing stream " + fmt.Sprint(stream) + colorReset)
 	//parse response
-	if len(stream) > 0 {
-		for _, strMsg := range stream {
-			for _, m := range strMsg.Messages {
-				fmt.Printf("Parsing new message: %v", m)
+	if len(stream) <= 0 {
+		fmt.Println("Stream to parse length is 0!")
+		return
+	}
 
-				msgs := []string{}
-				msgs = append(msgs, "MSG")
-				msgs = append(msgs, "hey there")
-				msgs = append(msgs, "Order Size")
-				msgs = append(msgs, "100x long bitch")
+	//for every stream (usually just one at a time)
+	for _, strMsgs := range stream {
+		//for every message in stream
+		for _, m := range strMsgs.Messages {
+			fmt.Printf("Parsing new message: %v", m)
 
-				switch m.Values["CMD"] {
-				case "ENTER":
-					//TODO: start OpenTradeSaga
+			msgs := []string{}
+			msgs = append(msgs, "MSG")
+			msgs = append(msgs, "hey there")
+			msgs = append(msgs, "Order Size")
+			msgs = append(msgs, "100x long bitch")
 
-					//find new trade stream name
-					var newTradeStrName string
-					for _, message := range strMsg.Messages {
-						str := message.Values["TradeStreamName"].(string)
-						if strings.Contains(str, ":") {
-							newTradeStrName = str
-						}
+			switch m.Values["CMD"] {
+			case "ENTER":
+				//TODO: start OpenTradeSaga
+
+				//find new trade stream name
+				var newTradeStrName string
+				for _, message := range strMsgs.Messages {
+					str := message.Values["TradeStreamName"].(string)
+					if strings.Contains(str, ":") {
+						newTradeStrName = str
 					}
-
-					if newTradeStrName == "" {
-						fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
-					} else {
-						//trigger other services
-						fmt.Println("\nAdding to stream " + newTradeStrName)
-						msngr.AddToStream(newTradeStrName, msgs)
-					}
-				case "EXIT":
-					fmt.Println("EXIT cmd received")
-				case "SL":
-					fmt.Println("SL cmd received")
-				case "TP":
-					fmt.Println("TP cmd received")
 				}
+
+				if newTradeStrName == "" {
+					fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
+				} else {
+					//trigger other services
+					fmt.Println("\nAdding to stream " + newTradeStrName)
+					msngr.AddToStream(newTradeStrName, msgs)
+				}
+			case "EXIT":
+				fmt.Println("EXIT cmd received")
+			case "SL":
+				fmt.Println("SL cmd received")
+			case "TP":
+				fmt.Println("TP cmd received")
+			}
+
+			//if group and consumer name filled, acknowledge msg
+			if groupName != "" && consumerName != "" {
+				msngr.AcknowledgeMsg(streamName, groupName, consumerName, m.ID)
 			}
 		}
 	}
@@ -74,13 +84,13 @@ func parseStream(stream []redis.XStream) {
 // It returns a string which is either the lastID of the latest message read, or a message "OK" on successful claiming of a pending consumer group message.
 func readAndParse(
 	readFunc func(map[string]string) (interface{}, interface{}, error),
-	parserFunc func([]redis.XStream),
+	parserFunc func([]redis.XStream, string, string, string),
 	args map[string]string) (string, error) {
 	var ret string
 
 	a, b, error := readFunc(args)
 	if lastID, ok := a.(string); ok {
-		parserFunc(b.([]redis.XStream))
+		parserFunc(b.([]redis.XStream), args["streamName"], args["groupName"], args["consumerName"])
 		return lastID, error
 	}
 
@@ -97,19 +107,19 @@ func autoClaimMsgsLoop(newTradeStream, consGroup, cons, minIdle, startID, count 
 	args["minIdleTime"] = minIdle
 
 	for {
-		fmt.Println("\nAutoclaim old pending msgs...")
+		fmt.Println("\n" + colorYellow + "Autoclaim old pending msgs..." + colorReset)
 		msg, err := readAndParse(msngr.AutoClaimPendingMsgs, parseStream, args)
 		if err != nil {
 			fmt.Printf("%s \nSleeping 5 secs before retry", err.Error())
 			time.Sleep(5000 * time.Millisecond)
 		} else {
 			if msg == "" {
-				fmt.Println("No old pending msgs to autoclaim to autoclaim.")
+				fmt.Println("No old pending msgs to autoclaim.")
 			} else {
 				fmt.Println("Autoclaim old pending msgs response: " + msg)
 			}
-			fmt.Println("Waiting 10 secs before retry...")
-			time.Sleep(15000 * time.Millisecond)
+			fmt.Println("Waiting 10 secs to retry...")
+			time.Sleep(10000 * time.Millisecond)
 		}
 	}
 }
