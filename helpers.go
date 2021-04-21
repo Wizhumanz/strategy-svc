@@ -24,10 +24,13 @@ func initRedis() {
 }
 
 func parseStream(stream []redis.XStream) {
+	// fmt.Println(colorYellow + "Parsing stream " + fmt.Sprint(stream) + colorReset)
 	//parse response
 	if len(stream) > 0 {
 		for _, strMsg := range stream {
 			for _, m := range strMsg.Messages {
+				fmt.Printf("Parsing new message: %v", m)
+
 				msgs := []string{}
 				msgs = append(msgs, "MSG")
 				msgs = append(msgs, "hey there")
@@ -40,15 +43,20 @@ func parseStream(stream []redis.XStream) {
 
 					//find new trade stream name
 					var newTradeStrName string
-					for _, fm := range strMsg.Messages {
-						str := fm.Values["CMD"].(string)
+					for _, message := range strMsg.Messages {
+						str := message.Values["TradeStreamName"].(string)
 						if strings.Contains(str, ":") {
 							newTradeStrName = str
 						}
 					}
-					//trigger other services
-					fmt.Println("Adding to stream " + newTradeStrName)
-					msngr.AddToStream(newTradeStrName, msgs)
+
+					if newTradeStrName == "" {
+						fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
+					} else {
+						//trigger other services
+						fmt.Println("\nAdding to stream " + newTradeStrName)
+						msngr.AddToStream(newTradeStrName, msgs)
+					}
 				case "EXIT":
 					fmt.Println("EXIT cmd received")
 				case "SL":
@@ -89,14 +97,19 @@ func autoClaimMsgsLoop(newTradeStream, consGroup, cons, minIdle, startID, count 
 	args["minIdleTime"] = minIdle
 
 	for {
-		fmt.Println("\n Autoclaim old pending msgs...")
+		fmt.Println("\nAutoclaim old pending msgs...")
 		msg, err := readAndParse(msngr.AutoClaimPendingMsgs, parseStream, args)
 		if err != nil {
 			fmt.Printf("%s \nSleeping 5 secs before retry", err.Error())
 			time.Sleep(5000 * time.Millisecond)
 		} else {
-			fmt.Printf("Auto claim old msgs response: %v \nWaiting 10 secs before next listen...", msg)
-			time.Sleep(10000 * time.Millisecond)
+			if msg == "" {
+				fmt.Println("No old pending msgs to autoclaim to autoclaim.")
+			} else {
+				fmt.Println("Autoclaim old pending msgs response: " + msg)
+			}
+			fmt.Println("Waiting 10 secs before retry...")
+			time.Sleep(15000 * time.Millisecond)
 		}
 	}
 }
@@ -106,12 +119,12 @@ func streamListenLoop(listenStreamName, lastRespID, consumerGroup, consumerID, c
 	args["streamName"] = listenStreamName
 	args["groupName"] = consumerGroup
 	args["consumerName"] = consumerID
-	args["start"] = lastRespID
+	args["startID"] = lastRespID
 	args["count"] = count
 
 	for {
-		fmt.Printf(colorRed+"\n %v listening on new trade stream %v...\n"+colorReset, consumerID, newTradeCmdStream)
-		newLastMsgID, err := readAndParse(msngr.AutoClaimPendingMsgs, parseStream, args)
+		fmt.Printf(colorYellow+"\n %v listening on new trade stream %v...\n"+colorReset, consumerID, newTradeCmdStream)
+		newLastMsgID, err := readAndParse(msngr.ReadStream, parseStream, args)
 		if err != nil {
 			fmt.Printf("%s \nSleeping 5 secs before retry", err.Error())
 			time.Sleep(5000 * time.Millisecond)

@@ -73,7 +73,7 @@ func main() {
 	if lastID == "" {
 		lastID = "0"
 	}
-	go streamListenLoop(newTradeCmdStream, lastID, svcConsumerGroupName, redisConsumerID, "1")
+	go streamListenLoop(newTradeCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1")
 
 	//regular REST API
 	router := mux.NewRouter().StrictSlash(true)
