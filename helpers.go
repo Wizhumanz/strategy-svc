@@ -35,7 +35,7 @@ func parseStream(stream []redis.XStream, streamName string, groupName string, co
 	for _, strMsgs := range stream {
 		//for every message in stream
 		for _, m := range strMsgs.Messages {
-			fmt.Printf("Parsing new message: %v", m)
+			fmt.Printf("Parsing new message: %v\n", m)
 
 			msgs := []string{}
 			msgs = append(msgs, "MSG")
@@ -50,12 +50,15 @@ func parseStream(stream []redis.XStream, streamName string, groupName string, co
 				//find new trade stream name
 				var newTradeStrName string
 				for _, message := range strMsgs.Messages {
-					str := message.Values["TradeStreamName"].(string)
-					if strings.Contains(str, ":") {
-						newTradeStrName = str
+					if message.Values["TradeStreamName"] != nil {
+						str := message.Values["TradeStreamName"].(string)
+						if strings.Contains(str, ":") {
+							newTradeStrName = str
+						}
 					}
 				}
 
+				fmt.Println(newTradeStrName)
 				if newTradeStrName == "" {
 					fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
 				} else {
@@ -72,7 +75,7 @@ func parseStream(stream []redis.XStream, streamName string, groupName string, co
 			}
 
 			//if group and consumer name filled, acknowledge msg
-			if groupName != "" && consumerName != "" {
+			if groupName != "" && consumerName != "" && len(m.ID) > 6 {
 				msngr.AcknowledgeMsg(streamName, groupName, consumerName, m.ID)
 			}
 		}
@@ -89,9 +92,14 @@ func readAndParse(
 	var ret string
 
 	a, b, error := readFunc(args)
+	fmt.Println(a)
+
 	if lastID, ok := a.(string); ok {
 		parserFunc(b.([]redis.XStream), args["streamName"], args["groupName"], args["consumerName"])
 		return lastID, error
+	}
+	if streams, ok := a.([]redis.XStream); ok {
+		parserFunc(streams, args["streamName"], args["groupName"], args["consumerName"])
 	}
 
 	return fmt.Sprint(ret), nil
@@ -129,7 +137,7 @@ func streamListenLoop(listenStreamName, lastRespID, consumerGroup, consumerID, c
 	args["streamName"] = listenStreamName
 	args["groupName"] = consumerGroup
 	args["consumerName"] = consumerID
-	args["startID"] = lastRespID
+	args["start"] = lastRespID
 	args["count"] = count
 
 	for {

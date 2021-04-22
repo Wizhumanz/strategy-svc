@@ -37,7 +37,8 @@ func main() {
 	newTradeCmdStream = "webhookTrades"
 	svcConsumerGroupName = "strategy-svc"
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
-	minIdleAutoclaim = "300000" // 5 mins
+	// minIdleAutoclaim = "300000" // 5 mins
+	minIdleAutoclaim = "9" // TEST
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
 	initRedis()
@@ -56,7 +57,7 @@ func main() {
 	//create new redis consumer group for webhookTrades stream
 	_, err := msngr.CreateNewConsumerGroup(newTradeCmdStream, svcConsumerGroupName, "0")
 	if err != nil {
-		fmt.Printf("%s Redis consumer group - %v", svcConsumerGroupName, err.Error())
+		fmt.Printf("%s Redis consumer group - %v\n", svcConsumerGroupName, err.Error())
 	}
 	//create new redis consumer group ID
 	//always create new ID because dead consumers' pending msgs will be autoclaimed
