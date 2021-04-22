@@ -37,8 +37,7 @@ func main() {
 	newTradeCmdStream = "webhookTrades"
 	svcConsumerGroupName = "strategy-svc"
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
-	// minIdleAutoclaim = "300000" // 5 mins
-	minIdleAutoclaim = "9" // TEST
+	minIdleAutoclaim = "300000" // 5 mins
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
 	initRedis()
