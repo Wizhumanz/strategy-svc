@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -38,9 +37,22 @@ func main() {
 	svcConsumerGroupName = "strategy-svc"
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
 	minIdleAutoclaim = "300000" // 5 mins
+	initRedis()
+
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
-	initRedis()
+
+	CMDHandlerMap := make(map[string]func(redis.XMessage))
+	CMDHandlerMap["ENTER"] = CmdEnterHandler
+	CMDHandlerMap["EXIT"] = CmdExitHandler
+	CMDHandlerMap["TP"] = CmdTPHandler
+	CMDHandlerMap["SL"] = CmdSLHandler
+	msngr.IncomingMsgHandlers = []msngr.CommandHandler{
+		{
+			Command:        "CMD",
+			HandlerMatches: CMDHandlerMap,
+		},
+	}
 
 	//init sagas
 	OpenTradeSaga = saga.Saga{
@@ -68,12 +80,7 @@ func main() {
 	go autoClaimMsgsLoop(newTradeCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1")
 
 	//continuously listen for new trades to manage in webhookTrades stream
-	var ctx = context.Background()
-	lastID, _ := rdb.Get(ctx, lastIDSaveKey).Result()
-	if lastID == "" {
-		lastID = "0"
-	}
-	go streamListenLoop(newTradeCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1")
+	go streamListenLoop(newTradeCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey)
 
 	//regular REST API
 	router := mux.NewRouter().StrictSlash(true)
