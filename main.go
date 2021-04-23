@@ -77,10 +77,10 @@ func main() {
 	//live servicing
 
 	//autoclaim pending messages from dead consumers in same group
-	go autoClaimMsgsLoop(newTradeCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1")
+	go msngr.AutoClaimMsgsLoop(newTradeCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1")
 
 	//continuously listen for new trades to manage in webhookTrades stream
-	go streamListenLoop(newTradeCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey)
+	go msngr.StreamListenLoop(newTradeCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey)
 
 	//regular REST API
 	router := mux.NewRouter().StrictSlash(true)
