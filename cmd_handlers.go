@@ -33,7 +33,6 @@ func CmdEnterHandler(msg redis.XMessage) {
 		msgs = append(msgs, "Order Size")
 		msgs = append(msgs, "100x long bitch")
 		msngr.AddToStream(newTradeStrName, msgs)
-		fmt.Println("\nAdding to stream " + newTradeStrName)
 	}
 }
 
