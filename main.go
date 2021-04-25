@@ -60,17 +60,14 @@ func main() {
 			{
 				Transaction:             calcPosSize,
 				CompensatingTransaction: cancelCalcPosSize,
-				ListenForResponse:       false,
 			},
 			{
 				Transaction:             checkModel,
 				CompensatingTransaction: cancelCheckModel,
-				ListenForResponse:       false,
 			},
 			{
 				Transaction:             submitEntryOrder,
 				CompensatingTransaction: cancelSubmitEntryOrder,
-				ListenForResponse:       false,
 			},
 		},
 	}
