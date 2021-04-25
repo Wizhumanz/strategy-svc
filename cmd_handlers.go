@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/go-redis/redis/v8"
 	"gitlab.com/myikaco/msngr"
@@ -12,16 +11,9 @@ func CmdEnterHandler(msg redis.XMessage) {
 	//TODO: start OpenTradeSaga
 
 	//find new trade stream name
-	//TODO: convert into generic map filter func
-	var newTradeStrName string
-	for key, val := range msg.Values {
-		if key == "TradeStreamName" && val.(string) != "" {
-			str := val.(string)
-			if strings.Contains(str, ":") {
-				newTradeStrName = str
-			}
-		}
-	}
+	newTradeStrName := msngr.FilterMsgVals(msg, func(k, v string) bool {
+		return (k == "TradeStreamName" && v != "")
+	})
 
 	if newTradeStrName == "" {
 		fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
