@@ -8,12 +8,12 @@ import (
 )
 
 func CmdEnterHandler(msg redis.XMessage) {
-	//TODO: start OpenTradeSaga
-
 	//find new trade stream name
 	newTradeStrName := msngr.FilterMsgVals(msg, func(k, v string) bool {
 		return (k == "TradeStreamName" && v != "")
 	})
+
+	//start OpenTradeSaga
 
 	if newTradeStrName == "" {
 		fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)

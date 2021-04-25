@@ -58,8 +58,18 @@ func main() {
 	OpenTradeSaga = saga.Saga{
 		Steps: []saga.SagaStep{
 			{
+				Transaction:             calcPosSize,
+				CompensatingTransaction: cancelCalcPosSize,
+				ListenForResponse:       false,
+			},
+			{
 				Transaction:             checkModel,
 				CompensatingTransaction: cancelCheckModel,
+				ListenForResponse:       false,
+			},
+			{
+				Transaction:             submitEntryOrder,
+				CompensatingTransaction: cancelSubmitEntryOrder,
 				ListenForResponse:       false,
 			},
 		},
