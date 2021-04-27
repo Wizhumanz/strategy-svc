@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"gitlab.com/myikaco/msngr"
 	"gitlab.com/myikaco/saga"
@@ -11,11 +13,13 @@ var OpenTradeSaga saga.Saga
 
 // OpenTradeSaga T1
 func calcPosSize(args ...interface{}) (interface{}, error) {
+	fmt.Println("Running calcPosSize")
 	return 69.69, nil
 }
 
 // OpenTradeSaga T-1
 func cancelCalcPosSize(args ...interface{}) (interface{}, error) {
+	fmt.Println("Running cancelCalcPosSize")
 	// nothing to cancel
 	return nil, nil
 }
@@ -29,16 +33,24 @@ func checkModel(args ...interface{}) (interface{}, error) {
 
 // OpenTradeSaga T-2
 func cancelCheckModel(args ...interface{}) (interface{}, error) {
+	fmt.Println("Running cancelCheckModel")
 	//nothing to compensate
 	return nil, nil
 }
 
 // OpenTradeSaga T3
 func submitEntryOrder(args ...interface{}) (interface{}, error) {
-	//TODO: implement consec resp listening
-	//TODO: check returning an error from this saga step to initiate UndoSaga()
+	fmt.Println("Running submitEntryOrder")
 
-	//listen for first resp with CONSEC_RESP field
+	// XADD submitEntryOrderIntent
+	msgs := []string{}
+	msgs = append(msgs, "Action")
+	msgs = append(msgs, "SubmitEntryOrderIntent")
+	msgs = append(msgs, "Timestamp")
+	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
+	msngr.AddToStream(args[0].(string), msgs)
+
+	//listen for first resp from order-svc with CONSEC_RESP field
 	consecRespHeaders := []string{}
 	var interConsecRespHeaders interface{}
 	for {
@@ -68,16 +80,22 @@ func submitEntryOrder(args ...interface{}) (interface{}, error) {
 			},
 		}
 		msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, consecRespListenArgs, consecRespReadHandlers)
-
 		//TODO: how to react if received the wrong message?
 
 		//convert output interface{} to []string{}
 		if interConsecRespHeaders != nil {
-
+			if conv, ok := interConsecRespHeaders.(string); ok {
+				consecRespHeaders = strings.Split(conv, ",")
+			} else {
+				return nil, fmt.Errorf("could not convert consecutive response header field with value %s", interConsecRespHeaders)
+			}
 		}
 	}
 
-	// XADD submitEntryOrderIntent {timestamp}
+	//listen for consecutive responses with headers
+	for _, hd := range consecRespHeaders {
+		fmt.Println(hd)
+	}
 
 	// order-svc:
 	//  entryOrderSubmitted, entryOrderFilled
@@ -88,6 +106,8 @@ func submitEntryOrder(args ...interface{}) (interface{}, error) {
 
 // OpenTradeSaga T-3
 func cancelSubmitEntryOrder(args ...interface{}) (interface{}, error) {
+	fmt.Println("Running cancelSubmitEntryOrder")
+
 	// XADD cancelEntryOrderIntent {timestamp}
 
 	// order-svc:

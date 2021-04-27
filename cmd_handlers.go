@@ -14,6 +14,7 @@ func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
 	})
 
 	//start OpenTradeSaga
+	OpenTradeSaga.Execute(newTradeStrName, svcConsumerGroupName, redisConsumerID)
 
 	if newTradeStrName == "" {
 		fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
