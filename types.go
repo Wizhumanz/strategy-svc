@@ -10,11 +10,6 @@ type jsonResponse struct {
 	Body string `json:"body"`
 }
 
-type webHookResponse struct {
-	Msg  string `json:"message"`
-	Size string `json:"size"`
-}
-
 //for unmarshalling JSON to bools
 type JSONBool bool
 
@@ -22,11 +17,6 @@ func (bit *JSONBool) UnmarshalJSON(b []byte) error {
 	txt := string(b)
 	*bit = JSONBool(txt == "1" || txt == "true")
 	return nil
-}
-
-type loginReq struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 type User struct {

@@ -42,15 +42,35 @@ func main() {
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
 
-	CMDHandlerMap := make(map[string]func(redis.XMessage))
-	CMDHandlerMap["ENTER"] = CmdEnterHandler
-	CMDHandlerMap["EXIT"] = CmdExitHandler
-	CMDHandlerMap["TP"] = CmdTPHandler
-	CMDHandlerMap["SL"] = CmdSLHandler
-	msngr.IncomingMsgHandlers = []msngr.CommandHandler{
+	listenLoopHandlers := []msngr.CommandHandler{
 		{
-			Command:        "CMD",
-			HandlerMatches: CMDHandlerMap,
+			Command: "CMD",
+			HandlerMatches: []msngr.HandlerMatch{
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal == "ENTER"
+					},
+					Handler: CmdEnterHandler,
+				},
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal == "EXIT"
+					},
+					Handler: CmdExitHandler,
+				},
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal == "TP"
+					},
+					Handler: CmdTPHandler,
+				},
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal == "SL"
+					},
+					Handler: CmdSLHandler,
+				},
+			},
 		},
 	}
 
@@ -84,10 +104,10 @@ func main() {
 	//live servicing
 
 	//autoclaim pending messages from dead consumers in same group
-	go msngr.AutoClaimMsgsLoop(newTradeCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1")
+	go msngr.AutoClaimMsgsLoop(newTradeCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1", listenLoopHandlers)
 
 	//continuously listen for new trades to manage in webhookTrades stream
-	go msngr.StreamListenLoop(newTradeCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey)
+	go msngr.StreamListenLoop(newTradeCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey, listenLoopHandlers)
 
 	//regular REST API
 	router := mux.NewRouter().StrictSlash(true)

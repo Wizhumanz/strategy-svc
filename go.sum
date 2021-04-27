@@ -177,6 +177,12 @@ github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 gitlab.com/myikaco/msngr v0.4.26 h1:B2i+jbaBF41St1ly5A3UsTiySgsnuNihdHGFNs3Rag4=
 gitlab.com/myikaco/msngr v0.4.26/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
+gitlab.com/myikaco/msngr v0.4.27 h1:oY4n5JJ+QoVdQtLjIpB8LIBbyJIZzdWOM7j1QCpOC1Y=
+gitlab.com/myikaco/msngr v0.4.27/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
+gitlab.com/myikaco/msngr v0.4.28 h1:n9Qb8yPURaeOR/mfa0qBJVGhNarwIsIOL8nCTLF6fz8=
+gitlab.com/myikaco/msngr v0.4.28/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
+gitlab.com/myikaco/msngr v0.4.29 h1:GEdc7hgLlwbw7vN9ukbTYB41rnxQytoXCx6TB+s52DM=
+gitlab.com/myikaco/msngr v0.4.29/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
 gitlab.com/myikaco/saga v0.2.6 h1:WCrEZ8HTAmHgrnr1dbjDyboY4UOSJKkqYwxQzX5FmdI=
 gitlab.com/myikaco/saga v0.2.6/go.mod h1:7HVU0qHrWONBnxcfh672G6Y9PsmpA6x9xDZgLIB7ghw=
 gitlab.com/myikaco/saga v0.2.7 h1:wtcKrcSMCXpD9C/JxMGuF7ONbpLby95xGLfHoOq1+ks=

@@ -7,7 +7,7 @@ import (
 	"gitlab.com/myikaco/msngr"
 )
 
-func CmdEnterHandler(msg redis.XMessage) {
+func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
 	//find new trade stream name
 	newTradeStrName := msngr.FilterMsgVals(msg, func(k, v string) bool {
 		return (k == "TradeStreamName" && v != "")
@@ -28,14 +28,18 @@ func CmdEnterHandler(msg redis.XMessage) {
 	}
 }
 
-func CmdExitHandler(msg redis.XMessage) {
+func CmdExitHandler(msg redis.XMessage, output *interface{}) {
 	fmt.Printf("EXIT cmd received for message %s", msg)
 }
 
-func CmdSLHandler(msg redis.XMessage) {
+func CmdSLHandler(msg redis.XMessage, output *interface{}) {
 	fmt.Printf("EXIT cmd received for message %s", msg)
 }
 
-func CmdTPHandler(msg redis.XMessage) {
+func CmdTPHandler(msg redis.XMessage, output *interface{}) {
 	fmt.Printf("EXIT cmd received for message %s", msg)
+}
+
+func ConsecRespAnyHandler(msg redis.XMessage, output *interface{}) {
+	fmt.Printf("Inside consec resp handler for message %s and output %v", msg, &output)
 }

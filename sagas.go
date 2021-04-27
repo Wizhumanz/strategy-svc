@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"gitlab.com/myikaco/msngr"
 	"gitlab.com/myikaco/saga"
 )
 
@@ -34,6 +35,48 @@ func cancelCheckModel(args ...interface{}) (interface{}, error) {
 
 // OpenTradeSaga T3
 func submitEntryOrder(args ...interface{}) (interface{}, error) {
+	//TODO: implement consec resp listening
+	//TODO: check returning an error from this saga step to initiate UndoSaga()
+
+	//listen for first resp with CONSEC_RESP field
+	consecRespHeaders := []string{}
+	var interConsecRespHeaders interface{}
+	for {
+		if len(consecRespHeaders) > 0 {
+			break
+		}
+
+		consecRespListenArgs := make(map[string]string)
+		consecRespListenArgs["streamName"] = args[0].(string)
+		consecRespListenArgs["groupName"] = args[1].(string)
+		consecRespListenArgs["consumerName"] = args[2].(string)
+		consecRespListenArgs["start"] = ">"
+		consecRespListenArgs["count"] = "1"
+
+		consecRespReadHandlers := []msngr.CommandHandler{
+			{
+				Command: "CONSEC_RESP",
+				HandlerMatches: []msngr.HandlerMatch{
+					{
+						Matcher: func(fieldVal string) bool {
+							return fieldVal != ""
+						},
+						Handler: ConsecRespAnyHandler,
+						Output:  &interConsecRespHeaders,
+					},
+				},
+			},
+		}
+		msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, consecRespListenArgs, consecRespReadHandlers)
+
+		//TODO: how to react if received the wrong message?
+
+		//convert output interface{} to []string{}
+		if interConsecRespHeaders != nil {
+
+		}
+	}
+
 	// XADD submitEntryOrderIntent {timestamp}
 
 	// order-svc:
