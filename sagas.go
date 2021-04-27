@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"gitlab.com/myikaco/msngr"
 	"gitlab.com/myikaco/saga"
 )
@@ -73,8 +74,14 @@ func submitEntryOrder(args ...interface{}) (interface{}, error) {
 						Matcher: func(fieldVal string) bool {
 							return fieldVal != ""
 						},
-						Handler: ConsecRespAnyHandler,
-						Output:  &interConsecRespHeaders,
+						Handler: func(msg redis.XMessage, output *interface{}) {
+							fmt.Printf("Inside consec resp handler for message %s and output %v", msg, &output)
+
+							//process consec responses to &output arg
+							interConsecRespHeaders = msngr.FilterMsgVals(msg, func(key, val string) bool {
+								return key == "CONSEC_RESP"
+							})
+						},
 					},
 				},
 			},
@@ -83,6 +90,7 @@ func submitEntryOrder(args ...interface{}) (interface{}, error) {
 		//TODO: how to react if received the wrong message?
 
 		//convert output interface{} to []string{}
+		fmt.Println(interConsecRespHeaders)
 		if interConsecRespHeaders != nil {
 			if conv, ok := interConsecRespHeaders.(string); ok {
 				consecRespHeaders = strings.Split(conv, ",")
@@ -92,7 +100,10 @@ func submitEntryOrder(args ...interface{}) (interface{}, error) {
 		}
 	}
 
-	//listen for consecutive responses with headers
+	//TODO: fill out + test entire saga
+	//TODO: fill other sagas
+
+	//TODO: listen for consecutive responses with headers
 	for _, hd := range consecRespHeaders {
 		fmt.Println(hd)
 	}
