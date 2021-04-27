@@ -13,6 +13,11 @@ func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
 		return (k == "TradeStreamName" && v != "")
 	})
 
+	//create new consumer group for strategy-svc
+	_, err := msngr.CreateNewConsumerGroup(newTradeStrName, svcConsumerGroupName, "0")
+	if err != nil {
+		fmt.Printf(colorRed+"%s Redis consumer group - %v\n"+colorReset, svcConsumerGroupName, err.Error())
+	}
 	//start OpenTradeSaga (triggers other svcs)
 	OpenTradeSaga.Execute(newTradeStrName, svcConsumerGroupName, redisConsumerID)
 
