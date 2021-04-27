@@ -13,19 +13,11 @@ func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
 		return (k == "TradeStreamName" && v != "")
 	})
 
-	//start OpenTradeSaga
+	//start OpenTradeSaga (triggers other svcs)
 	OpenTradeSaga.Execute(newTradeStrName, svcConsumerGroupName, redisConsumerID)
 
 	if newTradeStrName == "" {
 		fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
-	} else {
-		//trigger other services
-		msgs := []string{}
-		msgs = append(msgs, "MSG")
-		msgs = append(msgs, "hey there")
-		msgs = append(msgs, "Order Size")
-		msgs = append(msgs, "100x long bitch")
-		msngr.AddToStream(newTradeStrName, msgs)
 	}
 }
 
