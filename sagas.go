@@ -15,7 +15,7 @@ var OpenTradeSaga saga.Saga
 // OpenTradeSaga T1
 func calcPosSize(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("Running calcPosSize")
-	return 69.69, nil
+	return "69.69", nil
 }
 
 // OpenTradeSaga T-1
