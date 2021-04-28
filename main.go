@@ -10,7 +10,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"gitlab.com/myikaco/msngr"
-	"gitlab.com/myikaco/saga"
 )
 
 var redisHost = os.Getenv("REDISHOST")
@@ -70,24 +69,6 @@ func main() {
 					},
 					Handler: CmdSLHandler,
 				},
-			},
-		},
-	}
-
-	//init sagas
-	OpenTradeSaga = saga.Saga{
-		Steps: []saga.SagaStep{
-			{
-				Transaction:             calcPosSize,
-				CompensatingTransaction: cancelCalcPosSize,
-			},
-			{
-				Transaction:             checkModel,
-				CompensatingTransaction: cancelCheckModel,
-			},
-			{
-				Transaction:             submitEntryOrder,
-				CompensatingTransaction: cancelSubmitEntryOrder,
 			},
 		},
 	}

@@ -7,7 +7,7 @@ import (
 	"gitlab.com/myikaco/msngr"
 )
 
-func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
+func handlerPrep(msg redis.XMessage) string {
 	//find new trade stream name
 	newTradeStrName := msngr.FilterMsgVals(msg, func(k, v string) bool {
 		return (k == "TradeStreamName" && v != "")
@@ -18,17 +18,29 @@ func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
 	if err != nil {
 		fmt.Printf(colorRed+"%s Redis consumer group - %v\n"+colorReset, svcConsumerGroupName, err.Error())
 	}
+
+	return newTradeStrName
+}
+
+func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
+	newTradeStrName := handlerPrep(msg)
+	if newTradeStrName == "" {
+		fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
+		return
+	}
 	//start OpenTradeSaga (triggers other svcs)
 	OpenTradeSaga.Execute(newTradeStrName, svcConsumerGroupName, redisConsumerID)
 	fmt.Println(colorGreen + "Saga complete! " + newTradeStrName + colorReset)
-
-	if newTradeStrName == "" {
-		fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
-	}
 }
 
 func CmdExitHandler(msg redis.XMessage, output *interface{}) {
-	fmt.Printf("EXIT cmd received for message %s", msg)
+	newTradeStrName := handlerPrep(msg)
+	if newTradeStrName == "" {
+		fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
+		return
+	}
+	ExitTradeSaga.Execute(newTradeStrName, svcConsumerGroupName, redisConsumerID)
+	fmt.Println(colorGreen + "Saga complete! " + newTradeStrName + colorReset)
 }
 
 func CmdSLHandler(msg redis.XMessage, output *interface{}) {
