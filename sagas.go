@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -53,80 +52,10 @@ func submitEntryOrder(args map[string]interface{}) (interface{}, error) {
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
 	msngr.AddToStream(args["tradeStream"].(string), msgs)
 
-	//listen for first resp from order-svc with CONSEC_RESP field
-	consecRespHeaders := []string{}
-	consecRespListenArgs := make(map[string]string)
-	consecRespListenArgs["streamName"] = args["tradeStream"].(string)
-	consecRespListenArgs["groupName"] = args["consumerGroup"].(string)
-	consecRespListenArgs["consumerName"] = args["consumerID"].(string)
-	consecRespListenArgs["start"] = ">"
-	consecRespListenArgs["count"] = "1"
-	var interConsecRespHeaders interface{}
-	for {
-		if len(consecRespHeaders) > 0 {
-			break
-		}
-
-		consecRespReadHandlers := []msngr.CommandHandler{
-			{
-				Command: "CONSEC_RESP",
-				HandlerMatches: []msngr.HandlerMatch{
-					{
-						Matcher: func(fieldVal string) bool {
-							return fieldVal != ""
-						},
-						Handler: func(msg redis.XMessage, output *interface{}) {
-							fmt.Printf("Inside consec resp handler for message %s and output %v", msg, &output)
-
-							//process consec responses to &output arg
-							interConsecRespHeaders = msngr.FilterMsgVals(msg, func(key, val string) bool {
-								return key == "CONSEC_RESP"
-							})
-						},
-					},
-				},
-			},
-		}
-		msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, consecRespListenArgs, consecRespReadHandlers)
-		//TODO: how to react if received the wrong message?
-
-		//convert output interface{} to []string{}
-		fmt.Println(interConsecRespHeaders)
-		if interConsecRespHeaders != nil {
-			if conv, ok := interConsecRespHeaders.(string); ok {
-				consecRespHeaders = strings.Split(conv, ",")
-			} else {
-				return nil, fmt.Errorf("could not convert consecutive response header field with value %s", interConsecRespHeaders)
-			}
-		}
-	}
-
-	//listen for consecutive responses with headers
-	for i, hd := range consecRespHeaders {
-		consecRespReadHandlers := []msngr.CommandHandler{
-			{
-				Command: "CONSEC_RESP",
-				HandlerMatches: []msngr.HandlerMatch{
-					{
-						Matcher: func(fieldVal string) bool {
-							return fieldVal != ""
-						},
-						Handler: func(msg redis.XMessage, output *interface{}) {
-							//check msg for consec header
-							consecHeader := msngr.FilterMsgVals(msg, func(key, val string) bool {
-								return key == "CONSEC_HEADER"
-							})
-							if consecHeader == hd {
-								fmt.Printf("Received consec header %v of %v: %s \n", i, len(consecRespHeaders), hd)
-							}
-						},
-					},
-				},
-			},
-		}
-
-		msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, consecRespListenArgs, consecRespReadHandlers)
-	}
+	//listen for consec responses
+	msngr.ListenConsecResponses(args, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
+		fmt.Printf("Read consec header at index %v val: %s, IsMatch = %v (%s)", i, v, isHeaderMatch, m.ID)
+	})
 
 	// order-svc:
 	//  entryOrderSubmitted, entryOrderFilled

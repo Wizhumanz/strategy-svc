@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/go-redis/redis/v8 v8.5.0
 	github.com/gorilla/mux v1.8.0
-	gitlab.com/myikaco/msngr v0.4.30
+	gitlab.com/myikaco/msngr v0.4.31
 	gitlab.com/myikaco/saga v0.2.11
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210315170653-34ac3e1c2000 // indirect
