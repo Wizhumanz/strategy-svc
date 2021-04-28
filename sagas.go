@@ -13,50 +13,52 @@ import (
 var OpenTradeSaga saga.Saga
 
 // OpenTradeSaga T1
-func calcPosSize(args ...interface{}) (interface{}, error) {
+func calcPosSize(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("Running calcPosSize")
 	return 69.69, nil
 }
 
 // OpenTradeSaga T-1
-func cancelCalcPosSize(args ...interface{}) (interface{}, error) {
+func cancelCalcPosSize(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("Running cancelCalcPosSize")
 	// nothing to cancel
 	return nil, nil
 }
 
 // OpenTradeSaga T2
-func checkModel(args ...interface{}) (interface{}, error) {
+func checkModel(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("CMD: Consulting ML model to decide if should take trade")
 	//response: trade OK
 	return nil, nil
 }
 
 // OpenTradeSaga T-2
-func cancelCheckModel(args ...interface{}) (interface{}, error) {
+func cancelCheckModel(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("Running cancelCheckModel")
 	//nothing to compensate
 	return nil, nil
 }
 
 // OpenTradeSaga T3
-func submitEntryOrder(args ...interface{}) (interface{}, error) {
+func submitEntryOrder(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("Running submitEntryOrder")
 
 	// XADD submitEntryOrderIntent
 	msgs := []string{}
 	msgs = append(msgs, "Action")
 	msgs = append(msgs, "SubmitEntryOrderIntent")
+	msgs = append(msgs, "Size")
+	msgs = append(msgs, args["0"].(string))
 	msgs = append(msgs, "Timestamp")
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
-	msngr.AddToStream(args[0].(string), msgs)
+	msngr.AddToStream(args["tradeStream"].(string), msgs)
 
 	//listen for first resp from order-svc with CONSEC_RESP field
 	consecRespHeaders := []string{}
 	consecRespListenArgs := make(map[string]string)
-	consecRespListenArgs["streamName"] = args[0].(string)
-	consecRespListenArgs["groupName"] = args[1].(string)
-	consecRespListenArgs["consumerName"] = args[2].(string)
+	consecRespListenArgs["streamName"] = args["tradeStream"].(string)
+	consecRespListenArgs["groupName"] = args["consumerGroup"].(string)
+	consecRespListenArgs["consumerName"] = args["consumerID"].(string)
 	consecRespListenArgs["start"] = ">"
 	consecRespListenArgs["count"] = "1"
 	var interConsecRespHeaders interface{}
@@ -134,7 +136,7 @@ func submitEntryOrder(args ...interface{}) (interface{}, error) {
 }
 
 // OpenTradeSaga T-3
-func cancelSubmitEntryOrder(args ...interface{}) (interface{}, error) {
+func cancelSubmitEntryOrder(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("Running cancelSubmitEntryOrder")
 
 	// XADD cancelEntryOrderIntent {timestamp}
@@ -148,18 +150,18 @@ func cancelSubmitEntryOrder(args ...interface{}) (interface{}, error) {
 var ExitTradeSaga saga.Saga
 
 // OpenTradeSaga T1
-func calcCloseSize(args ...interface{}) (interface{}, error) {
+func calcCloseSize(args map[string]interface{}) (interface{}, error) {
 	return 420.42, nil
 }
 
 // OpenTradeSaga T-1
-func cancelCalcCloseSize(args ...interface{}) (interface{}, error) {
+func cancelCalcCloseSize(args map[string]interface{}) (interface{}, error) {
 	// nothing to cancel
 	return nil, nil
 }
 
 // OpenTradeSaga T2
-func submitExitOrder(args ...interface{}) (interface{}, error) {
+func submitExitOrder(args map[string]interface{}) (interface{}, error) {
 	// XADD submitExitOrderIntent {timestamp}
 
 	// order-svc:
@@ -170,7 +172,7 @@ func submitExitOrder(args ...interface{}) (interface{}, error) {
 }
 
 // OpenTradeSaga T-2
-func cancelSubmitExitOrder(args ...interface{}) (interface{}, error) {
+func cancelSubmitExitOrder(args map[string]interface{}) (interface{}, error) {
 	// XADD cancelExitOrderIntent {timestamp}
 
 	// order-svc:
@@ -182,7 +184,7 @@ func cancelSubmitExitOrder(args ...interface{}) (interface{}, error) {
 var EditTrade saga.Saga
 
 // OpenTradeSaga T1
-func submitModifyPos(args ...interface{}) (interface{}, error) {
+func submitModifyPos(args map[string]interface{}) (interface{}, error) {
 	// XADD submitModifyPosIntent {timestamp}
 
 	// order-svc:
@@ -192,7 +194,7 @@ func submitModifyPos(args ...interface{}) (interface{}, error) {
 }
 
 // OpenTradeSaga T-1
-func cancelModifyPos(args ...interface{}) (interface{}, error) {
+func cancelModifyPos(args map[string]interface{}) (interface{}, error) {
 	// modify back
 	return nil, nil
 }
