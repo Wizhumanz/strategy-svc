@@ -53,18 +53,17 @@ func submitEntryOrder(args ...interface{}) (interface{}, error) {
 
 	//listen for first resp from order-svc with CONSEC_RESP field
 	consecRespHeaders := []string{}
+	consecRespListenArgs := make(map[string]string)
+	consecRespListenArgs["streamName"] = args[0].(string)
+	consecRespListenArgs["groupName"] = args[1].(string)
+	consecRespListenArgs["consumerName"] = args[2].(string)
+	consecRespListenArgs["start"] = ">"
+	consecRespListenArgs["count"] = "1"
 	var interConsecRespHeaders interface{}
 	for {
 		if len(consecRespHeaders) > 0 {
 			break
 		}
-
-		consecRespListenArgs := make(map[string]string)
-		consecRespListenArgs["streamName"] = args[0].(string)
-		consecRespListenArgs["groupName"] = args[1].(string)
-		consecRespListenArgs["consumerName"] = args[2].(string)
-		consecRespListenArgs["start"] = ">"
-		consecRespListenArgs["count"] = "1"
 
 		consecRespReadHandlers := []msngr.CommandHandler{
 			{
@@ -100,12 +99,31 @@ func submitEntryOrder(args ...interface{}) (interface{}, error) {
 		}
 	}
 
-	//TODO: fill out + test entire saga
-	//TODO: fill other sagas
+	//listen for consecutive responses with headers
+	for i, hd := range consecRespHeaders {
+		consecRespReadHandlers := []msngr.CommandHandler{
+			{
+				Command: "CONSEC_RESP",
+				HandlerMatches: []msngr.HandlerMatch{
+					{
+						Matcher: func(fieldVal string) bool {
+							return fieldVal != ""
+						},
+						Handler: func(msg redis.XMessage, output *interface{}) {
+							//check msg for consec header
+							consecHeader := msngr.FilterMsgVals(msg, func(key, val string) bool {
+								return key == "CONSEC_HEADER"
+							})
+							if consecHeader == hd {
+								fmt.Printf("Received consec header %v of %v: %s \n", i, len(consecRespHeaders), hd)
+							}
+						},
+					},
+				},
+			},
+		}
 
-	//TODO: listen for consecutive responses with headers
-	for _, hd := range consecRespHeaders {
-		fmt.Println(hd)
+		msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, consecRespListenArgs, consecRespReadHandlers)
 	}
 
 	// order-svc:
