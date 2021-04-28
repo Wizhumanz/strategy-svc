@@ -107,7 +107,7 @@ var ExitTradeSaga saga.Saga = saga.Saga{
 // OpenTradeSaga T1
 func calcCloseSize(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running calcCloseSize")
-	return 420.42, nil
+	return "420.42", nil
 }
 
 // OpenTradeSaga T-1
