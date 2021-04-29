@@ -133,7 +133,7 @@ func submitExitOrder(args map[string]interface{}) (interface{}, error) {
 
 	//listen for consec responses
 	return msngr.ListenConsecResponses(args, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
-		fmt.Printf("Read consec header at index %v val: %s, IsMatch = %v (%s)", i, v, isHeaderMatch, m.ID)
+		fmt.Printf("Read consec header at index %v val: %s, IsMatch = %v (%s)\n", i, v, isHeaderMatch, m.ID)
 	})
 
 	// order-svc:

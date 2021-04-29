@@ -30,7 +30,7 @@ func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
 	}
 	//start OpenTradeSaga (triggers other svcs)
 	OpenTradeSaga.Execute(newTradeStrName, svcConsumerGroupName, redisConsumerID)
-	fmt.Println(colorGreen + "Saga complete! " + newTradeStrName + colorReset)
+	fmt.Println(colorGreen + "\nSaga complete! " + newTradeStrName + colorReset)
 }
 
 func CmdExitHandler(msg redis.XMessage, output *interface{}) {
@@ -40,7 +40,7 @@ func CmdExitHandler(msg redis.XMessage, output *interface{}) {
 		return
 	}
 	ExitTradeSaga.Execute(newTradeStrName, svcConsumerGroupName, redisConsumerID)
-	fmt.Println(colorGreen + "Saga complete! " + newTradeStrName + colorReset)
+	fmt.Println(colorGreen + "\nSaga complete! " + newTradeStrName + colorReset)
 }
 
 func CmdSLHandler(msg redis.XMessage, output *interface{}) {
