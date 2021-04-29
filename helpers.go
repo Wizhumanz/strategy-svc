@@ -14,8 +14,9 @@ func initRedis() {
 	if redisPort == "" {
 		redisPort = "6379"
 	}
-	fmt.Println(redisConsumerID + " Redis conn " + redisHost + ":" + redisPort)
+	fmt.Println("msngr connecting to Redis on " + redisHost + ":" + redisPort)
 	rdb = redis.NewClient(&redis.Options{
-		Addr: redisHost + ":" + redisPort,
+		Addr:     redisHost + ":" + redisPort,
+		Password: redisPass,
 	})
 }

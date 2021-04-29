@@ -14,7 +14,7 @@ import (
 
 var redisHost = os.Getenv("REDISHOST")
 var redisPort = os.Getenv("REDISPORT")
-var redisAddr = fmt.Sprintf("%s:%s", redisHost, redisPort)
+var redisPass = os.Getenv("REDISPASS")
 var rdb *redis.Client
 var newTradeCmdStream string
 var svcConsumerGroupName string
