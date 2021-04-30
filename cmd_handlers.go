@@ -50,3 +50,7 @@ func CmdSLHandler(msg redis.XMessage, output *interface{}) {
 func CmdTPHandler(msg redis.XMessage, output *interface{}) {
 	fmt.Printf("EXIT cmd received for message %s", msg)
 }
+
+func BalHandler(msg redis.XMessage, output *interface{}) {
+	fmt.Printf("Inside BalHandler %s", msg)
+}

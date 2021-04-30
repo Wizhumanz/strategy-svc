@@ -31,6 +31,35 @@ func calcPosSize(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running calcPosSize")
 
 	//TODO: get futures account balance (SIMON)
+	//send msg to order-svc
+	msgs := []string{}
+	msgs = append(msgs, "Calc")
+	msgs = append(msgs, "GetBal")
+	msngr.AddToStream(args["tradeStream"].(string), msgs)
+
+	//listen for msg resp
+	listenArgs := make(map[string]string)
+	listenArgs["streamName"] = args["tradeStream"].(string)
+	listenArgs["groupName"] = svcConsumerGroupName
+	listenArgs["consumerName"] = redisConsumerID
+	listenArgs["start"] = ">"
+	listenArgs["count"] = "1"
+
+	parserHandlers := []msngr.CommandHandler{
+		{
+			Command: "Bal",
+			HandlerMatches: []msngr.HandlerMatch{
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal != ""
+					},
+					Handler: BalHandler,
+				},
+			},
+		},
+	}
+	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
+
 	//TODO: calculate size based on bot settings
 	//TODO: return size
 
