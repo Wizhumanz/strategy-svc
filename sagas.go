@@ -29,6 +29,11 @@ var OpenTradeSaga saga.Saga = saga.Saga{
 // OpenTradeSaga T1
 func calcPosSize(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running calcPosSize")
+
+	//TODO: get futures account balance (SIMON)
+	//TODO: calculate size based on bot settings
+	//TODO: return size
+
 	return "69.69", nil
 }
 
