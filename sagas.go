@@ -35,6 +35,8 @@ func calcPosSize(args map[string]interface{}) (interface{}, error) {
 	msgs := []string{}
 	msgs = append(msgs, "Calc")
 	msgs = append(msgs, "GetBal")
+	msgs = append(msgs, "Asset")
+	msgs = append(msgs, "USDT")
 	msngr.AddToStream(args["tradeStream"].(string), msgs)
 
 	//listen for msg resp
@@ -45,6 +47,7 @@ func calcPosSize(args map[string]interface{}) (interface{}, error) {
 	listenArgs["start"] = ">"
 	listenArgs["count"] = "1"
 
+	var bal string
 	parserHandlers := []msngr.CommandHandler{
 		{
 			Command: "Bal",
@@ -53,7 +56,12 @@ func calcPosSize(args map[string]interface{}) (interface{}, error) {
 					Matcher: func(fieldVal string) bool {
 						return fieldVal != ""
 					},
-					Handler: BalHandler,
+					Handler: func(msg redis.XMessage, output *interface{}) {
+						bal = msngr.FilterMsgVals(msg, func(k, v string) bool {
+							return (k == "Bal" && v != "")
+						})
+						fmt.Println(bal)
+					},
 				},
 			},
 		},

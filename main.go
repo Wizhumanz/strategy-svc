@@ -71,17 +71,6 @@ func main() {
 				},
 			},
 		},
-		{
-			Command: "Bal",
-			HandlerMatches: []msngr.HandlerMatch{
-				{
-					Matcher: func(fieldVal string) bool {
-						return fieldVal != ""
-					},
-					Handler: BalHandler,
-				},
-			},
-		},
 	}
 
 	//create new redis consumer group for webhookTrades stream
