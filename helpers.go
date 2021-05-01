@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -25,4 +26,12 @@ func initRedis() {
 	rdb.Do(ctx, "AUTH", redisPass)
 	rdb.Do(ctx, "CLIENT", "SET", "TIMEOUT", "999999999999")
 	rdb.Do(ctx, "CLIENT", "SETNAME", redisConsumerID)
+}
+
+func pingLoop() {
+	for {
+		ctx := context.Background()
+		res, _ := rdb.Ping(ctx).Result()
+		time.Sleep(10000 * time.Millisecond)
+	}
 }
