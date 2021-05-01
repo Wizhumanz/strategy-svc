@@ -23,5 +23,6 @@ func initRedis() {
 	})
 	ctx := context.Background()
 	rdb.Do(ctx, "AUTH", redisPass)
+	rdb.Do(ctx, "CLIENT", "SET", "TIMEOUT", "999999999999")
 	rdb.Do(ctx, "CLIENT", "SETNAME", redisConsumerID)
 }
