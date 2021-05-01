@@ -37,7 +37,7 @@ func main() {
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
 	minIdleAutoclaim = "300000" // 5 mins
 	initRedis()
-	go pingLoop()
+	// go pingLoop()
 
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
