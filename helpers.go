@@ -31,7 +31,7 @@ func initRedis() {
 func pingLoop() {
 	for {
 		ctx := context.Background()
-		res, _ := rdb.Ping(ctx).Result()
+		rdb.Ping(ctx).Result()
 		time.Sleep(10000 * time.Millisecond)
 	}
 }
