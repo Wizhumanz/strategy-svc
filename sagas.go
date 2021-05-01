@@ -103,11 +103,46 @@ func submitEntryOrder(args map[string]interface{}) (interface{}, error) {
 	msgs := []string{}
 	msgs = append(msgs, "Action")
 	msgs = append(msgs, "SubmitEntryOrderIntent")
-	msgs = append(msgs, "Size")
-	msgs = append(msgs, args["0"].(string))
+	msgs = append(msgs, "Symbol")
+	msgs = append(msgs, "BTCUSDT")
+	msgs = append(msgs, "Side")
+	msgs = append(msgs, "BUY")
+	msgs = append(msgs, "Quantity")
+	msgs = append(msgs, "1000")
+	msgs = append(msgs, "Price")
+	msgs = append(msgs, "69")
 	msgs = append(msgs, "Timestamp")
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
 	msngr.AddToStream(args["tradeStream"].(string), msgs)
+
+	//listen for msg resp
+	listenArgs := make(map[string]string)
+	listenArgs["streamName"] = args["tradeStream"].(string)
+	listenArgs["groupName"] = svcConsumerGroupName
+	listenArgs["consumerName"] = redisConsumerID
+	listenArgs["start"] = ">"
+	listenArgs["count"] = "1"
+	fmt.Println("hello")
+	var order string
+	parserHandlers := []msngr.CommandHandler{
+		{
+			Command: "Entry Order",
+			HandlerMatches: []msngr.HandlerMatch{
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal != ""
+					},
+					Handler: func(msg redis.XMessage, output *interface{}) {
+						order = msngr.FilterMsgVals(msg, func(k, v string) bool {
+							return (k == "Entry Order" && v != "")
+						})
+						fmt.Println(order)
+					},
+				},
+			},
+		},
+	}
+	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
 
 	//listen for consec responses
 	msngr.ListenConsecResponses(args, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
@@ -162,16 +197,51 @@ func cancelCalcCloseSize(args map[string]interface{}) (interface{}, error) {
 // OpenTradeSaga T2
 func submitExitOrder(args map[string]interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running submitExitOrder")
-
 	// XADD submitExitOrderIntent
+
 	msgs := []string{}
 	msgs = append(msgs, "Action")
 	msgs = append(msgs, "SubmitExitOrderIntent")
-	msgs = append(msgs, "Size")
-	msgs = append(msgs, args["0"].(string))
+	msgs = append(msgs, "Symbol")
+	msgs = append(msgs, "BTCUSDT")
+	msgs = append(msgs, "Side")
+	msgs = append(msgs, "SELL")
+	msgs = append(msgs, "Quantity")
+	msgs = append(msgs, "1000")
+	msgs = append(msgs, "Price")
+	msgs = append(msgs, "69")
 	msgs = append(msgs, "Timestamp")
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
 	msngr.AddToStream(args["tradeStream"].(string), msgs)
+
+	//listen for msg resp
+	listenArgs := make(map[string]string)
+	listenArgs["streamName"] = args["tradeStream"].(string)
+	listenArgs["groupName"] = svcConsumerGroupName
+	listenArgs["consumerName"] = redisConsumerID
+	listenArgs["start"] = ">"
+	listenArgs["count"] = "1"
+	fmt.Println("help")
+	var order string
+	parserHandlers := []msngr.CommandHandler{
+		{
+			Command: "Exit Order",
+			HandlerMatches: []msngr.HandlerMatch{
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal != ""
+					},
+					Handler: func(msg redis.XMessage, output *interface{}) {
+						order = msngr.FilterMsgVals(msg, func(k, v string) bool {
+							return (k == "Exit Order" && v != "")
+						})
+						fmt.Println(order)
+					},
+				},
+			},
+		},
+	}
+	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
 
 	//listen for consec responses
 	return msngr.ListenConsecResponses(args, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
