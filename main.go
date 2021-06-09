@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"os"
 
+	"cloud.google.com/go/datastore"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"gitlab.com/myikaco/msngr"
@@ -21,6 +24,13 @@ var svcConsumerGroupName string
 var lastIDSaveKey string
 var redisConsumerID string
 var minIdleAutoclaim string
+
+var rdbChartmaster *redis.Client
+var client *datastore.Client
+var ctx context.Context
+
+var periodDurationMap = map[string]time.Duration{}
+var httpTimeFormat string
 
 var botStreamCmdHandlers []msngr.CommandHandler
 
@@ -39,6 +49,7 @@ func main() {
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
 	minIdleAutoclaim = "300000" // 5 mins
 	initRedis()
+	initDatastore()
 	// go pingLoop()
 
 	msngr.GoogleProjectID = "myika-anastasia"
@@ -112,6 +123,15 @@ func main() {
 	//regular REST API
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
+
+	router.Methods("POST", "OPTIONS").Path("/backtest").HandlerFunc(backtestHandler)
+	router.Methods("POST", "OPTIONS").Path("/shareresult").HandlerFunc(shareResultHandler)
+	router.Methods("GET", "OPTIONS").Path("/getshareresult").HandlerFunc(getShareResultHandler)
+	router.Methods("GET", "OPTIONS").Path("/getallshareresults").HandlerFunc(getAllShareResultHandler)
+
+	router.Methods("GET", "OPTIONS").Path("/getChartmasterTickers").HandlerFunc(getTickersHandler)
+	router.Methods("GET", "OPTIONS").Path("/backtestHistory").HandlerFunc(getBacktestHistoryHandler)
+	router.Methods("GET", "OPTIONS").Path("/backtestHistory/{id}").HandlerFunc(getBacktestResHandler)
 
 	port := os.Getenv("PORT")
 	fmt.Println("strategy-svc listening on port " + port)

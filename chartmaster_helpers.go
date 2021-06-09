@@ -546,6 +546,25 @@ func progressBar(userID, rid string, numOfCandles int, start, end time.Time) {
 	streamPacket(ws, progressData, rid)
 }
 
+func containsString(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
+}
+
+func containsInt(s []int, e int) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
 func streamBacktestResData(userID, rid string, c []CandlestickChartData, pc []ProfitCurveData, st []SimulatedTradeData) {
 	ws := wsConnectionsChartmaster[userID]
 	if ws != nil {

@@ -3,8 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"math/rand"
+	"net/http"
 	"time"
 
+	"cloud.google.com/go/datastore"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -34,4 +38,29 @@ func pingLoop() {
 		rdb.Ping(ctx).Result()
 		time.Sleep(10000 * time.Millisecond)
 	}
+}
+
+func initDatastore() {
+	ctx = context.Background()
+	var err error
+	client, err = datastore.NewClient(ctx, googleProjectID)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+}
+
+func setupCORS(w *http.ResponseWriter, req *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Content-Type", "text/html; charset=utf-8")
+	//(*w).Header().Set("Access-Control-Expose-Headers", "Authorization")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, auth, Cache-Control, Pragma, Expires")
+}
+
+func generateRandomID(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = nums[rand.Intn(len(nums))]
+	}
+	return string(b)
 }
