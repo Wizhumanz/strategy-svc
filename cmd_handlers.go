@@ -7,10 +7,12 @@ import (
 	"gitlab.com/myikaco/msngr"
 )
 
+// helpers //
+
 func handlerPrep(msg redis.XMessage) string {
 	//find new trade stream name
 	newTradeStrName := msngr.FilterMsgVals(msg, func(k, v string) bool {
-		return (k == "TradeStreamName" && v != "")
+		return (k == "BotStreamName" && v != "")
 	})
 
 	//create new consumer group for strategy-svc
@@ -22,15 +24,30 @@ func handlerPrep(msg redis.XMessage) string {
 	return newTradeStrName
 }
 
+// handlers //
+
+func StatusActivateHandler(msg redis.XMessage, output *interface{}) {
+	newBotStreamName := handlerPrep(msg)
+	if newBotStreamName == "" {
+		fmt.Println("\n" + colorRed + "New bot stream name empty!" + colorReset)
+		return
+	}
+
+	//listen on new bot stream
+	go msngr.StreamListenLoop(newBotStreamName, ">", svcConsumerGroupName, redisConsumerID, "1", "0", botStreamCmdHandlers)
+
+	msngr.AcknowledgeMsg(newBotStreamName, svcConsumerGroupName, redisConsumerID, msg.ID)
+}
+
 func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
-	newTradeStrName := handlerPrep(msg)
-	if newTradeStrName == "" {
-		fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
+	newBotStreamName := handlerPrep(msg)
+	if newBotStreamName == "" {
+		fmt.Println("\n" + colorRed + "New bot stream name empty!" + colorReset)
 		return
 	}
 	//start OpenTradeSaga (triggers other svcs)
-	OpenTradeSaga.Execute(newTradeStrName, svcConsumerGroupName, redisConsumerID)
-	fmt.Println(colorGreen + "\nSaga complete! " + newTradeStrName + colorReset)
+	OpenTradeSaga.Execute(newBotStreamName, svcConsumerGroupName, redisConsumerID)
+	fmt.Println(colorGreen + "\nSaga complete! " + newBotStreamName + colorReset)
 }
 
 func CmdExitHandler(msg redis.XMessage, output *interface{}) {

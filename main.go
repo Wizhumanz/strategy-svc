@@ -16,11 +16,13 @@ var redisHost = os.Getenv("REDISHOST")
 var redisPort = os.Getenv("REDISPORT")
 var redisPass = os.Getenv("REDISPASS")
 var rdb *redis.Client
-var newTradeCmdStream string
+var newCmdStream string
 var svcConsumerGroupName string
 var lastIDSaveKey string
 var redisConsumerID string
 var minIdleAutoclaim string
+
+var botStreamCmdHandlers []msngr.CommandHandler
 
 var colorReset = "\033[0m"
 var colorRed = "\033[31m"
@@ -32,7 +34,7 @@ var colorCyan = "\033[36m"
 var colorWhite = "\033[37m"
 
 func main() {
-	newTradeCmdStream = "webhookTrades"
+	newCmdStream = "activeBots"
 	svcConsumerGroupName = "strategy-svc"
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
 	minIdleAutoclaim = "300000" // 5 mins
@@ -42,7 +44,21 @@ func main() {
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
 
-	listenLoopHandlers := []msngr.CommandHandler{
+	botStatusChangeHandlers := []msngr.CommandHandler{
+		{
+			Command: "Status",
+			HandlerMatches: []msngr.HandlerMatch{
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal == "Activate"
+					},
+					Handler: CmdEnterHandler,
+				},
+			},
+		},
+	}
+
+	botStreamCmdHandlers = []msngr.CommandHandler{
 		{
 			Command: "CMD",
 			HandlerMatches: []msngr.HandlerMatch{
@@ -75,7 +91,7 @@ func main() {
 	}
 
 	//create new redis consumer group for webhookTrades stream
-	_, err := msngr.CreateNewConsumerGroup(newTradeCmdStream, svcConsumerGroupName, "0")
+	_, err := msngr.CreateNewConsumerGroup(newCmdStream, svcConsumerGroupName, "0")
 	if err != nil {
 		fmt.Printf("%s Redis consumer group - %v\n", svcConsumerGroupName, err.Error())
 	}
@@ -85,11 +101,13 @@ func main() {
 
 	//live servicing
 
-	//autoclaim pending messages from dead consumers in same group
-	go msngr.AutoClaimMsgsLoop(newTradeCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1", listenLoopHandlers)
+	//autoclaim pending messages from dead consumers in same group (instances of same svc)
+	//listen on bot status change stream (waiting room)
+	go msngr.AutoClaimMsgsLoop(newCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1", botStatusChangeHandlers)
+	//continuously listen for new trades to manage in bot status change stream
+	go msngr.StreamListenLoop(newCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey, botStatusChangeHandlers)
 
-	//continuously listen for new trades to manage in webhookTrades stream
-	go msngr.StreamListenLoop(newTradeCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey, listenLoopHandlers)
+	//TODO: make autoclaim loop for specific bot streams
 
 	//regular REST API
 	router := mux.NewRouter().StrictSlash(true)
