@@ -100,6 +100,10 @@ func executeLiveStrategy(
 				}
 
 				fetchedCandles = fetchCandleData(ticker, period, n.Add(-periodDurationMap[period]*1), n.Add(-periodDurationMap[period]*1))
+
+				if fetchedCandles == nil {
+					continue
+				}
 				//TODO: get bot's real settings to pass to strategy
 				userStrat(fetchedCandles, 0.0, 0.0, 0.0,
 					[]float64{fetchedCandles[0].Open},
