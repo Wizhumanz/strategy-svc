@@ -96,13 +96,13 @@ func main() {
 
 	botStatusChangeHandlers := []msngr.CommandHandler{
 		{
-			Command: "Status",
+			Command: "CMD",
 			HandlerMatches: []msngr.HandlerMatch{
 				{
 					Matcher: func(fieldVal string) bool {
 						return fieldVal == "Activate"
 					},
-					Handler: CmdEnterHandler,
+					Handler: StatusActivateHandler,
 				},
 			},
 		},
@@ -135,6 +135,12 @@ func main() {
 						return fieldVal == "SL"
 					},
 					Handler: CmdSLHandler,
+				},
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal == "EDIT"
+					},
+					Handler: CmdEDITHandler,
 				},
 			},
 		},

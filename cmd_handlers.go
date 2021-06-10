@@ -67,3 +67,7 @@ func CmdSLHandler(msg redis.XMessage, output *interface{}) {
 func CmdTPHandler(msg redis.XMessage, output *interface{}) {
 	fmt.Printf("EXIT cmd received for message %s", msg)
 }
+
+func CmdEDITHandler(msg redis.XMessage, output *interface{}) {
+	fmt.Printf("EDIT cmd received for message %s", msg)
+}
