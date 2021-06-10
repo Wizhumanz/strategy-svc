@@ -23,16 +23,17 @@ func logLiveStrategyExecution(execTimestamp, storageObj, botStreamName string) {
 }
 
 func minuteTicker(period string) *time.Ticker {
+
 	c := make(chan time.Time, 1)
 	t := &time.Ticker{C: c}
-	var count float64
+	count := -1.0
 	go func() {
 		for {
 			n := time.Now().UTC()
 			if n.Second() == 0 {
 				count += 1
 			}
-			if count > periodDurationMap[period].Minutes() {
+			if count >= periodDurationMap[period].Minutes() {
 				c <- n
 				count = 0
 			}
@@ -55,7 +56,7 @@ func minuteTicker(period string) *time.Ticker {
 
 func executeLiveStrategy(
 	bot Bot, ticker, period string,
-	userStrat func(Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}) map[string]map[int]string) {
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}) map[string]map[int]string) {
 	var fetchedCandles []Candlestick
 
 	timeNow := time.Now().UTC()
@@ -71,7 +72,6 @@ func executeLiveStrategy(
 		if t == time.Now().UTC() {
 			//fetch closed latest candle (same as the one checked before)
 			fetchedCandles = fetchCandleData(ticker, period, t.Add(-periodDurationMap[period]*1), t.Add(-periodDurationMap[period]*1))
-			fmt.Println(fetchedCandles)
 
 			//fetch candle and run live strat on every interval tick
 			for n := range minuteTicker(period).C {
@@ -84,7 +84,6 @@ func executeLiveStrategy(
 				byteData, _ := json.Marshal(ret)
 				var t []redis.XStream
 				json.Unmarshal(byteData, &t)
-				fmt.Println(t[0].Messages[len(t[0].Messages)-1].Values["CMD"])
 
 				if t[0].Messages[len(t[0].Messages)-1].Values["CMD"] == "SHUTDOWN" {
 					fmt.Println("SHUTDOWN")
@@ -102,7 +101,7 @@ func executeLiveStrategy(
 
 				fetchedCandles = fetchCandleData(ticker, period, n.Add(-periodDurationMap[period]*1), n.Add(-periodDurationMap[period]*1))
 				//TODO: get bot's real settings to pass to strategy
-				userStrat(fetchedCandles[0], 0.0, 0.0, 0.0,
+				userStrat(fetchedCandles, 0.0, 0.0, 0.0,
 					[]float64{fetchedCandles[0].Open},
 					[]float64{fetchedCandles[0].High},
 					[]float64{fetchedCandles[0].Low},

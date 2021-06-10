@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/go-redis/redis/v8"
@@ -33,6 +34,14 @@ func StatusActivateHandler(msg redis.XMessage, output *interface{}) {
 		return
 	}
 
+	botInfo := msngr.FilterMsgVals(msg, func(k, v string) bool {
+		return (k == "Bot" && v != "")
+	})
+
+	var bot Bot
+	json.Unmarshal([]byte(botInfo), &bot)
+	fmt.Println(bot)
+	executeLiveStrategy(bot, bot.Ticker, "1MIN", strat1)
 	//listen on new bot stream
 	go msngr.StreamListenLoop(newBotStreamName, ">", svcConsumerGroupName, redisConsumerID, "1", "0", botStreamCmdHandlers)
 
