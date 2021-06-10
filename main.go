@@ -12,12 +12,18 @@ import (
 	"cloud.google.com/go/datastore"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"gitlab.com/myikaco/msngr"
 )
 
-var redisHost = os.Getenv("REDISHOST")
-var redisPort = os.Getenv("REDISPORT")
-var redisPass = os.Getenv("REDISPASS")
+var redisHostMsngr = os.Getenv("REDISHOST_MSNGR")
+var redisPortMsngr = os.Getenv("REDISPORT_MSNGR")
+var redisPassMsngr = os.Getenv("REDISPASS_MSNGR")
+var rdbMsngr *redis.Client
+var redisHostChartmaster = os.Getenv("REDISHOST_CM")
+var redisPortChartmaster = os.Getenv("REDISPORT_CM")
+var redisPassChartmaster = os.Getenv("REDISPASS_CM")
+
 var rdb *redis.Client
 var newCmdStream string
 var svcConsumerGroupName string
@@ -33,7 +39,15 @@ var periodDurationMap = map[string]time.Duration{}
 var httpTimeFormat string
 
 var botStreamCmdHandlers []msngr.CommandHandler
+var wsConnections map[string]*websocket.Conn
+var wsConnectionsChartmaster map[string]*websocket.Conn
+var googleProjectID = "myika-anastasia"
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin:     func(r *http.Request) bool { return true },
+}
 var colorReset = "\033[0m"
 var colorRed = "\033[31m"
 var colorGreen = "\033[32m"
@@ -48,12 +62,37 @@ func main() {
 	svcConsumerGroupName = "strategy-svc"
 	lastIDSaveKey = "STRATEGY-SVC:LAST_ID"
 	minIdleAutoclaim = "300000" // 5 mins
+	httpTimeFormat = "2006-01-02T15:04:05"
+
 	initRedis()
 	initDatastore()
 	// go pingLoop()
 
+	wsConnections = make(map[string]*websocket.Conn)
+	wsConnectionsChartmaster = make(map[string]*websocket.Conn)
+
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.InitRedis()
+
+	periodDurationMap["1MIN"] = 1 * time.Minute
+	periodDurationMap["2MIN"] = 2 * time.Minute
+	periodDurationMap["3MIN"] = 3 * time.Minute
+	periodDurationMap["4MIN"] = 4 * time.Minute
+	periodDurationMap["5MIN"] = 5 * time.Minute
+	periodDurationMap["6MIN"] = 6 * time.Minute
+	periodDurationMap["10MIN"] = 10 * time.Minute
+	periodDurationMap["15MIN"] = 15 * time.Minute
+	periodDurationMap["20MIN"] = 20 * time.Minute
+	periodDurationMap["30MIN"] = 30 * time.Minute
+	periodDurationMap["1HRS"] = 1 * time.Hour
+	periodDurationMap["2HRS"] = 2 * time.Hour
+	periodDurationMap["3HRS"] = 3 * time.Hour
+	periodDurationMap["4HRS"] = 4 * time.Hour
+	periodDurationMap["6HRS"] = 6 * time.Hour
+	periodDurationMap["8HRS"] = 8 * time.Hour
+	periodDurationMap["12HRS"] = 12 * time.Hour
+	periodDurationMap["1DAY"] = 24 * time.Hour
+	periodDurationMap["2DAY"] = 48 * time.Hour
 
 	botStatusChangeHandlers := []msngr.CommandHandler{
 		{
@@ -123,6 +162,9 @@ func main() {
 	//regular REST API
 	router := mux.NewRouter().StrictSlash(true)
 	router.Methods("GET").Path("/").HandlerFunc(indexHandler)
+
+	router.Methods("GET", "OPTIONS").Path("/ws/{id}").HandlerFunc(wsConnectHandler)
+	router.Methods("GET", "OPTIONS").Path("/ws-cm/{id}").HandlerFunc(wsChartmasterConnectHandler)
 
 	router.Methods("POST", "OPTIONS").Path("/backtest").HandlerFunc(backtestHandler)
 	router.Methods("POST", "OPTIONS").Path("/shareresult").HandlerFunc(shareResultHandler)

@@ -335,6 +335,7 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 			fetchCandlesEnd = endTime
 		}
 		var chunkSlice []Candlestick
+		// fmt.Println(startTime, endTime)
 
 		*chunksArr = append(*chunksArr, &chunkSlice)
 		go getChunkCandleData(&chunkSlice, 300, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd)
