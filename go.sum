@@ -178,6 +178,8 @@ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9dec
 gitlab.com/myikaco/msngr v0.4.26/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
 gitlab.com/myikaco/msngr v0.4.34 h1:vvMPy+a1cfq91Up5ZupAhVsG+OQyGWnawGonYY6rrGo=
 gitlab.com/myikaco/msngr v0.4.34/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
+gitlab.com/myikaco/msngr v0.4.36 h1:fU8Csrwe6TKGXBJwuFO4HSB+08wkTdEyT0QXZq/18LI=
+gitlab.com/myikaco/msngr v0.4.36/go.mod h1:b6hnlLqbzKaUv1iaaeHFJd6izmBCR1cn1j9Oe2pzAxk=
 gitlab.com/myikaco/saga v0.2.11 h1:F5W0GTAIo7jQbQOPBEskW7OoMz+t1rjJpZ8gtX7ZJqQ=
 gitlab.com/myikaco/saga v0.2.11/go.mod h1:7HVU0qHrWONBnxcfh672G6Y9PsmpA6x9xDZgLIB7ghw=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
