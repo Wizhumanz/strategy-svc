@@ -117,7 +117,7 @@ func executeLiveStrategy(
 				if err != nil {
 					fmt.Printf(colorRed+"%v\n"+colorReset, err)
 				}
-				logLiveStrategyExecution(n.Format(httpTimeFormat), string(obj), fmt.Sprint(bot.K.ID))
+				logLiveStrategyExecution(n.Format(httpTimeFormat), string(obj), fmt.Sprint(bot.KEY))
 			}
 			break
 		}

@@ -89,9 +89,9 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		go cacheCandleData(jStruct, ticker, period)
 
 		//temp save to loval file to preserve CoinAPI credits
-		fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
-		file, _ := json.MarshalIndent(jStruct, "", " ")
-		_ = ioutil.WriteFile(fileName, file, 0644)
+		// fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
+		// file, _ := json.MarshalIndent(jStruct, "", " ")
+		// _ = ioutil.WriteFile(fileName, file, 0644)
 	} else {
 		fmt.Println(body)
 	}
