@@ -277,14 +277,18 @@ type StrategyExecutor struct {
 	totalEquity     float64
 	availableEquity float64
 	Actions         map[int]StrategyExecutorAction //map bar index to action that occured at that index
-	LiveTrade       bool
+	liveTrade       bool
 }
 
 func (strat *StrategyExecutor) Init(e float64, liveTrade bool) {
 	strat.totalEquity = e
 	strat.availableEquity = e
 	strat.Actions = map[int]StrategyExecutorAction{}
-	strat.LiveTrade = liveTrade
+	strat.liveTrade = liveTrade
+}
+
+func (strat *StrategyExecutor) GetLiveTradeStatus() bool {
+	return strat.liveTrade
 }
 
 func (strat *StrategyExecutor) GetTotalEquity() float64 {
@@ -301,41 +305,47 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 
 func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong bool, cIndex int) {
 	// fmt.Printf("buying %v at %v\n", orderSize, price)
+	if !strat.liveTrade {
+		strat.availableEquity = strat.availableEquity - (orderSize * price)
 
-	strat.availableEquity = strat.availableEquity - (orderSize * price)
+		if directionIsLong {
+			strat.posLongSize = orderSize
+		} else {
+			strat.posShortSize = orderSize
+		}
 
-	if directionIsLong {
-		strat.posLongSize = orderSize
+		strat.Actions[cIndex] = StrategyExecutorAction{
+			Action:  "ENTER",
+			Price:   price,
+			SL:      sl,
+			PosSize: orderSize,
+		}
 	} else {
-		strat.posShortSize = orderSize
-	}
-
-	strat.Actions[cIndex] = StrategyExecutorAction{
-		Action:  "ENTER",
-		Price:   price,
-		SL:      sl,
-		PosSize: orderSize,
+		//TODO: start saga
 	}
 }
 
 func (strat *StrategyExecutor) CloseLong(price, orderSize float64, cIndex int, action string, timestamp string) {
 	// fmt.Printf("<%v> closing %v at %v, action = %v\n", timestamp, orderSize, price, action)
+	if !strat.liveTrade {
+		//close entire long
+		closeSz := 0.0
+		if orderSize == 0 {
+			closeSz = strat.posLongSize
+			strat.totalEquity = strat.availableEquity + (strat.posLongSize * price)
+			strat.posLongSize = 0
+		} else {
+			strat.totalEquity = strat.availableEquity + (orderSize * price)
+			strat.posLongSize = strat.posLongSize - orderSize
+		}
+		strat.availableEquity = strat.totalEquity
 
-	//close entire long
-	closeSz := 0.0
-	if orderSize == 0 {
-		closeSz = strat.posLongSize
-		strat.totalEquity = strat.availableEquity + (strat.posLongSize * price)
-		strat.posLongSize = 0
+		strat.Actions[cIndex] = StrategyExecutorAction{
+			Action:  action,
+			Price:   price,
+			PosSize: closeSz,
+		}
 	} else {
-		strat.totalEquity = strat.availableEquity + (orderSize * price)
-		strat.posLongSize = strat.posLongSize - orderSize
-	}
-	strat.availableEquity = strat.totalEquity
-
-	strat.Actions[cIndex] = StrategyExecutorAction{
-		Action:  action,
-		Price:   price,
-		PosSize: closeSz,
+		//TODO: start saga
 	}
 }

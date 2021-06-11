@@ -105,12 +105,14 @@ func executeLiveStrategy(
 					continue
 				}
 				//TODO: get bot's real settings to pass to strategy
+				stratExec := StrategyExecutor{}
+				stratExec.Init(0, true)
 				userStrat(fetchedCandles, 0.0, 0.0, 0.0,
 					[]float64{fetchedCandles[0].Open},
 					[]float64{fetchedCandles[0].High},
 					[]float64{fetchedCandles[0].Low},
 					[]float64{fetchedCandles[0].Close},
-					-1, &StrategyExecutor{}, &stratStore)
+					-1, &stratExec, &stratStore)
 
 				//save state to retrieve for next iteration
 				obj, err := json.Marshal(stratStore)
