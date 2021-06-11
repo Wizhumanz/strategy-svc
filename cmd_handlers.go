@@ -38,12 +38,13 @@ func StatusActivateHandler(msg redis.XMessage, output *interface{}) {
 		return (k == "Bot" && v != "")
 	})
 
-	var bot Bot
-	json.Unmarshal([]byte(botInfo), &bot)
-	fmt.Println(bot)
-	executeLiveStrategy(bot, bot.Ticker, "1MIN", strat1)
 	//listen on new bot stream
 	go msngr.StreamListenLoop(newBotStreamName, ">", svcConsumerGroupName, redisConsumerID, "1", "0", botStreamCmdHandlers)
+
+	//start live strat execution loop
+	var bot Bot
+	json.Unmarshal([]byte(botInfo), &bot)
+	go executeLiveStrategy(bot, bot.Ticker, "1MIN", strat1)
 
 	msngr.AcknowledgeMsg(newBotStreamName, svcConsumerGroupName, redisConsumerID, msg.ID)
 }
