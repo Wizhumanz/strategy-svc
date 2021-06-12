@@ -66,7 +66,6 @@ func main() {
 
 	initRedis()
 	initDatastore()
-	// go pingLoop()
 
 	wsConnections = make(map[string]*websocket.Conn)
 	wsConnectionsChartmaster = make(map[string]*websocket.Conn)
