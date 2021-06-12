@@ -19,12 +19,10 @@ import (
 var redisHostMsngr = os.Getenv("REDISHOST_MSNGR")
 var redisPortMsngr = os.Getenv("REDISPORT_MSNGR")
 var redisPassMsngr = os.Getenv("REDISPASS_MSNGR")
-var rdbMsngr *redis.Client
 var redisHostChartmaster = os.Getenv("REDISHOST_CM")
 var redisPortChartmaster = os.Getenv("REDISPORT_CM")
 var redisPassChartmaster = os.Getenv("REDISPASS_CM")
 
-var rdb *redis.Client
 var newCmdStream string
 var svcConsumerGroupName string
 var lastIDSaveKey string
