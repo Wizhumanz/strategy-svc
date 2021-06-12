@@ -16,10 +16,6 @@ var OpenTradeSaga saga.Saga = saga.Saga{
 			CompensatingTransaction: cancelCalcPosSize,
 		},
 		{
-			Transaction:             checkModel,
-			CompensatingTransaction: cancelCheckModel,
-		},
-		{
 			Transaction:             submitEntryOrder,
 			CompensatingTransaction: cancelSubmitEntryOrder,
 		},
@@ -27,21 +23,24 @@ var OpenTradeSaga saga.Saga = saga.Saga{
 }
 
 // OpenTradeSaga T1
-func calcPosSize(args map[string]interface{}) (interface{}, error) {
+func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running calcPosSize")
 
-	//TODO: get futures account balance (SIMON)
+	transactionArgs := allArgs[0].(map[string]interface{})
+	funcArgs := allArgs[1].(map[string]interface{})
+	fmt.Printf("Inside OepnTradeSaga step, args = %v\n", funcArgs)
+
 	//send msg to order-svc
 	msgs := []string{}
 	msgs = append(msgs, "Calc")
 	msgs = append(msgs, "GetBal")
 	msgs = append(msgs, "Asset")
 	msgs = append(msgs, "USDT")
-	msngr.AddToStream(args["tradeStream"].(string), msgs)
+	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
-	listenArgs["streamName"] = args["tradeStream"].(string)
+	listenArgs["streamName"] = transactionArgs["tradeStream"].(string)
 	listenArgs["groupName"] = svcConsumerGroupName
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
@@ -71,33 +70,21 @@ func calcPosSize(args map[string]interface{}) (interface{}, error) {
 	//TODO: calculate size based on bot settings
 	//TODO: return size
 
-	return "69.69", nil
+	return 69.69, nil
 }
 
 // OpenTradeSaga T-1
-func cancelCalcPosSize(args map[string]interface{}) (interface{}, error) {
+func cancelCalcPosSize(allArgs ...interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running cancelCalcPosSize")
 	// nothing to cancel
 	return nil, nil
 }
 
 // OpenTradeSaga T2
-func checkModel(args map[string]interface{}) (interface{}, error) {
-	fmt.Println("SAGA: Consulting ML model to decide if should take trade")
-	//response: trade OK
-	return nil, nil
-}
-
-// OpenTradeSaga T-2
-func cancelCheckModel(args map[string]interface{}) (interface{}, error) {
-	fmt.Println("SAGA: Running cancelCheckModel")
-	//nothing to compensate
-	return nil, nil
-}
-
-// OpenTradeSaga T3
-func submitEntryOrder(args map[string]interface{}) (interface{}, error) {
+func submitEntryOrder(allArgs ...interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running submitEntryOrder")
+
+	transactionArgs := allArgs[0].(map[string]interface{})
 
 	// XADD submitEntryOrderIntent
 	msgs := []string{}
@@ -113,11 +100,11 @@ func submitEntryOrder(args map[string]interface{}) (interface{}, error) {
 	msgs = append(msgs, "69")
 	msgs = append(msgs, "Timestamp")
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
-	msngr.AddToStream(args["tradeStream"].(string), msgs)
+	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
-	listenArgs["streamName"] = args["tradeStream"].(string)
+	listenArgs["streamName"] = transactionArgs["tradeStream"].(string)
 	listenArgs["groupName"] = svcConsumerGroupName
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
@@ -145,7 +132,7 @@ func submitEntryOrder(args map[string]interface{}) (interface{}, error) {
 	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
 
 	//listen for consec responses
-	msngr.ListenConsecResponses(args, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
+	msngr.ListenConsecResponses(transactionArgs, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
 		fmt.Printf("Read consec header at index %v val: %s, IsMatch = %v (%s)", i, v, isHeaderMatch, m.ID)
 	})
 
@@ -156,8 +143,8 @@ func submitEntryOrder(args map[string]interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-// OpenTradeSaga T-3
-func cancelSubmitEntryOrder(args map[string]interface{}) (interface{}, error) {
+// OpenTradeSaga T-2
+func cancelSubmitEntryOrder(allArgs ...interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running cancelSubmitEntryOrder")
 
 	// XADD cancelEntryOrderIntent {timestamp}
@@ -182,22 +169,28 @@ var ExitTradeSaga saga.Saga = saga.Saga{
 }
 
 // OpenTradeSaga T1
-func calcCloseSize(args map[string]interface{}) (interface{}, error) {
+func calcCloseSize(allArgs ...interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running calcCloseSize")
-	return "420.42", nil
+
+	funcArgs := allArgs[1].(map[string]interface{})
+	fmt.Printf("Inside ExitTradeSaga step, args = %v\n", funcArgs)
+
+	return 420.69, nil
 }
 
 // OpenTradeSaga T-1
-func cancelCalcCloseSize(args map[string]interface{}) (interface{}, error) {
+func cancelCalcCloseSize(allArgs ...interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running cancelCalcCloseSize")
 	// nothing to cancel
 	return nil, nil
 }
 
 // OpenTradeSaga T2
-func submitExitOrder(args map[string]interface{}) (interface{}, error) {
+func submitExitOrder(allArgs ...interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running submitExitOrder")
 	// XADD submitExitOrderIntent
+
+	transactionArgs := allArgs[0].(map[string]interface{})
 
 	msgs := []string{}
 	msgs = append(msgs, "Action")
@@ -212,11 +205,11 @@ func submitExitOrder(args map[string]interface{}) (interface{}, error) {
 	msgs = append(msgs, "69")
 	msgs = append(msgs, "Timestamp")
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
-	msngr.AddToStream(args["tradeStream"].(string), msgs)
+	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
-	listenArgs["streamName"] = args["tradeStream"].(string)
+	listenArgs["streamName"] = transactionArgs["tradeStream"].(string)
 	listenArgs["groupName"] = svcConsumerGroupName
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
@@ -244,7 +237,7 @@ func submitExitOrder(args map[string]interface{}) (interface{}, error) {
 	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
 
 	//listen for consec responses
-	return msngr.ListenConsecResponses(args, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
+	return msngr.ListenConsecResponses(transactionArgs, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
 		fmt.Printf("Read consec header at index %v val: %s, IsMatch = %v (%s)\n", i, v, isHeaderMatch, m.ID)
 	})
 
@@ -255,7 +248,7 @@ func submitExitOrder(args map[string]interface{}) (interface{}, error) {
 }
 
 // OpenTradeSaga T-2
-func cancelSubmitExitOrder(args map[string]interface{}) (interface{}, error) {
+func cancelSubmitExitOrder(allArgs ...interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running cancelSubmitExitOrder")
 
 	// XADD cancelExitOrderIntent {timestamp}

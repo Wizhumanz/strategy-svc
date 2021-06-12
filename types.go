@@ -303,7 +303,7 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 	return strat.posLongSize
 }
 
-func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong bool, cIndex int) {
+func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong bool, cIndex int, botStreamName string) {
 	// fmt.Printf("buying %v at %v\n", orderSize, price)
 	if !strat.liveTrade {
 		strat.availableEquity = strat.availableEquity - (orderSize * price)
@@ -321,11 +321,14 @@ func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong
 			PosSize: orderSize,
 		}
 	} else {
-		//TODO: start saga
+		args := map[string]interface{}{}
+		args["accSzPerc"] = 4.20
+		OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
+		fmt.Println(colorGreen + "\nSaga complete! " + botStreamName + colorReset)
 	}
 }
 
-func (strat *StrategyExecutor) CloseLong(price, orderSize float64, cIndex int, action string, timestamp string) {
+func (strat *StrategyExecutor) CloseLong(price, orderSize float64, cIndex int, action string, timestamp string, botStreamName string) {
 	// fmt.Printf("<%v> closing %v at %v, action = %v\n", timestamp, orderSize, price, action)
 	if !strat.liveTrade {
 		//close entire long
@@ -346,6 +349,9 @@ func (strat *StrategyExecutor) CloseLong(price, orderSize float64, cIndex int, a
 			PosSize: closeSz,
 		}
 	} else {
-		//TODO: start saga
+		args := map[string]interface{}{}
+		args["accSzPerc"] = 4.20
+		ExitTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
+		fmt.Println(colorGreen + "\nSaga complete! " + botStreamName + colorReset)
 	}
 }

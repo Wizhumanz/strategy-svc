@@ -69,7 +69,7 @@ func strat1(
 
 			//check SL
 			if low[relCandleIndex] <= low[stored.EntryFirstPivotIndex] {
-				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime)
+				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime, "")
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.SLIndex = relCandleIndex
 				stored.TPIndex = 0
@@ -84,7 +84,7 @@ func strat1(
 			//check TP
 			tpPrice := (1 + (tpPerc / 100)) * stored.LongEntryPrice
 			if high[relCandleIndex] >= tpPrice {
-				(*strategy).CloseLong(tpPrice, 0, relCandleIndex, "TP", candles[len(candles)-1].DateTime)
+				(*strategy).CloseLong(tpPrice, 0, relCandleIndex, "TP", candles[len(candles)-1].DateTime, "")
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.TPIndex = relCandleIndex
 				stored.SLIndex = 0
@@ -167,7 +167,7 @@ func strat1(
 
 			//exit if exitWatch sufficient
 			if len(trendBreakPivots) >= exitWatchPivots {
-				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime)
+				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime, "")
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.SLIndex = relCandleIndex
 				stored.TPIndex = 0
@@ -216,7 +216,7 @@ func strat1(
 				// 	fmt.Printf("[%v] entryPrice = %v,\nslPrice = %v,\nrawRiskPerc = %v,\nriskedCap = %v,\nposCap = %v\n", candles[len(candles)-1].DateTime, entryPrice, slPrice, rawRiskPerc, accRiskedCap, posCap)
 				// }
 
-				(*strategy).Buy(close[relCandleIndex], slPrice, posSize, true, relCandleIndex)
+				(*strategy).Buy(close[relCandleIndex], slPrice, posSize, true, relCandleIndex, "")
 				// newLabels["middle"] = map[int]string{
 				// 	0: fmt.Sprintf("%v|SL %v, TP %v", relCandleIndex, slPrice, ((1 + (tpPerc / 100)) * stored.LongEntryPrice)),
 				// }

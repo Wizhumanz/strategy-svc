@@ -48,36 +48,3 @@ func StatusActivateHandler(msg redis.XMessage, output *interface{}) {
 
 	msngr.AcknowledgeMsg(newBotStreamName, svcConsumerGroupName, redisConsumerID, msg.ID)
 }
-
-func CmdEnterHandler(msg redis.XMessage, output *interface{}) {
-	newBotStreamName := handlerPrep(msg)
-	if newBotStreamName == "" {
-		fmt.Println("\n" + colorRed + "New bot stream name empty!" + colorReset)
-		return
-	}
-	//start OpenTradeSaga (triggers other svcs)
-	OpenTradeSaga.Execute(newBotStreamName, svcConsumerGroupName, redisConsumerID)
-	fmt.Println(colorGreen + "\nSaga complete! " + newBotStreamName + colorReset)
-}
-
-func CmdExitHandler(msg redis.XMessage, output *interface{}) {
-	newTradeStrName := handlerPrep(msg)
-	if newTradeStrName == "" {
-		fmt.Println("\n" + colorRed + "New trade stream name empty!" + colorReset)
-		return
-	}
-	ExitTradeSaga.Execute(newTradeStrName, svcConsumerGroupName, redisConsumerID)
-	fmt.Println(colorGreen + "\nSaga complete! " + newTradeStrName + colorReset)
-}
-
-func CmdSLHandler(msg redis.XMessage, output *interface{}) {
-	fmt.Printf("EXIT cmd received for message %s", msg)
-}
-
-func CmdTPHandler(msg redis.XMessage, output *interface{}) {
-	fmt.Printf("EXIT cmd received for message %s", msg)
-}
-
-func CmdEDITHandler(msg redis.XMessage, output *interface{}) {
-	fmt.Printf("EDIT cmd received for message %s", msg)
-}

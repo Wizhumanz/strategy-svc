@@ -108,44 +108,6 @@ func main() {
 		},
 	}
 
-	botStreamCmdHandlers = []msngr.CommandHandler{
-		{
-			Command: "CMD",
-			HandlerMatches: []msngr.HandlerMatch{
-				{
-					Matcher: func(fieldVal string) bool {
-						return fieldVal == "ENTER"
-					},
-					Handler: CmdEnterHandler,
-				},
-				{
-					Matcher: func(fieldVal string) bool {
-						return fieldVal == "EXIT"
-					},
-					Handler: CmdExitHandler,
-				},
-				{
-					Matcher: func(fieldVal string) bool {
-						return fieldVal == "TP"
-					},
-					Handler: CmdTPHandler,
-				},
-				{
-					Matcher: func(fieldVal string) bool {
-						return fieldVal == "SL"
-					},
-					Handler: CmdSLHandler,
-				},
-				{
-					Matcher: func(fieldVal string) bool {
-						return fieldVal == "EDIT"
-					},
-					Handler: CmdEDITHandler,
-				},
-			},
-		},
-	}
-
 	//create new redis consumer group for webhookTrades stream
 	_, err := msngr.CreateNewConsumerGroup(newCmdStream, svcConsumerGroupName, "0")
 	if err != nil {
