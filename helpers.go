@@ -27,6 +27,7 @@ func initRedis() {
 		IdleTimeout: -1,
 	})
 
+	ctx := context.Background()
 	rdbChartmaster.Do(ctx, "AUTH", redisPassChartmaster)
 	rdbChartmaster.Do(ctx, "CLIENT", "SET", "TIMEOUT", "999999999999")
 	rdbChartmaster.Do(ctx, "CLIENT", "SETNAME", msngr.GenerateNewConsumerID("strategy-svc"))
