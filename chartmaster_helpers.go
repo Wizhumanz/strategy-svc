@@ -30,7 +30,7 @@ func copyObjs(base []Candlestick, copyer func(Candlestick) CandlestickChartData)
 
 func cacheCandleData(candles []Candlestick, ticker, period string) {
 	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf("Saving %v candles from %v to %v\n", len(candles), candles[0].PeriodStart, candles[len(candles)-1].PeriodStart),
+	go Log(fmt.Sprintf("Saving %v candles from %v to %v", len(candles), candles[0].PeriodStart, candles[len(candles)-1].PeriodStart),
 		fmt.Sprintf("<%v> %v", line, file))
 
 	//progress indicator
@@ -61,7 +61,7 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick {
 	fetchEndTime := end.Add(1 * periodDurationMap[period])
 	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf("FETCHING new candles %v -> %v\n", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
+	go Log(fmt.Sprintf("FETCHING new candles %v -> %v", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
 		fmt.Sprintf("<%v> %v", line, file))
 
 	//send request
@@ -71,7 +71,6 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		period,
 		start.Format(httpTimeFormat),
 		fetchEndTime.Format(httpTimeFormat))
-	fmt.Println(full)
 
 	req, _ := http.NewRequest("GET", full, nil)
 	req.Header.Add("X-CoinAPI-Key", "4D684039-406E-451F-BB2B-6BDC123808E1")
