@@ -63,7 +63,7 @@ func executeLiveStrategy(
 	timeNow := time.Now().UTC()
 
 	//find time interval to trigger fetches
-	checkCandle := fetchCandleData(ticker, period, timeNow.Add(-1*periodDurationMap[period]), timeNow.Add(-1*periodDurationMap[period]))
+	checkCandle := fetchCandleData(ticker, period, timeNow.Add(-1*periodDurationMap[period]), timeNow.Add(-1*periodDurationMap[period])) //this fetch just to check interval
 	layout := "2006-01-02T15:04:05.000Z"
 	str := strings.Replace(checkCandle[len(checkCandle)-1].PeriodEnd, "0000", "", 1)
 	t, _ := time.Parse(layout, str) //CoinAPI's standardized time interval
@@ -72,7 +72,7 @@ func executeLiveStrategy(
 		//wait for current time to equal closest standardized interval time, t (only once)
 		if t == time.Now().UTC() {
 			//fetch closed latest candle (same as the one checked before)
-			fetchedCandles = fetchCandleData(ticker, period, t.Add(-periodDurationMap[period]*1), t.Add(-periodDurationMap[period]*1))
+			fetchCandleData(ticker, period, t.Add(-periodDurationMap[period]*1), t.Add(-periodDurationMap[period]*1))
 
 			//fetch candle and run live strat on every interval tick
 			for n := range minuteTicker(period).C {
