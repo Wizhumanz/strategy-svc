@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -304,7 +305,12 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 }
 
 func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong bool, cIndex int, botStreamName string) {
-	// fmt.Printf("buying %v at %v\n", orderSize, price)
+	if strat.liveTrade {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("Buying %v at %v | SL=%v\n", orderSize, price, sl),
+			fmt.Sprintf("<%v> %v", line, file))
+	}
+
 	if !strat.liveTrade {
 		strat.availableEquity = strat.availableEquity - (orderSize * price)
 
@@ -330,6 +336,12 @@ func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong
 
 func (strat *StrategyExecutor) CloseLong(price, orderSize float64, cIndex int, action string, timestamp string, botStreamName string) {
 	// fmt.Printf("<%v> closing %v at %v, action = %v\n", timestamp, orderSize, price, action)
+	if strat.liveTrade {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("Closing pos %v at %v | action = %v\n", orderSize, price, action),
+			fmt.Sprintf("<%v> %v", line, file))
+	}
+
 	if !strat.liveTrade {
 		//close entire long
 		closeSz := 0.0

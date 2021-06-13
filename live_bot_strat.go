@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 	"strings"
 	"time"
 
@@ -75,6 +76,10 @@ func executeLiveStrategy(
 
 			//fetch candle and run live strat on every interval tick
 			for n := range minuteTicker(period).C {
+				_, file, line, _ := runtime.Caller(0)
+				go Log(fmt.Sprintf("[%v] Running live strat %v for Bot %v | %v | %v", n.UTC().Format(httpTimeFormat), userStrat, bot.KEY, ticker, period),
+					fmt.Sprintf("<%v> %v", line, file))
+
 				msg := make(map[string]string)
 				msg["streamName"] = bot.KEY
 				msg["start"] = "0"
