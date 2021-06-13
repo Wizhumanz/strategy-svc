@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -28,7 +29,10 @@ func copyObjs(base []Candlestick, copyer func(Candlestick) CandlestickChartData)
 }
 
 func cacheCandleData(candles []Candlestick, ticker, period string) {
-	fmt.Printf(colorYellow+"Saving %v candles from %v to %v\n"+colorReset, len(candles), candles[0].PeriodStart, candles[len(candles)-1].PeriodStart)
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf("Saving %v candles from %v to %v\n", len(candles), candles[0].PeriodStart, candles[len(candles)-1].PeriodStart),
+		fmt.Sprintf("<%v> %v", line, file))
+
 	//progress indicator
 	indicatorParts := 30
 	totalLen := len(candles)
@@ -42,7 +46,9 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 		key := ticker + ":" + period + ":" + c.PeriodStart
 		_, err := rdbChartmaster.HMSet(ctx, key, "open", c.Open, "high", c.High, "low", c.Low, "close", c.Close, "volume", c.Volume, "tradesCount", c.TradesCount, "timeOpen", c.TimeOpen, "timeClose", c.TimeClose, "periodStart", c.PeriodStart, "periodEnd", c.PeriodEnd).Result()
 		if err != nil {
-			fmt.Printf("redis cache candlestick data err: %v\n", err)
+			_, file, line, _ := runtime.Caller(0)
+			go Log(fmt.Sprintf("redis cache candlestick data err: %v\n", err),
+				fmt.Sprintf("<%v> %v", line, file))
 			return
 		}
 
@@ -50,12 +56,13 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 			fmt.Printf("Section %v of %v complete\n", (i / lenPart), indicatorParts)
 		}
 	}
-	fmt.Println(colorGreen + "Save json to redis complete!" + colorReset)
 }
 
 func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick {
 	fetchEndTime := end.Add(1 * periodDurationMap[period])
-	fmt.Printf("FETCHING from %v to %v\n", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat))
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf("FETCHING new candles %v -> %v\n", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
+		fmt.Sprintf("<%v> %v", line, file))
 
 	//send request
 	base := "https://rest.coinapi.io/v1/ohlcv/BINANCEFTS_PERP_BTC_USDT/history" //TODO: build dynamically based on ticker
@@ -82,7 +89,9 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 	var jStruct []Candlestick
 	errJson := json.Unmarshal(body, &jStruct)
 	if errJson != nil {
-		fmt.Printf("JSON unmarshall candle data err %v\n", errJson)
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("JSON unmarshall candle data err %v\n", errJson),
+			fmt.Sprintf("<%v> %v", line, file))
 	}
 	//save data to cache so don't have to fetch again
 	if len(jStruct) > 0 && jStruct[0].Open != 0 {
@@ -95,8 +104,6 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 	} else {
 		fmt.Println(body)
 	}
-
-	fmt.Println("Fresh fetch complete")
 	return jStruct
 }
 
@@ -273,9 +280,6 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	var candlesNotInCache []time.Time
 	var candlesInCache []time.Time
 	//check if candles exist in cache
-
-	fmt.Printf(colorRed+"Attempting to fetch candles %v to %v\n"+colorReset, fetchCandlesStart, fetchCandlesEnd)
-
 	for i := 0; i < int(fetchCandlesEnd.Sub(fetchCandlesStart).Minutes()); i++ {
 		retCandles := getCachedCandleData(ticker, period, fetchCandlesStart.Add(time.Minute*time.Duration(i)), fetchCandlesStart.Add(time.Minute*time.Duration(i)))
 		if len(retCandles) == 0 {
@@ -284,8 +288,6 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 			candlesInCache = append(candlesInCache, fetchCandlesStart.Add(time.Minute*time.Duration(i)))
 		}
 	}
-	// fmt.Printf("\ncandlesNotInCache: %v \n", candlesNotInCache)
-	// fmt.Printf("\ncandlesInCache: %v \n", candlesInCache)
 
 	for i := 0; i < len(candlesNotInCache); i += 300 {
 		if len(candlesNotInCache) > i+300 {
@@ -313,10 +315,10 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		}
 	}
 
-	// fmt.Printf("\nTotal: %v \n", sortedChunkCandles)
-
 	if len(sortedChunkCandles) == 0 {
-		fmt.Printf("chunkCandles fetch err %v\n", startTime.Format(httpTimeFormat))
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("chunkCandles fetch err %v\n", startTime.Format(httpTimeFormat)),
+			fmt.Sprintf("<%v> %v", line, file))
 		return
 	}
 

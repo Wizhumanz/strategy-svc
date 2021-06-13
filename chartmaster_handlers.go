@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -45,16 +46,21 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 
 	candlePacketSize, err := strconv.Atoi(req.CandlePacketSize)
 	if err != nil {
-		fmt.Println(err)
+		_, file, line, _ := runtime.Caller(0)
+		go Log(err.Error(), fmt.Sprintf("<%v> %v", line, file))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	start, err := time.Parse(httpTimeFormat, req.TimeStart)
-	if err != nil {
+	start, err2 := time.Parse(httpTimeFormat, req.TimeStart)
+	if err2 != nil {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(err2.Error(), fmt.Sprintf("<%v> %v", line, file))
 		fmt.Println(err)
 	}
-	end, err2 := time.Parse(httpTimeFormat, req.TimeEnd)
-	if err2 != nil {
+	end, err3 := time.Parse(httpTimeFormat, req.TimeEnd)
+	if err3 != nil {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(err3.Error(), fmt.Sprintf("<%v> %v", line, file))
 		fmt.Println(err)
 	}
 
@@ -75,7 +81,6 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 
 		// delete an element in history if more than 10 items
 		bucketName := "res-" + userID
-		fmt.Println(bucketName)
 		bucketData := listFiles(bucketName)
 		if len(bucketData) >= 10 {
 			deleteFile(bucketName, bucketData[0])
@@ -229,7 +234,8 @@ func getTickersHandler(w http.ResponseWriter, r *http.Request) {
 
 	data, err := ioutil.ReadFile("./json-data/symbols-binance-fut-perp.json")
 	if err != nil {
-		fmt.Print(err)
+		_, file, line, _ := runtime.Caller(0)
+		go Log(err.Error(), fmt.Sprintf("<%v> %v", line, file))
 	}
 
 	var t []CoinAPITicker
