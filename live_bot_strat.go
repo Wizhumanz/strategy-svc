@@ -77,30 +77,40 @@ func executeLiveStrategy(
 			//fetch candle and run live strat on every interval tick
 			for n := range minuteTicker(period).C {
 				_, file, line, _ := runtime.Caller(0)
-				go Log(fmt.Sprintf("[%v] Running live strat %v for Bot %v | %v | %v", n.UTC().Format(httpTimeFormat), userStrat, bot.KEY, ticker, period),
+				go Log(fmt.Sprintf("[%v] Running live strat for Bot %v | %v | %v", n.UTC().Format(httpTimeFormat), bot.KEY, ticker, period),
 					fmt.Sprintf("<%v> %v", line, file))
 
-				msg := make(map[string]string)
-				msg["streamName"] = bot.KEY
-				msg["start"] = "0"
-				msg["count"] = "999999999"
+				//check for shutdown cmd
+				readArgs := make(map[string]string)
+				readArgs["streamName"] = bot.KEY
+				readArgs["start"] = "0"
+				readArgs["count"] = "999999"
 
-				_, ret, _ := msngr.ReadStream(msg)
-				byteData, _ := json.Marshal(ret)
-				var t []redis.XStream
-				json.Unmarshal(byteData, &t)
+				var msgs []redis.XStream
+				doExit := false
+				_, ret, _ := msngr.ReadStream(readArgs)
+				if realRes, ok := ret.([]redis.XStream); ok {
+					msgs = realRes
+				}
+				for i, m := range msgs[0].Messages {
+					if i == len(msgs[0].Messages)-1 {
+						if m.Values["CMD"] == "SHUTDOWN" {
+							doExit = true
+							break
+						}
+					}
+				}
 
-				if t[0].Messages[len(t[0].Messages)-1].Values["CMD"] == "SHUTDOWN" {
-					fmt.Println("SHUTDOWN")
+				//stop running live strat loop if shutdown cmd active
+				if doExit {
 					break
 				}
 
 				//TODO: fetch saved storage obj for strategy from redis (using msngr.ReadStream())
 				var stratStore interface{}
-				for i := len(t[0].Messages) - 1; i >= 0; i-- {
-					if t[0].Messages[i].Values["StorageObj"] != nil {
-						fmt.Println("storage")
-						stratStore = t[0].Messages[i].Values["StorageObj"]
+				for i := len(msgs[0].Messages) - 1; i >= 0; i-- {
+					if msgs[0].Messages[i].Values["StorageObj"] != nil {
+						stratStore = msgs[0].Messages[i].Values["StorageObj"]
 					}
 				}
 
