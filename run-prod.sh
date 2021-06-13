@@ -12,7 +12,7 @@ export REDISPORT_CM=6379
 
 export REDISPASS_CM=chartmaster676172378173812738712381238902
 
-export PRINTLOGS=true
+# export PRINTLOGS=true
 
 go build -o build/api .
 
