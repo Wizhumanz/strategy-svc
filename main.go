@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime"
 	"time"
 
 	"os"
@@ -30,7 +31,7 @@ var redisConsumerID string
 var minIdleAutoclaim string
 
 var rdbChartmaster *redis.Client
-var client *datastore.Client
+var dsClient *datastore.Client
 var ctx context.Context
 
 var periodDurationMap = map[string]time.Duration{}
@@ -108,10 +109,12 @@ func main() {
 	//create new redis consumer group for webhookTrades stream
 	_, err := msngr.CreateNewConsumerGroup(newCmdStream, svcConsumerGroupName, "0")
 	if err != nil {
-		fmt.Printf("%s Redis consumer group - %v\n", svcConsumerGroupName, err.Error())
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("%s redis consumer group create err = %v", svcConsumerGroupName, err.Error()),
+			fmt.Sprintf("<%v> %v", line, file))
 	}
 	//create new redis consumer group ID
-	//always create new ID because dead consumers' pending msgs will be autoclaimed
+	//always create new ID because dead consumers' pending msgs will be autoclaimed by other instances
 	redisConsumerID = msngr.GenerateNewConsumerID("strat")
 
 	//live servicing

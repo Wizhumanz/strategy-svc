@@ -95,7 +95,7 @@ func getAllShareResult(userID string) []string {
 	// Get all of user's shared history json data
 	var shareResult []string
 	query := datastore.NewQuery("ShareResult").Filter("UserID =", userID)
-	t := client.Run(ctx, query)
+	t := dsClient.Run(ctx, query)
 	for {
 		var x ShareResult
 		_, err := t.Next(&x)
@@ -148,7 +148,7 @@ func shareResultHandler(w http.ResponseWriter, r *http.Request) {
 	share.ShareID = uniqueURL
 	kind := "ShareResult"
 	newKey := datastore.IncompleteKey(kind, nil)
-	if _, err := client.Put(ctx, newKey, &share); err != nil {
+	if _, err := dsClient.Put(ctx, newKey, &share); err != nil {
 		log.Fatalf("Failed to delete Bot: %v", err)
 	}
 
@@ -170,7 +170,7 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	shareID := r.URL.Query()["share"][0]
 	fmt.Println(shareID)
 	query := datastore.NewQuery("ShareResult").Filter("ShareID =", shareID)
-	t := client.Run(ctx, query)
+	t := dsClient.Run(ctx, query)
 	_, error := t.Next(&shareResult)
 	if error != nil {
 		fmt.Println(error.Error())

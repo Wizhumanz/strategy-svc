@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"time"
 )
 
@@ -42,7 +43,9 @@ func runBacktest(
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retProfitCurve, retSimTrades := computeBacktest(allCandleData, risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender)
 
-	fmt.Println(colorGreen + "\n!!! Backtest complete!" + colorReset)
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf("Backtest complete for %v to %v, %v | %v | user=%v\n", startTime.UTC().Format(httpTimeFormat), endTime.UTC().Format(httpTimeFormat), ticker, period, userID),
+		fmt.Sprintf("<%v> %v", line, file))
 	return retCandles, retProfitCurve, retSimTrades
 }
 

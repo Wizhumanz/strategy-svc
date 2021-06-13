@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"runtime"
 
 	"cloud.google.com/go/datastore"
 	"github.com/go-redis/redis/v8"
@@ -20,7 +21,10 @@ func initRedis() {
 	if redisPortChartmaster == "" {
 		redisPortMsngr = "6379"
 	}
-	fmt.Println("api-gateway connecting to Redis on " + redisHostChartmaster + ":" + redisPortChartmaster + " - " + redisPassChartmaster)
+	_, file, line, _ := runtime.Caller(0)
+	go Log("api-gateway connecting to Redis on "+redisHostChartmaster+":"+redisPortChartmaster+" - "+redisPassChartmaster,
+		fmt.Sprintf("<%v> %v", line, file))
+
 	rdbChartmaster = redis.NewClient(&redis.Options{
 		Addr:        redisHostChartmaster + ":" + redisPortChartmaster,
 		Password:    redisPassChartmaster,
@@ -36,7 +40,7 @@ func initRedis() {
 func initDatastore() {
 	ctx = context.Background()
 	var err error
-	client, err = datastore.NewClient(ctx, googleProjectID)
+	dsClient, err = datastore.NewClient(ctx, googleProjectID)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
