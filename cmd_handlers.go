@@ -34,17 +34,16 @@ func StatusActivateHandler(msg redis.XMessage, output *interface{}) {
 		return
 	}
 
-	botInfo := msngr.FilterMsgVals(msg, func(k, v string) bool {
-		return (k == "Bot" && v != "")
-	})
-
 	//listen on new bot stream
 	go msngr.StreamListenLoop(newBotStreamName, ">", svcConsumerGroupName, redisConsumerID, "1", "0", botStreamCmdHandlers)
 
 	//start live strat execution loop
+	botInfo := msngr.FilterMsgVals(msg, func(k, v string) bool {
+		return (k == "Bot" && v != "")
+	})
 	var bot Bot
 	json.Unmarshal([]byte(botInfo), &bot)
-	go executeLiveStrategy(bot, bot.Ticker, "1MIN", strat1)
+	go executeLiveStrategy(bot, "BINANCEFTS_PERP_BTC_USDT", "1MIN", strat1)
 
 	msngr.AcknowledgeMsg(newBotStreamName, svcConsumerGroupName, redisConsumerID, msg.ID)
 }
