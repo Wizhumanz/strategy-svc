@@ -55,13 +55,15 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 	if err2 != nil {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(err2.Error(), fmt.Sprintf("<%v> %v", line, file))
-		fmt.Println(err)
+		_, file, line, _ = runtime.Caller(0)
+		go Log(err.Error(), fmt.Sprintf("<%v> %v", line, file))
 	}
 	end, err3 := time.Parse(httpTimeFormat, req.TimeEnd)
 	if err3 != nil {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(err3.Error(), fmt.Sprintf("<%v> %v", line, file))
-		fmt.Println(err)
+		_, file, line, _ = runtime.Caller(0)
+		go Log(err.Error(), fmt.Sprintf("<%v> %v", line, file))
 	}
 
 	//strat params
@@ -140,7 +142,6 @@ func shareResultHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uniqueURL := fmt.Sprintf("%v", time.Now().UnixNano()) + generateRandomID(20)
-	fmt.Println(uniqueURL)
 
 	var share ShareResult
 	err := json.NewDecoder(r.Body).Decode(&share)
@@ -157,8 +158,6 @@ func shareResultHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("Failed to delete Bot: %v", err)
 	}
 
-	fmt.Println(share)
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(share)
@@ -173,12 +172,12 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	var shareResult ShareResult
 
 	shareID := r.URL.Query()["share"][0]
-	fmt.Println(shareID)
 	query := datastore.NewQuery("ShareResult").Filter("ShareID =", shareID)
 	t := dsClient.Run(ctx, query)
 	_, error := t.Next(&shareResult)
 	if error != nil {
-		fmt.Println(error.Error())
+		_, file, line, _ := runtime.Caller(0)
+		go Log(error.Error(), fmt.Sprintf("<%v> %v", line, file))
 	}
 
 	// candlePacketSize, err := strconv.Atoi(r.URL.Query()["candlePacketSize"][0])
@@ -268,7 +267,8 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 
 	candlePacketSize, err := strconv.Atoi(r.URL.Query()["candlePacketSize"][0])
 	if err != nil {
-		fmt.Println(err)
+		_, file, line, _ := runtime.Caller(0)
+		go Log(err.Error(), fmt.Sprintf("<%v> %v", line, file))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

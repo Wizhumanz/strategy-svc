@@ -84,7 +84,8 @@ func runScan(
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retScanRes := computeScan(allCandleData, packetSize, userID, rid, startTime, endTime, scannerFunc, packetSender)
 
-	fmt.Println(colorGreen + "\n!!! Backtest complete!" + colorReset)
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf(colorGreen+"\n!!! Backtest complete!"+colorReset), fmt.Sprintf("<%v> %v", line, file))
 	return retCandles, retScanRes
 }
 
@@ -252,6 +253,7 @@ func runBacktestSequential(
 		fetchCandlesStart = fetchCandlesEnd.Add(periodDurationMap[period])
 	}
 
-	fmt.Println(colorGreen + "Backtest complete!" + colorReset)
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf(colorGreen+"Backtest complete!"+colorReset), fmt.Sprintf("<%v> %v", line, file))
 	return retCandles, retProfitCurve, retSimTrades
 }

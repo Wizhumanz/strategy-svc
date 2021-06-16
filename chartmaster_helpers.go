@@ -53,7 +53,8 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 		}
 
 		if (i > 1) && ((i % lenPart) == 0) {
-			fmt.Printf("Section %v of %v complete\n", (i / lenPart), indicatorParts)
+			_, file, line, _ := runtime.Caller(0)
+			go Log(fmt.Sprintf("Section %v of %v complete\n", (i/lenPart), indicatorParts), fmt.Sprintf("<%v> %v", line, file))
 		}
 	}
 }
@@ -71,7 +72,6 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		period,
 		start.Format(httpTimeFormat),
 		fetchEndTime.Format(httpTimeFormat))
-	fmt.Println(full)
 
 	req, _ := http.NewRequest("GET", full, nil)
 	req.Header.Add("X-CoinAPI-Key", "4D684039-406E-451F-BB2B-6BDC123808E1")
@@ -79,7 +79,8 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 	response, err := client.Do(req)
 
 	if err != nil {
-		fmt.Printf("GET candle data err %v\n", err)
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("GET candle data err %v\n", err), fmt.Sprintf("<%v> %v", line, file))
 		return nil
 	}
 
@@ -102,7 +103,8 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		// file, _ := json.MarshalIndent(jStruct, "", " ")
 		// _ = ioutil.WriteFile(fileName, file, 0644)
 	} else {
-		fmt.Println(body)
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprint(body), fmt.Sprintf("<%v> %v", line, file))
 	}
 	return jStruct
 }
