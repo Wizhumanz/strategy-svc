@@ -102,6 +102,7 @@ func executeLiveStrategy(
 				findPivots(opens, highs, lows, closes, runningIndex, &phs, &pls)
 
 				newStratStore := PivotsStore{
+					BotID:                 bot.KEY,
 					PivotHighs:            phs,
 					PivotLows:             pls,
 					LongEntryPrice:        stratStore.(PivotsStore).LongEntryPrice,
@@ -217,6 +218,8 @@ func executeLiveStrategy(
 						continue
 					}
 				}
+				fmt.Printf(colorGreen+"<%v> %v"+colorReset, runningIndex, readStore)
+
 				newStratStore := PivotsStore{
 					PivotHighs:            readStore.PivotHighs,
 					PivotLows:             readStore.PivotLows,

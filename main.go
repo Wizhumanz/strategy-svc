@@ -72,7 +72,10 @@ func main() {
 	msngr.GoogleProjectID = "myika-anastasia"
 	msngr.LoggerFunc = func(log string) {
 		_, file, line, _ := runtime.Caller(0)
-		go Log(log, fmt.Sprintf("<%v> %v", line, file))
+		_, file2, line2, _ := runtime.Caller(1)
+		_, file3, line3, _ := runtime.Caller(2)
+		_, file4, line4, _ := runtime.Caller(3)
+		go Log(log, fmt.Sprintf("<%v> %v \n| <%v> %v \n| <%v> %v \n| <%v> %v", line, file, line2, file2, line3, file3, line4, file4))
 	}
 	msngr.InitRedis(redisHostMsngr, redisPortMsngr, redisPassMsngr)
 
