@@ -22,6 +22,7 @@ type PivotsStore struct {
 	Highs  []float64
 	Lows   []float64
 	Closes []float64
+	BotID  string
 }
 
 //return signature: (label, bars back to add label, storage obj to pass to next func call/iteration)
@@ -50,6 +51,9 @@ func strat1(
 			return nil
 		}
 	}
+
+	//TEST
+	(*strategy).Buy(close[relCandleIndex], 69.69, 69.69, true, relCandleIndex, stored.BotID)
 
 	newLabels, _ := findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows))
 
