@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -42,4 +43,33 @@ func Log(data, location string) {
 	} else {
 		fmt.Printf("%v\n"+colorCyan+"%v\n"+colorReset, data, location)
 	}
+}
+
+var fileName string
+
+func createJSONFile(botName, period string) {
+	fileName = fmt.Sprintf("%v %v.json", botName, period)
+	mydata := []byte(botName + " " + period + ":\n")
+
+	// the WriteFile method returns an error if unsuccessful
+	err := ioutil.WriteFile(fileName, mydata, 0777)
+	// handle this error
+	if err != nil {
+		// print it out
+		fmt.Println(err)
+	}
+}
+
+func loggingInJSON(text string) string {
+	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	if _, err = f.WriteString(text + "\n"); err != nil {
+		panic(err)
+	}
+
+	return text
 }
