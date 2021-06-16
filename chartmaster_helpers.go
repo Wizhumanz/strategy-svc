@@ -12,6 +12,7 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -74,7 +75,7 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		fetchEndTime.Format(httpTimeFormat))
 
 	req, _ := http.NewRequest("GET", full, nil)
-	req.Header.Add("X-CoinAPI-Key", "4D684039-406E-451F-BB2B-6BDC123808E1")
+	req.Header.Add("X-CoinAPI-Key", "A2642A7A-A8C8-48C1-83CE-8D258BD7BBF5")
 	client := &http.Client{}
 	response, err := client.Do(req)
 
@@ -110,7 +111,9 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 }
 
 func getCachedCandleData(ticker, period string, start, end time.Time) []Candlestick {
-	// fmt.Printf("CACHE getting from %v to %v\n", start.Format(httpTimeFormat), end.Format(httpTimeFormat))
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf("CACHE getting from %v to %v\n", start.Format(httpTimeFormat), end.Format(httpTimeFormat)),
+		fmt.Sprintf("<%v> %v", line, file))
 
 	var retCandles []Candlestick
 	checkEnd := end.Add(periodDurationMap[period])
@@ -281,9 +284,12 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	var chunkCandles []Candlestick
 	var candlesNotInCache []time.Time
 	var candlesInCache []time.Time
+
 	//check if candles exist in cache
-	for i := 0; i < int(fetchCandlesEnd.Sub(fetchCandlesStart).Minutes()); i++ {
-		retCandles := getCachedCandleData(ticker, period, fetchCandlesStart.Add(time.Minute*time.Duration(i)), fetchCandlesStart.Add(time.Minute*time.Duration(i)))
+	periodAdd, _ := strconv.Atoi(strings.Split(period, "M")[0])
+
+	for i := 0; i < int(fetchCandlesEnd.Sub(fetchCandlesStart).Minutes()); i += periodAdd {
+		retCandles := getCachedCandleData(ticker, period, fetchCandlesStart.Add(time.Minute*time.Duration(i)), fetchCandlesStart.Add(time.Minute*time.Duration(i+1)))
 		if len(retCandles) == 0 {
 			candlesNotInCache = append(candlesNotInCache, fetchCandlesStart.Add(time.Minute*time.Duration(i)))
 		} else {

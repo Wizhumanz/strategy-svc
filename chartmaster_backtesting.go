@@ -39,7 +39,10 @@ func runBacktest(
 		allCandleData = append(allCandleData, *e...)
 		// progressBar(userID, rid, len(allCandleData), startTime, endTime)
 	}
-
+	// candles, _ := json.Marshal(allCandleData)
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log(string(candles),
+	// 	fmt.Sprintf("<%v> %v", line, file))
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retProfitCurve, retSimTrades := computeBacktest(allCandleData, risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender)
 
