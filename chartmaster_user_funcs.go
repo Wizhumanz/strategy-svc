@@ -37,11 +37,11 @@ func strat1(
 
 	stored, ok := (*storage).(PivotsStore)
 	if !ok {
-		if relCandleIndex == 0 {
+		if relCandleIndex <= 0 {
 			stored.PivotHighs = []int{}
 			stored.PivotLows = []int{}
 		} else {
-			fmt.Errorf("storage obj assertion fail")
+			fmt.Println("strat1 storage obj assertion fail")
 			return nil
 		}
 	}
