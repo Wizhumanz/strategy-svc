@@ -75,7 +75,7 @@ func executeLiveStrategy(
 		//wait for current time to equal closest standardized interval time, t (only once)
 		if t == time.Now().UTC() {
 			//fetch closed latest candle (same as the one checked before) and previous candles to compute pivots
-			data := fetchCandleData(ticker, period, t.Add(-periodDurationMap[period]*30), t.Add(-periodDurationMap[period]*1))
+			data := fetchCandleData(ticker, period, t.Add(-periodDurationMap[period]*50), t.Add(-periodDurationMap[period]*1))
 
 			//compute some previous pivots to give strategy starting point
 			var stratStore interface{}
@@ -111,6 +111,10 @@ func executeLiveStrategy(
 					EntrySecondPivotIndex: stratStore.(PivotsStore).EntrySecondPivotIndex,
 					TPIndex:               stratStore.(PivotsStore).TPIndex,
 					SLIndex:               stratStore.(PivotsStore).SLIndex,
+					Opens:                 opens,
+					Highs:                 highs,
+					Lows:                  lows,
+					Closes:                closes,
 				}
 				stratStore = newStratStore
 
@@ -123,6 +127,7 @@ func executeLiveStrategy(
 				go Log(fmt.Sprintf("[%v] Running live strat for Bot %v | %v | %v", n.UTC().Format(httpTimeFormat), bot.KEY, ticker, period),
 					fmt.Sprintf("<%v> %v", line, file))
 
+				//check bot ID
 				if bot.KEY == "" {
 					_, file, line, _ := runtime.Caller(0)
 					go Log("bot.KEY empty string err",
@@ -155,29 +160,79 @@ func executeLiveStrategy(
 					break
 				}
 
-				runningIndex++
+				//can continue with live strategy execute
 
-				//TODO: fetch saved storage obj for strategy from redis (using msngr.ReadStream())
+				runningIndex++
+				//fetch storage obj
 				for i := len(msgs[0].Messages) - 1; i >= 0; i-- {
 					if msgs[0].Messages[i].Values["StorageObj"] != nil {
 						stratStore = msgs[0].Messages[i].Values["StorageObj"]
 					}
 				}
 
+				//fetch latest candle to run strategy on
 				fetchedCandles = fetchCandleData(ticker, period, n.Add(-periodDurationMap[period]*1), n.Add(-periodDurationMap[period]*1))
 
-				if fetchedCandles == nil {
+				if len(fetchedCandles) <= 0 || fetchedCandles == nil {
+					_, file, line, _ := runtime.Caller(0)
+					go Log(fmt.Sprintf("[%v] No candles returned", n.UTC().Format(httpTimeFormat)),
+						fmt.Sprintf("<%v> %v", line, file))
 					continue
 				}
+
+				//build data
+				opens = append(opens, fetchedCandles[0].Open)
+				highs = append(highs, fetchedCandles[0].High)
+				lows = append(lows, fetchedCandles[0].Low)
+				closes = append(closes, fetchedCandles[0].Close)
+
 				//TODO: get bot's real settings to pass to strategy
 				stratExec := StrategyExecutor{}
 				stratExec.Init(0, true)
 				userStrat(fetchedCandles, 0.0, 0.0, 0.0,
-					[]float64{fetchedCandles[0].Open},
-					[]float64{fetchedCandles[0].High},
-					[]float64{fetchedCandles[0].Low},
-					[]float64{fetchedCandles[0].Close},
+					opens,
+					highs,
+					lows,
+					closes,
 					runningIndex, &stratExec, &stratStore)
+
+				//save state in strat store obj
+				var readStore PivotsStore
+				if ps, ok := stratStore.(PivotsStore); ok {
+					readStore = ps
+				} else {
+					if str, okStr := stratStore.(string); okStr {
+						err := json.Unmarshal([]byte(str), &readStore)
+						if err != nil {
+							_, file, line, _ := runtime.Caller(0)
+							go Log(fmt.Sprintf("%v", err),
+								fmt.Sprintf("<%v> %v", line, file))
+							continue
+						}
+					} else {
+						_, file, line, _ := runtime.Caller(0)
+						go Log(fmt.Sprintf("[%v] Cannot cast strategy storage obj", n.UTC().Format(httpTimeFormat)),
+							fmt.Sprintf("<%v> %v", line, file))
+						continue
+					}
+				}
+				newStratStore := PivotsStore{
+					PivotHighs:            readStore.PivotHighs,
+					PivotLows:             readStore.PivotLows,
+					LongEntryPrice:        readStore.LongEntryPrice,
+					LongSLPrice:           readStore.LongSLPrice,
+					LongPosSize:           readStore.LongPosSize,
+					MinSearchIndex:        readStore.MinSearchIndex,
+					EntryFirstPivotIndex:  readStore.EntryFirstPivotIndex,
+					EntrySecondPivotIndex: readStore.EntrySecondPivotIndex,
+					TPIndex:               readStore.TPIndex,
+					SLIndex:               readStore.SLIndex,
+					Opens:                 opens,
+					Highs:                 highs,
+					Lows:                  lows,
+					Closes:                closes,
+				}
+				stratStore = newStratStore
 
 				//save state to retrieve for next iteration
 				obj, err := json.Marshal(stratStore)

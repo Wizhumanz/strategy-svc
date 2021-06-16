@@ -17,6 +17,11 @@ type PivotsStore struct {
 	EntrySecondPivotIndex int
 	TPIndex               int
 	SLIndex               int
+
+	Opens  []float64
+	Highs  []float64
+	Lows   []float64
+	Closes []float64
 }
 
 //return signature: (label, bars back to add label, storage obj to pass to next func call/iteration)
