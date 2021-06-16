@@ -80,6 +80,12 @@ func executeLiveStrategy(
 				go Log(fmt.Sprintf("[%v] Running live strat for Bot %v | %v | %v", n.UTC().Format(httpTimeFormat), bot.KEY, ticker, period),
 					fmt.Sprintf("<%v> %v", line, file))
 
+				if bot.KEY == "" {
+					_, file, line, _ := runtime.Caller(0)
+					go Log("bot.KEY empty string err",
+						fmt.Sprintf("<%v> %v", line, file))
+				}
+
 				//check for shutdown cmd
 				readArgs := make(map[string]string)
 				readArgs["streamName"] = bot.KEY

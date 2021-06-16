@@ -30,7 +30,7 @@ func copyObjs(base []Candlestick, copyer func(Candlestick) CandlestickChartData)
 
 func cacheCandleData(candles []Candlestick, ticker, period string) {
 	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf("Saving %v candles from %v to %v\n", len(candles), candles[0].PeriodStart, candles[len(candles)-1].PeriodStart),
+	go Log(fmt.Sprintf("Saving %v candles from %v to %v", len(candles), candles[0].PeriodStart, candles[len(candles)-1].PeriodEnd),
 		fmt.Sprintf("<%v> %v", line, file))
 
 	//progress indicator
@@ -62,7 +62,7 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick {
 	fetchEndTime := end.Add(1 * periodDurationMap[period])
 	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf("FETCHING new candles %v -> %v\n", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
+	go Log(fmt.Sprintf("FETCHING new candles %v -> %v", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
 		fmt.Sprintf("<%v> %v", line, file))
 
 	//send request

@@ -110,6 +110,20 @@ func main() {
 		},
 	}
 
+	// botStreamCmdHandlers = []msngr.CommandHandler{
+	// 	{
+	// 		Command: "CMD",
+	// 		HandlerMatches: []msngr.HandlerMatch{
+	// 			{
+	// 				Matcher: func(fieldVal string) bool {
+	// 					return fieldVal == "SHUTDOWN"
+	// 				},
+	// 				Handler: StatusActivateHandler,
+	// 			},
+	// 		},
+	// 	},
+	// }
+
 	//create new redis consumer group for webhookTrades stream
 	_, err := msngr.CreateNewConsumerGroup(newCmdStream, svcConsumerGroupName, "0")
 	if err != nil {
