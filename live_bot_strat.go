@@ -62,6 +62,7 @@ func executeLiveStrategy(
 	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}) map[string]map[int]string) {
 	var fetchedCandles []Candlestick
 
+	createJSONFile(bot.Name, period)
 	timeNow := time.Now().UTC()
 
 	//find time interval to trigger fetches
@@ -125,13 +126,13 @@ func executeLiveStrategy(
 			//fetch candle and run live strat on every interval tick
 			for n := range minuteTicker(period).C {
 				_, file, line, _ := runtime.Caller(0)
-				go Log(fmt.Sprintf("[%v] Running live strat for Bot %v | %v | %v", n.UTC().Format(httpTimeFormat), bot.KEY, ticker, period),
+				go Log(loggingInJSON(fmt.Sprintf("[%v] Running live strat for Bot %v | %v | %v", n.UTC().Format(httpTimeFormat), bot.KEY, ticker, period)),
 					fmt.Sprintf("<%v> %v", line, file))
 
 				//check bot ID
 				if bot.KEY == "" {
 					_, file, line, _ := runtime.Caller(0)
-					go Log("bot.KEY empty string err",
+					go Log(loggingInJSON("bot.KEY empty string err"),
 						fmt.Sprintf("<%v> %v", line, file))
 				}
 
@@ -176,7 +177,7 @@ func executeLiveStrategy(
 
 				if len(fetchedCandles) <= 0 || fetchedCandles == nil {
 					_, file, line, _ := runtime.Caller(0)
-					go Log(fmt.Sprintf("[%v] No candles returned", n.UTC().Format(httpTimeFormat)),
+					go Log(loggingInJSON(fmt.Sprintf("[%v] No candles returned", n.UTC().Format(httpTimeFormat))),
 						fmt.Sprintf("<%v> %v", line, file))
 					continue
 				}
@@ -206,13 +207,13 @@ func executeLiveStrategy(
 						err := json.Unmarshal([]byte(str), &readStore)
 						if err != nil {
 							_, file, line, _ := runtime.Caller(0)
-							go Log(fmt.Sprintf("%v", err),
+							go Log(loggingInJSON(fmt.Sprintf("%v", err)),
 								fmt.Sprintf("<%v> %v", line, file))
 							continue
 						}
 					} else {
 						_, file, line, _ := runtime.Caller(0)
-						go Log(fmt.Sprintf("[%v] Cannot cast strategy storage obj", n.UTC().Format(httpTimeFormat)),
+						go Log(loggingInJSON(fmt.Sprintf("[%v] Cannot cast strategy storage obj", n.UTC().Format(httpTimeFormat))),
 							fmt.Sprintf("<%v> %v", line, file))
 						continue
 					}
