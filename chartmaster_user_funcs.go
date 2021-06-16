@@ -17,6 +17,11 @@ type PivotsStore struct {
 	EntrySecondPivotIndex int
 	TPIndex               int
 	SLIndex               int
+
+	Opens  []float64
+	Highs  []float64
+	Lows   []float64
+	Closes []float64
 }
 
 //return signature: (label, bars back to add label, storage obj to pass to next func call/iteration)
@@ -37,11 +42,11 @@ func strat1(
 
 	stored, ok := (*storage).(PivotsStore)
 	if !ok {
-		if relCandleIndex == 0 {
+		if relCandleIndex <= 0 {
 			stored.PivotHighs = []int{}
 			stored.PivotLows = []int{}
 		} else {
-			fmt.Errorf("storage obj assertion fail")
+			fmt.Println("strat1 storage obj assertion fail")
 			return nil
 		}
 	}

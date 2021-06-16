@@ -1,12 +1,28 @@
 package main
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
+func checkExists(val int, slice []int) bool {
+	found := false
+	for _, v := range slice {
+		if v == val {
+			found = true
+			break
+		}
+	}
+	return found
+}
+
+// findPivots returns a labels map and a boolean value that is true if the current candle is a pivot low
 func findPivots(
 	open, high, low, close []float64,
 	relCandleIndex int,
 	ph, pl *[]int) (map[string]map[int]string, bool) {
 	foundPL := false
+	fmt.Printf(colorWhite+"findPivots index %v | o = %v, h = %v, l = %v, c = %v\n"+colorReset, relCandleIndex, len(open), len(high), len(low), len(close))
 
 	//find pivot highs + lows
 	var lookForHigh bool
@@ -19,6 +35,11 @@ func findPivots(
 	} else {
 		lookForHigh = false
 	}
+
+	if len(*ph) < 30 && len(*pl) < 30 {
+		fmt.Printf(colorWhite+"lookForHigh = %v | phs = %v \n pls = %v\n"+colorReset, lookForHigh, *ph, *pl)
+	}
+
 	newLabels := make(map[string]map[int]string) //map of labelPos:map of labelBarsBack:labelText
 	// newLabels["middle"] = map[int]string{
 	// 	0: fmt.Sprintf("%v", relCandleIndex),
@@ -43,13 +64,7 @@ func findPivots(
 		for i := lastPivotIndex; (i+1) < len(low) && (i+1) < len(high); i++ { //TODO: should be relCandleIndex-1 but causes index outta range err
 			if (low[i+1] < low[i]) && (high[i+1] < high[i]) {
 				//check if pivot already exists
-				found := false
-				for _, ph := range *ph {
-					if ph == i {
-						found = true
-						break
-					}
-				}
+				found := checkExists(i, *ph)
 				if found {
 					continue
 				}
@@ -71,7 +86,9 @@ func findPivots(
 					}
 				}
 
-				if newPHIndex >= 0 {
+				if newPHIndex >= 0 && !(checkExists(newPHIndex, *ph)) {
+					fmt.Printf("Appending PH %v\n", newPHIndex)
+
 					*ph = append(*ph, newPHIndex)
 					pivotBarsBack = relCandleIndex - newPHIndex
 
@@ -126,6 +143,8 @@ func findPivots(
 				}
 
 				if newPLIndex >= 0 {
+					fmt.Printf("Appending PL %v\n", newPLIndex)
+
 					*pl = append(*pl, newPLIndex)
 					pivotBarsBack = relCandleIndex - newPLIndex
 					newLabels["bottom"] = map[int]string{
