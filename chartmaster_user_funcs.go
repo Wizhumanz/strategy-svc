@@ -47,6 +47,7 @@ func strat1(
 			stored.PivotLows = []int{}
 		} else {
 			fmt.Println("strat1 storage obj assertion fail")
+			fmt.Printf("\nSTORAGE: %v\n", stored)
 			return nil
 		}
 	}
