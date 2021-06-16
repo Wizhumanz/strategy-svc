@@ -158,7 +158,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 	//candlestick
 	retCandlesArr := cArr
 	newCandleD := CandlestickChartData{
-		DateTime: c.DateTime,
+		DateTime: c.DateTime(),
 		Open:     c.Open,
 		High:     c.High,
 		Low:      c.Low,
@@ -239,12 +239,12 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 		//only add data point if changed from last point OR 1st or 2nd datapoint
 		if (strat.GetTotalEquity() != 0) && (len(*profitCurve) == 0) && (relIndex != 0) {
 			pd = ProfitCurveDataPoint{
-				DateTime: c.DateTime,
+				DateTime: c.DateTime(),
 				Equity:   strat.GetTotalEquity(),
 			}
 		} else if (relIndex == 0) || (strat.GetTotalEquity() != (*profitCurve)[len(*profitCurve)-1].Equity) {
 			pd = ProfitCurveDataPoint{
-				DateTime: c.DateTime,
+				DateTime: c.DateTime(),
 				Equity:   strat.GetTotalEquity(),
 			}
 		}
@@ -266,7 +266,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				}
 			}
 
-			sd.DateTime = c.DateTime
+			sd.DateTime = c.DateTime()
 			sd.Direction = "LONG" //TODO: fix later when strategy changes
 			sd.EntryPrice = entryPrice
 			sd.ExitPrice = strat.Actions[relIndex].Price
@@ -308,6 +308,11 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	if len(candlesInCache) > 0 {
 		chunkCandles = append(chunkCandles, getCachedCandleData(ticker, period, candlesInCache[0], candlesInCache[len(candlesInCache)-1])...)
 	}
+
+	candles, _ := json.Marshal(chunkCandles)
+	_, file, line, _ := runtime.Caller(0)
+	go Log(string(candles),
+		fmt.Sprintf("<%v> %v", line, file))
 
 	var tempTimeArray []string
 	var sortedChunkCandles []Candlestick
@@ -754,7 +759,7 @@ func completeBacktestResFile(
 		blankCandles := copyObjs(getCachedCandleData(rawData.Ticker, rawData.Period, fetchCandlesStart, fetchCandlesEnd),
 			func(obj Candlestick) CandlestickChartData {
 				chartC := CandlestickChartData{
-					DateTime: obj.DateTime,
+					DateTime: obj.DateTime(),
 					Open:     obj.Open,
 					High:     obj.High,
 					Low:      obj.Low,

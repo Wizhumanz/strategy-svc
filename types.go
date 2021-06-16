@@ -233,7 +233,7 @@ type BacktestResFile struct {
 }
 
 type Candlestick struct {
-	DateTime    string
+	// DateTime    string
 	PeriodStart string  `json:"time_period_start"`
 	PeriodEnd   string  `json:"time_period_end"`
 	TimeOpen    string  `json:"time_open"`
@@ -257,12 +257,21 @@ func (c *Candlestick) Create(redisData map[string]string) {
 	c.TimeClose = redisData["timeClose"]
 	c.PeriodStart = redisData["periodStart"]
 	c.PeriodEnd = redisData["periodEnd"]
-	t, timeErr := time.Parse(httpTimeFormat, strings.Split(redisData["periodStart"], ".")[0])
+	// t, timeErr := time.Parse(httpTimeFormat, strings.Split(redisData["periodStart"], ".")[0])
+	// if timeErr != nil {
+	// 	fmt.Errorf("&v", timeErr)
+	// 	return
+	// }
+	// c.DateTime = t.Format(httpTimeFormat)
+}
+
+func (c *Candlestick) DateTime() string {
+	t, timeErr := time.Parse(httpTimeFormat, strings.Split(c.PeriodStart, ".")[0])
 	if timeErr != nil {
 		fmt.Errorf("&v", timeErr)
-		return
+		return "Error with DateTime"
 	}
-	c.DateTime = t.Format(httpTimeFormat)
+	return t.Format(httpTimeFormat)
 }
 
 type StrategyExecutorAction struct {

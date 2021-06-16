@@ -74,7 +74,7 @@ func strat1(
 
 			//check SL
 			if low[relCandleIndex] <= low[stored.EntryFirstPivotIndex] {
-				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime, "")
+				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime(), "")
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.SLIndex = relCandleIndex
 				stored.TPIndex = 0
@@ -89,7 +89,7 @@ func strat1(
 			//check TP
 			tpPrice := (1 + (tpPerc / 100)) * stored.LongEntryPrice
 			if high[relCandleIndex] >= tpPrice {
-				(*strategy).CloseLong(tpPrice, 0, relCandleIndex, "TP", candles[len(candles)-1].DateTime, "")
+				(*strategy).CloseLong(tpPrice, 0, relCandleIndex, "TP", candles[len(candles)-1].DateTime(), "")
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.TPIndex = relCandleIndex
 				stored.SLIndex = 0
@@ -172,7 +172,7 @@ func strat1(
 
 			//exit if exitWatch sufficient
 			if len(trendBreakPivots) >= exitWatchPivots {
-				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime, "")
+				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime(), "")
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.SLIndex = relCandleIndex
 				stored.TPIndex = 0
@@ -276,12 +276,12 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, high, clo
 	(*newLabels)["middle"] = map[int]string{
 		relCandleIndex - trendExtentIndex: "^",
 	}
-	retData.ExtentTime = candles[trendExtentIndex].DateTime
+	retData.ExtentTime = candles[trendExtentIndex].DateTime()
 
 	(*retData).Growth = ((high[breakIndex] - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
 
 	entryTime, _ := time.Parse(httpTimeFormat, retData.EntryTime)
-	trendEndTime, _ := time.Parse(httpTimeFormat, candles[breakIndex].DateTime)
+	trendEndTime, _ := time.Parse(httpTimeFormat, candles[breakIndex].DateTime())
 	retData.Duration = trendEndTime.Sub(entryTime).Minutes()
 
 	//reset
@@ -424,7 +424,7 @@ func scanPivotTrends(
 			prevPL := low[prevPLIndex]
 			entryPivotsDiffPerc := ((latestPL - prevPL) / prevPL) * 100
 			if latestPL > prevPL && latestPLIndex > stored.MinSearchIndex && prevPLIndex > stored.MinSearchIndex && entryPivotsDiffPerc > minEntryPivotsDiffPerc && entryPivotsDiffPerc < maxEntryPivotsDiffPerc {
-				retData.EntryTime = candles[latestPLIndex].DateTime
+				retData.EntryTime = candles[latestPLIndex].DateTime()
 				retData.EntryFirstPivotIndex = prevPLIndex
 				retData.EntrySecondPivotIndex = latestPLIndex
 				retData.EntryPivotsPriceDiffPerc = ((low[latestPLIndex] - low[prevPLIndex]) / low[prevPLIndex]) * 100
