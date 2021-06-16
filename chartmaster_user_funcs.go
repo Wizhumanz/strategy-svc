@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"time"
 )
 
@@ -41,17 +42,43 @@ func strat1(
 	slTradeCooldownCandles := 9
 	tpPerc := 0.5
 
-	stored, ok := (*storage).(PivotsStore)
-	if !ok {
+	stored := (*storage).(PivotsStore)
+
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf("\nStorage mate: %v\n", stored),
+		fmt.Sprintf("<%v> %v", line, file))
+
+	if len(stored.PivotHighs) == 0 {
 		if relCandleIndex <= 0 {
 			stored.PivotHighs = []int{}
-			stored.PivotLows = []int{}
 		} else {
 			fmt.Println("strat1 storage obj assertion fail")
-			fmt.Printf("\nSTORAGE: %v\n", stored)
 			return nil
 		}
 	}
+
+	if len(stored.PivotLows) == 0 {
+		if relCandleIndex <= 0 {
+			stored.PivotLows = []int{}
+		} else {
+			fmt.Println("strat1 storage obj assertion fail")
+			return nil
+		}
+	}
+
+	// if stored1, ok := (*storage).(PivotsStore); !ok {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprintf("\nStorage mate: %v and OK mat: %v\n", stored1, ok),
+	// 		fmt.Sprintf("<%v> %v", line, file))
+
+	// 	if relCandleIndex <= 0 {
+	// 		stored1.PivotHighs = []int{}
+	// 		stored1.PivotLows = []int{}
+	// 	} else {
+	// 		fmt.Println("strat1 storage obj assertion fail")
+	// 		return nil
+	// 	}
+	// }
 
 	//TEST
 	(*strategy).Buy(close[relCandleIndex], 69.69, 69.69, true, relCandleIndex, stored.BotID)
