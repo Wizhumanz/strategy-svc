@@ -338,10 +338,10 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		// 	fmt.Sprintf("<%v> %v", line, file))
 
 		args := map[string]interface{}{}
-		args["slPrice"] = sl
-		args["accRisk"] = accRisk
-		args["leverage"] = lev
-		args["latestClosePrice"] = lev
+		args["slPrice"] = float64(sl)
+		args["accRisk"] = float64(accRisk)
+		args["leverage"] = int(lev)
+		args["latestClosePrice"] = float64(price)
 		OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
 		fmt.Println(colorGreen + "\nSaga complete! " + botStreamName + colorReset)
 	}
