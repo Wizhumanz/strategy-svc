@@ -109,7 +109,6 @@ func submitEntryOrder(allArgs ...interface{}) (interface{}, error) {
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
 	listenArgs["count"] = "1"
-	fmt.Println("hello")
 	var order string
 	parserHandlers := []msngr.CommandHandler{
 		{

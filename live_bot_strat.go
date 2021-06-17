@@ -20,8 +20,8 @@ func logLiveStrategyExecution(execTimestamp, storageObj, botStreamName string) {
 	msgs = append(msgs, "StorageObj")
 	msgs = append(msgs, storageObj)
 
-	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprint(storageObj), fmt.Sprintf("<%v> %v", line, file))
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log(fmt.Sprint(storageObj), fmt.Sprintf("<%v> %v", line, file))
 
 	msngr.AddToStream(botStreamName, msgs)
 }

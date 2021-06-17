@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"time"
@@ -42,10 +43,23 @@ func strat1(
 	slTradeCooldownCandles := 9
 	tpPerc := 0.5
 
-	stored := (*storage).(PivotsStore)
-
 	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf("\nStorage mate: %v\n", stored),
+	go Log(fmt.Sprintf("\nStorage mate: %v\n", (*storage)),
+		fmt.Sprintf("<%v> %v", line, file))
+
+	var stored PivotsStore
+
+	switch (*storage).(type) {
+	case PivotsStore:
+		stored = (*storage).(PivotsStore)
+	case string:
+		json.Unmarshal([]byte((*storage).(string)), &stored)
+	default:
+		fmt.Printf("Unknown type, go kys.")
+	}
+
+	_, file, line, _ = runtime.Caller(0)
+	go Log(fmt.Sprintf("\nStoraged: %v\n", stored),
 		fmt.Sprintf("<%v> %v", line, file))
 
 	if len(stored.PivotHighs) == 0 {
@@ -66,14 +80,15 @@ func strat1(
 		}
 	}
 
-	// if stored1, ok := (*storage).(PivotsStore); !ok {
+	// stored, ok := (*storage).(PivotsStore)
+	// if !ok {
 	// 	_, file, line, _ := runtime.Caller(0)
-	// 	go Log(fmt.Sprintf("\nStorage mate: %v and OK mat: %v\n", stored1, ok),
+	// 	go Log(fmt.Sprintf("\nStorage mate: %v and OK mat: %v\n", stored, ok),
 	// 		fmt.Sprintf("<%v> %v", line, file))
 
 	// 	if relCandleIndex <= 0 {
-	// 		stored1.PivotHighs = []int{}
-	// 		stored1.PivotLows = []int{}
+	// 		stored.PivotHighs = []int{}
+	// 		stored.PivotLows = []int{}
 	// 	} else {
 	// 		fmt.Println("strat1 storage obj assertion fail")
 	// 		return nil
@@ -81,7 +96,7 @@ func strat1(
 	// }
 
 	//TEST
-	(*strategy).Buy(close[relCandleIndex], 69.69, 69.69, true, relCandleIndex, stored.BotID)
+	// (*strategy).Buy(close[relCandleIndex], 69.69, 69.69, true, relCandleIndex, stored.BotID)
 
 	newLabels, _ := findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows))
 
