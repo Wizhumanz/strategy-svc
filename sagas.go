@@ -149,6 +149,10 @@ func submitEntryOrder(allArgs ...interface{}) (interface{}, error) {
 	//  entryOrderSubmitted, entryOrderFilled
 	//  entryOrderFailed
 	//  entryOrderSubmitted, entryOrderFilled, SLExitedTrade/TPExitedTrade
+
+	_, file, line, _ := runtime.Caller(0)
+	go Log(loggingInJSON(fmt.Sprintf("! OPENTRADE SAGA COMPLETE | args = %v", allArgs...)),
+		fmt.Sprintf("<%v> %v", line, file))
 	return nil, nil
 }
 

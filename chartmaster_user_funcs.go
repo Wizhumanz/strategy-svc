@@ -76,13 +76,6 @@ func strat1(
 		go Log(loggingInJSON("Unknown type, go kys."), fmt.Sprintf("<%v> %v", line, file))
 	}
 
-	//TEST ONLY
-	// entryPrice := close[relCandleIndex]
-	// slPrice := 0.9 * close[relCandleIndex]
-	// stored.LongSLPrice = slPrice
-	// stored.LongEntryPrice = entryPrice
-	// (*strategy).Buy(close[relCandleIndex], slPrice, -1, risk, int(lev), relCandleIndex, true, bot.KEY)
-
 	// _, file, line, _ = runtime.Caller(0)
 	// go Log(fmt.Sprintf("\nStoraged: %v\n", stored),
 	// 	fmt.Sprintf("<%v> %v", line, file))
