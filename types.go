@@ -337,6 +337,10 @@ func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong
 			PosSize: orderSize,
 		}
 	} else {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(loggingInJSON(fmt.Sprintf("[%v] OpenTradeSaga simulated START", cIndex)),
+			fmt.Sprintf("<%v> %v", line, file))
+
 		args := map[string]interface{}{}
 		args["accSzPerc"] = 4.20
 		// OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
@@ -371,9 +375,13 @@ func (strat *StrategyExecutor) CloseLong(price, orderSize float64, cIndex int, a
 			PosSize: closeSz,
 		}
 	} else {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(loggingInJSON(fmt.Sprintf("[%v] ExitTradeSaga simulated START", cIndex)),
+			fmt.Sprintf("<%v> %v", line, file))
+
 		args := map[string]interface{}{}
 		args["accSzPerc"] = 4.20
-		ExitTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
+		// ExitTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
 		fmt.Println(colorGreen + "\nSaga complete! " + botStreamName + colorReset)
 	}
 }
