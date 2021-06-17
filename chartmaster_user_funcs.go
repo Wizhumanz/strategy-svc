@@ -49,7 +49,7 @@ func strat1(
 	open, high, low, close []float64,
 	relCandleIndex int,
 	strategy *StrategyExecutor,
-	storage *interface{}) map[string]map[int]string {
+	storage *interface{}, bot Bot) map[string]map[int]string {
 	exitWatchPivots := 3
 	checkTrendBreakFromStartingPivots := false
 	minEntryPivotsDiffPerc := float64(0)
@@ -73,6 +73,13 @@ func strat1(
 	default:
 		fmt.Printf("Unknown type, go kys.")
 	}
+
+	//TEST ONLY
+	entryPrice := close[relCandleIndex]
+	slPrice := 0.9 * close[relCandleIndex]
+	stored.LongSLPrice = slPrice
+	stored.LongEntryPrice = entryPrice
+	(*strategy).Buy(close[relCandleIndex], slPrice, -1, risk, int(lev), relCandleIndex, true, bot.KEY)
 
 	// _, file, line, _ = runtime.Caller(0)
 	// go Log(fmt.Sprintf("\nStoraged: %v\n", stored),

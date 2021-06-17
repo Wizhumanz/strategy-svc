@@ -63,7 +63,7 @@ func minuteTicker(period string) *time.Ticker {
 
 func executeLiveStrategy(
 	bot Bot, ticker, period string,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}) map[string]map[int]string) {
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string) {
 	var fetchedCandles []Candlestick
 
 	createJSONFile(bot.Name, period)
@@ -203,7 +203,7 @@ func executeLiveStrategy(
 					highs,
 					lows,
 					closes,
-					runningIndex, &stratExec, &stratStore)
+					runningIndex, &stratExec, &stratStore, bot)
 
 				//save state in strat store obj
 				var readStore PivotsStore

@@ -75,7 +75,7 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		fetchEndTime.Format(httpTimeFormat))
 
 	req, _ := http.NewRequest("GET", full, nil)
-	req.Header.Add("X-CoinAPI-Key", "170F2DBA-F62F-4649-857C-2A2A5A6C62A1")
+	req.Header.Add("X-CoinAPI-Key", "A2642A7A-A8C8-48C1-83CE-8D258BD7BBF5")
 	client := &http.Client{}
 	response, err := client.Do(req)
 
@@ -366,7 +366,7 @@ func computeBacktest(
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}) map[string]map[int]string,
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string,
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 ) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
 	var store interface{} //save state between strategy executions on each candle
@@ -416,7 +416,7 @@ func computeBacktest(
 			allCloses = append(allCloses, candle.Close)
 			allCandles = append(allCandles, candle)
 			//TODO: build results and run for different param sets
-			labels = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store)
+			labels = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
 
 			//build display data using strategySim
 			var pcData ProfitCurveDataPoint

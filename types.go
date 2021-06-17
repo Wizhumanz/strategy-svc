@@ -333,16 +333,16 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 			PosSize: posSize,
 		}
 	} else {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(loggingInJSON(fmt.Sprintf("[%v] OpenTradeSaga simulated START", cIndex)),
-			fmt.Sprintf("<%v> %v", line, file))
+		// _, file, line, _ := runtime.Caller(0)
+		// go Log(loggingInJSON(fmt.Sprintf("[%v] OpenTradeSaga simulated START", cIndex)),
+		// 	fmt.Sprintf("<%v> %v", line, file))
 
 		args := map[string]interface{}{}
 		args["slPrice"] = sl
 		args["accRisk"] = accRisk
 		args["leverage"] = lev
 		args["latestClosePrice"] = lev
-		// OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
+		OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
 		fmt.Println(colorGreen + "\nSaga complete! " + botStreamName + colorReset)
 	}
 }

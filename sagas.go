@@ -39,12 +39,12 @@ func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 	msgs = append(msgs, "Asset")
 	msgs = append(msgs, "USDT")
 	msgs = append(msgs, "BotStreamName")
-	msgs = append(msgs, transactionArgs["tradeStream"].(string))
-	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
+	msgs = append(msgs, transactionArgs["botStream"].(string))
+	msngr.AddToStream(transactionArgs["botStream"].(string), msgs)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
-	listenArgs["streamName"] = transactionArgs["tradeStream"].(string)
+	listenArgs["streamName"] = transactionArgs["botStream"].(string)
 	listenArgs["groupName"] = svcConsumerGroupName
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
@@ -110,11 +110,11 @@ func submitEntryOrder(allArgs ...interface{}) (interface{}, error) {
 	msgs = append(msgs, "69")
 	msgs = append(msgs, "Timestamp")
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
-	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
+	msngr.AddToStream(transactionArgs["botStream"].(string), msgs)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
-	listenArgs["streamName"] = transactionArgs["tradeStream"].(string)
+	listenArgs["streamName"] = transactionArgs["botStream"].(string)
 	listenArgs["groupName"] = svcConsumerGroupName
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
@@ -214,11 +214,11 @@ func submitExitOrder(allArgs ...interface{}) (interface{}, error) {
 	msgs = append(msgs, "69")
 	msgs = append(msgs, "Timestamp")
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
-	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
+	msngr.AddToStream(transactionArgs["botStream"].(string), msgs)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
-	listenArgs["streamName"] = transactionArgs["tradeStream"].(string)
+	listenArgs["streamName"] = transactionArgs["botStream"].(string)
 	listenArgs["groupName"] = svcConsumerGroupName
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
