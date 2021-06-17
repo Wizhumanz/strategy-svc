@@ -313,27 +313,23 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 	return strat.posLongSize
 }
 
-func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong bool, cIndex int, botStreamName string) {
-	if strat.liveTrade {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("Buying %v at %v | SL=%v\n", orderSize, price, sl),
-			fmt.Sprintf("<%v> %v", line, file))
-	}
-
+func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex int, directionIsLong bool, botStreamName string) {
 	if !strat.liveTrade {
-		strat.availableEquity = strat.availableEquity - (orderSize * price)
+		_, posSize := calcEntry(price, sl, accRisk, strat.availableEquity, lev)
+
+		strat.availableEquity = strat.availableEquity - (posSize * price)
 
 		if directionIsLong {
-			strat.posLongSize = orderSize
+			strat.posLongSize = posSize
 		} else {
-			strat.posShortSize = orderSize
+			strat.posShortSize = posSize
 		}
 
 		strat.Actions[cIndex] = StrategyExecutorAction{
 			Action:  "ENTER",
 			Price:   price,
 			SL:      sl,
-			PosSize: orderSize,
+			PosSize: posSize,
 		}
 	} else {
 		_, file, line, _ := runtime.Caller(0)
@@ -341,7 +337,10 @@ func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong
 			fmt.Sprintf("<%v> %v", line, file))
 
 		args := map[string]interface{}{}
-		args["accSzPerc"] = 4.20
+		args["slPrice"] = sl
+		args["accRisk"] = accRisk
+		args["leverage"] = lev
+		args["latestClosePrice"] = lev
 		// OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
 		fmt.Println(colorGreen + "\nSaga complete! " + botStreamName + colorReset)
 	}

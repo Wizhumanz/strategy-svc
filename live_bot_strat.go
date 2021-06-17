@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -194,7 +195,10 @@ func executeLiveStrategy(
 				//TODO: get bot's real settings to pass to strategy
 				stratExec := StrategyExecutor{}
 				stratExec.Init(0, true)
-				userStrat(fetchedCandles, 0.0, 0.0, 0.0,
+				risk, _ := strconv.ParseFloat(bot.AccountRiskPercPerTrade, 32)
+				accSz, _ := strconv.ParseFloat(bot.AccountSizePercToTrade, 32)
+				leverage, _ := strconv.ParseFloat(bot.Leverage, 32)
+				userStrat(fetchedCandles, risk, leverage, accSz,
 					opens,
 					highs,
 					lows,

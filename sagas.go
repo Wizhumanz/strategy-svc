@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -28,14 +30,16 @@ func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 
 	transactionArgs := allArgs[0].(map[string]interface{})
 	funcArgs := allArgs[1].(map[string]interface{})
-	fmt.Printf("Inside OepnTradeSaga step, args = %v\n", funcArgs)
+	fmt.Printf("Inside OpenTradeSaga step, args = %v\n", funcArgs)
 
-	//send msg to order-svc
+	//get acc balance for pos size calc (send msg to order-svc)
 	msgs := []string{}
 	msgs = append(msgs, "Calc")
 	msgs = append(msgs, "GetBal")
 	msgs = append(msgs, "Asset")
 	msgs = append(msgs, "USDT")
+	msgs = append(msgs, "BotStreamName")
+	msgs = append(msgs, transactionArgs["tradeStream"].(string))
 	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
 
 	//listen for msg resp
@@ -59,7 +63,12 @@ func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 						bal = msngr.FilterMsgVals(msg, func(k, v string) bool {
 							return (k == "Bal" && v != "")
 						})
-						fmt.Println(bal)
+
+						if bal != "" {
+							_, file, line, _ := runtime.Caller(0)
+							go Log(loggingInJSON(fmt.Sprintf("OpenTradeSaga get bal = %v <%v>", bal, time.Now().UTC().Format(httpTimeFormat))),
+								fmt.Sprintf("<%v> %v", line, file))
+						}
 					},
 				},
 			},
@@ -67,10 +76,11 @@ func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 	}
 	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
 
-	//TODO: calculate size based on bot settings
-	//TODO: return size
+	//calc pos size
+	accBal, _ := strconv.ParseFloat(bal, 32)
+	_, posSize := calcEntry(funcArgs["latestClosePrice"].(float64), funcArgs["slPrice"].(float64), funcArgs["accRisk"].(float64), accBal, funcArgs["leverage"].(int))
 
-	return 69.69, nil
+	return posSize, nil
 }
 
 // OpenTradeSaga T-1
