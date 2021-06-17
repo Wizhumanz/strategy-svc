@@ -192,7 +192,6 @@ func executeLiveStrategy(
 				lows = append(lows, fetchedCandles[0].Low)
 				closes = append(closes, fetchedCandles[0].Close)
 
-				//TODO: get bot's real settings to pass to strategy
 				stratExec := StrategyExecutor{}
 				stratExec.Init(0, true)
 				risk, _ := strconv.ParseFloat(bot.AccountRiskPercPerTrade, 32)
