@@ -91,6 +91,7 @@ type Bot struct {
 	Leverage                string         `json:"Leverage"`
 	Timestamp               string         `json:"Timestamp"`
 	Ticker                  string         `json:"Ticker"`
+	Period                  string         `json:"Period"`
 	WebhookConnectionID     string         `json:"WebhookConnectionID"`
 	CreationDate            string         `json:"CreationDate"`
 }
@@ -338,7 +339,7 @@ func (strat *StrategyExecutor) Buy(price, sl, orderSize float64, directionIsLong
 	} else {
 		args := map[string]interface{}{}
 		args["accSzPerc"] = 4.20
-		OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
+		// OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
 		fmt.Println(colorGreen + "\nSaga complete! " + botStreamName + colorReset)
 	}
 }
