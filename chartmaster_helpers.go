@@ -54,8 +54,8 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 		}
 
 		if (i > 1) && ((i % lenPart) == 0) {
-			_, file, line, _ := runtime.Caller(0)
-			go Log(fmt.Sprintf("Section %v of %v complete\n", (i/lenPart), indicatorParts), fmt.Sprintf("<%v> %v", line, file))
+			// _, file, line, _ := runtime.Caller(0)
+			// go Log(fmt.Sprintf("Section %v of %v complete\n", (i/lenPart), indicatorParts), fmt.Sprintf("<%v> %v", line, file))
 		}
 	}
 }

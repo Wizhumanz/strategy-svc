@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"runtime"
 	"time"
 )
 
@@ -43,9 +42,9 @@ func strat1(
 	slTradeCooldownCandles := 9
 	tpPerc := 0.5
 
-	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf("\nStorage mate: %v\n", (*storage)),
-		fmt.Sprintf("<%v> %v", line, file))
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log(fmt.Sprintf("\nStorage mate: %v\n", (*storage)),
+	// 	fmt.Sprintf("<%v> %v", line, file))
 
 	var stored PivotsStore
 
@@ -58,9 +57,9 @@ func strat1(
 		fmt.Printf("Unknown type, go kys.")
 	}
 
-	_, file, line, _ = runtime.Caller(0)
-	go Log(fmt.Sprintf("\nStoraged: %v\n", stored),
-		fmt.Sprintf("<%v> %v", line, file))
+	// _, file, line, _ = runtime.Caller(0)
+	// go Log(fmt.Sprintf("\nStoraged: %v\n", stored),
+	// 	fmt.Sprintf("<%v> %v", line, file))
 
 	if len(stored.PivotHighs) == 0 {
 		if relCandleIndex <= 0 {

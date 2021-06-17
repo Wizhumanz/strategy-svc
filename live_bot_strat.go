@@ -30,11 +30,13 @@ func minuteTicker(period string) *time.Ticker {
 
 	c := make(chan time.Time, 1)
 	t := &time.Ticker{C: c}
+	n := time.Now().UTC()
 	count := -1.0
+	c <- n
 	go func() {
 		for {
 			n := time.Now().UTC()
-			if n.Second() == 0 {
+			if n.Second() == 0 || count == -1.0 {
 				count += 1
 			}
 			if count >= periodDurationMap[period].Minutes() {
