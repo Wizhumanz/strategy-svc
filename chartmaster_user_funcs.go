@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 	"time"
 )
 
@@ -26,13 +27,30 @@ type PivotsStore struct {
 	BotID  string
 }
 
+// calcEntry returns (posCap, posSize) so that SL only loses fixed percentage of account
+func calcEntry(entryPrice, slPrice, accPercRisk, accSz float64, leverage int) (float64, float64) {
+	rawRiskPerc := (entryPrice - slPrice) / entryPrice
+	if rawRiskPerc < 0 {
+		return -1, -1
+	}
+
+	accRiskedCap := (accPercRisk / 100) * accSz
+	posCap := (accRiskedCap / rawRiskPerc) / float64(leverage)
+	if posCap > accSz {
+		posCap = accSz
+	}
+	posSize := posCap / entryPrice
+
+	return posCap, posSize
+}
+
 //return signature: (label, bars back to add label, storage obj to pass to next func call/iteration)
 func strat1(
 	candles []Candlestick, risk, lev, accSz float64,
 	open, high, low, close []float64,
 	relCandleIndex int,
 	strategy *StrategyExecutor,
-	storage *interface{}) map[string]map[int]string {
+	storage *interface{}, bot Bot) map[string]map[int]string {
 	exitWatchPivots := 3
 	checkTrendBreakFromStartingPivots := false
 	minEntryPivotsDiffPerc := float64(0)
@@ -54,7 +72,8 @@ func strat1(
 	case string:
 		json.Unmarshal([]byte((*storage).(string)), &stored)
 	default:
-		fmt.Printf("Unknown type, go kys.")
+		_, file, line, _ := runtime.Caller(0)
+		go Log(loggingInJSON("Unknown type, go kys."), fmt.Sprintf("<%v> %v", line, file))
 	}
 
 	// _, file, line, _ = runtime.Caller(0)
@@ -93,9 +112,6 @@ func strat1(
 	// 		return nil
 	// 	}
 	// }
-
-	//TEST
-	// (*strategy).Buy(close[relCandleIndex], 69.69, 69.69, true, relCandleIndex, stored.BotID)
 
 	newLabels, _ := findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows))
 
@@ -245,29 +261,12 @@ func strat1(
 					return nil
 				}
 
-				//enter long
-				entryPrice := close[relCandleIndex-1]
+				//enter long\
+				entryPrice := close[relCandleIndex]
 				slPrice := prevPL
-				rawRiskPerc := (entryPrice - slPrice) / entryPrice
-				if rawRiskPerc < 0 {
-					return nil
-				}
 				stored.LongSLPrice = slPrice
 				stored.LongEntryPrice = entryPrice
-				accRiskedCap := (risk / 100) * float64(strategy.GetAvailableEquity())
-				posCap := (accRiskedCap / rawRiskPerc) / float64(lev)
-				if posCap > (*strategy).GetAvailableEquity() {
-					posCap = (*strategy).GetAvailableEquity()
-				}
-				posSize := posCap / entryPrice
-
-				// if relCandleIndex > 298 {
-				// 	fmt.Printf(colorGreen+"%v <%v>\n"+colorReset, strategy.GetAvailableEquity(), relCandleIndex)
-				// 	fmt.Printf("prevPL = %v, latestPL = %v\n", candles[prevPLIndex].DateTime, candles[latestPLIndex].DateTime)
-				// 	fmt.Printf("[%v] entryPrice = %v,\nslPrice = %v,\nrawRiskPerc = %v,\nriskedCap = %v,\nposCap = %v\n", candles[len(candles)-1].DateTime, entryPrice, slPrice, rawRiskPerc, accRiskedCap, posCap)
-				// }
-
-				(*strategy).Buy(close[relCandleIndex], slPrice, posSize, true, relCandleIndex, "")
+				(*strategy).Buy(close[relCandleIndex], slPrice, -1, risk, int(lev), relCandleIndex, true, "")
 				// newLabels["middle"] = map[int]string{
 				// 	0: fmt.Sprintf("%v|SL %v, TP %v", relCandleIndex, slPrice, ((1 + (tpPerc / 100)) * stored.LongEntryPrice)),
 				// }

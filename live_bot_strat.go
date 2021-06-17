@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -62,7 +63,7 @@ func minuteTicker(period string) *time.Ticker {
 
 func executeLiveStrategy(
 	bot Bot, ticker, period string,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}) map[string]map[int]string) {
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string) {
 	var fetchedCandles []Candlestick
 
 	createJSONFile(bot.Name, period)
@@ -194,15 +195,17 @@ func executeLiveStrategy(
 				lows = append(lows, fetchedCandles[0].Low)
 				closes = append(closes, fetchedCandles[0].Close)
 
-				//TODO: get bot's real settings to pass to strategy
 				stratExec := StrategyExecutor{}
 				stratExec.Init(0, true)
-				userStrat(fetchedCandles, 0.0, 0.0, 0.0,
+				risk, _ := strconv.ParseFloat(bot.AccountRiskPercPerTrade, 32)
+				accSz, _ := strconv.ParseFloat(bot.AccountSizePercToTrade, 32)
+				leverage, _ := strconv.ParseFloat(bot.Leverage, 32)
+				userStrat(fetchedCandles, risk, leverage, accSz,
 					opens,
 					highs,
 					lows,
 					closes,
-					runningIndex, &stratExec, &stratStore)
+					runningIndex, &stratExec, &stratStore, bot)
 
 				//save state in strat store obj
 				var readStore PivotsStore

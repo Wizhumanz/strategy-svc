@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -28,19 +30,21 @@ func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 
 	transactionArgs := allArgs[0].(map[string]interface{})
 	funcArgs := allArgs[1].(map[string]interface{})
-	fmt.Printf("Inside OepnTradeSaga step, args = %v\n", funcArgs)
+	fmt.Printf("Inside OpenTradeSaga step, args = %v\n", funcArgs)
 
-	//send msg to order-svc
+	//get acc balance for pos size calc (send msg to order-svc)
 	msgs := []string{}
 	msgs = append(msgs, "Calc")
 	msgs = append(msgs, "GetBal")
 	msgs = append(msgs, "Asset")
 	msgs = append(msgs, "USDT")
-	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
+	msgs = append(msgs, "BotStreamName")
+	msgs = append(msgs, transactionArgs["botStream"].(string))
+	msngr.AddToStream(transactionArgs["botStream"].(string), msgs)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
-	listenArgs["streamName"] = transactionArgs["tradeStream"].(string)
+	listenArgs["streamName"] = transactionArgs["botStream"].(string)
 	listenArgs["groupName"] = svcConsumerGroupName
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
@@ -59,7 +63,12 @@ func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 						bal = msngr.FilterMsgVals(msg, func(k, v string) bool {
 							return (k == "Bal" && v != "")
 						})
-						fmt.Println(bal)
+
+						if bal != "" {
+							_, file, line, _ := runtime.Caller(0)
+							go Log(loggingInJSON(fmt.Sprintf("OpenTradeSaga get bal = %v <%v>", bal, time.Now().UTC().Format(httpTimeFormat))),
+								fmt.Sprintf("<%v> %v", line, file))
+						}
 					},
 				},
 			},
@@ -67,10 +76,11 @@ func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 	}
 	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
 
-	//TODO: calculate size based on bot settings
-	//TODO: return size
+	//calc pos size
+	accBal, _ := strconv.ParseFloat(bal, 32)
+	_, posSize := calcEntry(funcArgs["latestClosePrice"].(float64), funcArgs["slPrice"].(float64), funcArgs["accRisk"].(float64), accBal, funcArgs["leverage"].(int))
 
-	return 69.69, nil
+	return posSize, nil
 }
 
 // OpenTradeSaga T-1
@@ -100,11 +110,11 @@ func submitEntryOrder(allArgs ...interface{}) (interface{}, error) {
 	msgs = append(msgs, "69")
 	msgs = append(msgs, "Timestamp")
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
-	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
+	msngr.AddToStream(transactionArgs["botStream"].(string), msgs)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
-	listenArgs["streamName"] = transactionArgs["tradeStream"].(string)
+	listenArgs["streamName"] = transactionArgs["botStream"].(string)
 	listenArgs["groupName"] = svcConsumerGroupName
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
@@ -139,6 +149,10 @@ func submitEntryOrder(allArgs ...interface{}) (interface{}, error) {
 	//  entryOrderSubmitted, entryOrderFilled
 	//  entryOrderFailed
 	//  entryOrderSubmitted, entryOrderFilled, SLExitedTrade/TPExitedTrade
+
+	_, file, line, _ := runtime.Caller(0)
+	go Log(loggingInJSON(fmt.Sprintf("! OPENTRADE SAGA COMPLETE | args = %v", allArgs...)),
+		fmt.Sprintf("<%v> %v", line, file))
 	return nil, nil
 }
 
@@ -204,11 +218,11 @@ func submitExitOrder(allArgs ...interface{}) (interface{}, error) {
 	msgs = append(msgs, "69")
 	msgs = append(msgs, "Timestamp")
 	msgs = append(msgs, time.Now().Format("2006-01-02_15:04:05_-0700"))
-	msngr.AddToStream(transactionArgs["tradeStream"].(string), msgs)
+	msngr.AddToStream(transactionArgs["botStream"].(string), msgs)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
-	listenArgs["streamName"] = transactionArgs["tradeStream"].(string)
+	listenArgs["streamName"] = transactionArgs["botStream"].(string)
 	listenArgs["groupName"] = svcConsumerGroupName
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
