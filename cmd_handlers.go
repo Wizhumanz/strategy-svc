@@ -43,7 +43,7 @@ func StatusActivateHandler(msg redis.XMessage, output *interface{}) {
 	})
 	var bot Bot
 	json.Unmarshal([]byte(botInfo), &bot)
-	go executeLiveStrategy(bot, "BINANCEFTS_PERP_BTC_USDT", "1MIN", strat1)
+	go executeLiveStrategy(bot, bot.Ticker, bot.Period, strat1)
 
 	msngr.AcknowledgeMsg(newBotStreamName, svcConsumerGroupName, redisConsumerID, msg.ID)
 }
