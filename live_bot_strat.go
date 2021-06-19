@@ -50,27 +50,29 @@ func minuteTicker(period string) *time.Ticker {
 	return t
 }
 
-//1. store state of running strategy loops (across multiple instances)
-//X a. api-gateway XADD trade stream ID to activeBots stream (waiting room)
-//X b. strat-svc listen on specific bot's stream, adds msg on every iteration of live loop
-// c. strat-svc instances check unacknowledged entries in newTrades stream, then XAUTOCLAIM old msgs in trade stream
-
-//2. store state of storage obj + relIndex + OHLC for each running live strategy loop
-// key:JSON in redis
-
-//3. how to stop running live strategy loop when bot status changed to inactive
-//X. before exec strat on each iteration, check for ending command in trade stream
-
 func executeLiveStrategy(
-	bot Bot, ticker, period string,
+	bot Bot,
 	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string) {
+	if bot.Ticker == "" || bot.Period == "" {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(loggingInJSON(fmt.Sprintf("ticker or period nil| ticker = %v, period = %v\n", bot.Ticker, bot.Period)),
+			fmt.Sprintf("<%v> %v", line, file))
+	}
+
 	var fetchedCandles []Candlestick
 
-	createJSONFile(bot.Name, period)
+	createJSONFile(bot.Name, bot.Period)
 	timeNow := time.Now().UTC()
 
 	//find time interval to trigger fetches
-	checkCandle := fetchCandleData(ticker, period, timeNow.Add(-1*periodDurationMap[period]), timeNow.Add(-1*periodDurationMap[period])) //this fetch just to check interval
+	checkCandle := fetchCandleData(bot.Ticker, bot.Period, timeNow.Add(-1*periodDurationMap[bot.Period]), timeNow.Add(-1*periodDurationMap[bot.Period])) //this fetch just to check interval
+	if len(checkCandle) <= 0 {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(loggingInJSON(fmt.Sprintf("checkCandle fetch err, exiting live strategy loop | %v %v %v", bot.Name, bot.Ticker, bot.Period)),
+			fmt.Sprintf("<%v> %v", line, file))
+		//TODO: update status of bot to inactive
+		return
+	}
 	layout := "2006-01-02T15:04:05.000Z"
 	str := strings.Replace(checkCandle[len(checkCandle)-1].PeriodEnd, "0000", "", 1)
 	t, _ := time.Parse(layout, str) //CoinAPI's standardized time interval
@@ -80,7 +82,7 @@ func executeLiveStrategy(
 		//wait for current time to equal closest standardized interval time, t (only once)
 		if t == time.Now().UTC() {
 			//fetch closed latest candle (same as the one checked before) and previous candles to compute pivots
-			data := fetchCandleData(ticker, period, t.Add(-periodDurationMap[period]*50), t.Add(-periodDurationMap[period]*1))
+			data := fetchCandleData(bot.Ticker, bot.Period, t.Add(-periodDurationMap[bot.Period]*50), t.Add(-periodDurationMap[bot.Period]*1))
 
 			//compute some previous pivots to give strategy starting point
 			var stratStore interface{}
@@ -128,9 +130,9 @@ func executeLiveStrategy(
 			}
 
 			//fetch candle and run live strat on every interval tick
-			for n := range minuteTicker(period).C {
+			for n := range minuteTicker(bot.Period).C {
 				_, file, line, _ := runtime.Caller(0)
-				go Log(loggingInJSON(fmt.Sprintf("[%v] Running live strat for Bot %v | %v | %v", n.UTC().Format(httpTimeFormat), bot.KEY, ticker, period)),
+				go Log(loggingInJSON(fmt.Sprintf("[%v] Running live strat for Bot %v | %v | %v", n.UTC().Format(httpTimeFormat), bot.KEY, bot.Ticker, bot.Period)),
 					fmt.Sprintf("<%v> %v", line, file))
 
 				//check bot ID
@@ -177,7 +179,7 @@ func executeLiveStrategy(
 				}
 
 				//fetch latest candle to run strategy on
-				fetchedCandles = fetchCandleData(ticker, period, n.Add(-periodDurationMap[period]*1), n.Add(-periodDurationMap[period]*1))
+				fetchedCandles = fetchCandleData(bot.Ticker, bot.Period, n.Add(-periodDurationMap[bot.Period]*1), n.Add(-periodDurationMap[bot.Period]*1))
 
 				if len(fetchedCandles) <= 0 || fetchedCandles == nil {
 					_, file, line, _ := runtime.Caller(0)

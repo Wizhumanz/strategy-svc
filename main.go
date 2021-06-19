@@ -113,19 +113,7 @@ func main() {
 		},
 	}
 
-	// botStreamCmdHandlers = []msngr.CommandHandler{
-	// 	{
-	// 		Command: "CMD",
-	// 		HandlerMatches: []msngr.HandlerMatch{
-	// 			{
-	// 				Matcher: func(fieldVal string) bool {
-	// 					return fieldVal == "SHUTDOWN"
-	// 				},
-	// 				Handler: StatusActivateHandler,
-	// 			},
-	// 		},
-	// 	},
-	// }
+	fmt.Println(colorRed + "initialized everything" + colorReset)
 
 	//create new redis consumer group for webhookTrades stream
 	_, err := msngr.CreateNewConsumerGroup(newCmdStream, svcConsumerGroupName, "0")
@@ -138,13 +126,18 @@ func main() {
 	//always create new ID because dead consumers' pending msgs will be autoclaimed by other instances
 	redisConsumerID = msngr.GenerateNewConsumerID("strat")
 
+	fmt.Println(colorRed + "consumer group done" + colorReset)
+
 	//live servicing
 
 	//autoclaim pending messages from dead consumers in same group (instances of same svc)
 	//listen on bot status change stream (waiting room)
 	go msngr.AutoClaimMsgsLoop(newCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1", botStatusChangeHandlers)
+	fmt.Println(colorRed + "autoclaim loop" + colorReset)
+
 	//continuously listen for new trades to manage in bot status change stream
 	go msngr.StreamListenLoop(newCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey, botStatusChangeHandlers)
+	fmt.Println(colorRed + "stream listen loop" + colorReset)
 
 	//TODO: make autoclaim loop for specific bot streams
 
@@ -163,6 +156,8 @@ func main() {
 	router.Methods("GET", "OPTIONS").Path("/getChartmasterTickers").HandlerFunc(getTickersHandler)
 	router.Methods("GET", "OPTIONS").Path("/backtestHistory").HandlerFunc(getBacktestHistoryHandler)
 	router.Methods("GET", "OPTIONS").Path("/backtestHistory/{id}").HandlerFunc(getBacktestResHandler)
+
+	fmt.Println(colorRed + "method def" + colorReset)
 
 	port := os.Getenv("PORT")
 	fmt.Println("strategy-svc listening on port " + port)

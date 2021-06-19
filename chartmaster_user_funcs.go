@@ -60,10 +60,6 @@ func strat1(
 	slTradeCooldownCandles := 9
 	tpPerc := 0.5
 
-	// _, file, line, _ := runtime.Caller(0)
-	// go Log(fmt.Sprintf("\nStorage mate: %v\n", (*storage)),
-	// 	fmt.Sprintf("<%v> %v", line, file))
-
 	var stored PivotsStore
 
 	switch (*storage).(type) {
@@ -75,10 +71,6 @@ func strat1(
 		_, file, line, _ := runtime.Caller(0)
 		go Log(loggingInJSON("Unknown type, go kys."), fmt.Sprintf("<%v> %v", line, file))
 	}
-
-	// _, file, line, _ = runtime.Caller(0)
-	// go Log(fmt.Sprintf("\nStoraged: %v\n", stored),
-	// 	fmt.Sprintf("<%v> %v", line, file))
 
 	if len(stored.PivotHighs) == 0 {
 		if relCandleIndex <= 0 {
@@ -98,21 +90,6 @@ func strat1(
 		}
 	}
 
-	// stored, ok := (*storage).(PivotsStore)
-	// if !ok {
-	// 	_, file, line, _ := runtime.Caller(0)
-	// 	go Log(fmt.Sprintf("\nStorage mate: %v and OK mat: %v\n", stored, ok),
-	// 		fmt.Sprintf("<%v> %v", line, file))
-
-	// 	if relCandleIndex <= 0 {
-	// 		stored.PivotHighs = []int{}
-	// 		stored.PivotLows = []int{}
-	// 	} else {
-	// 		fmt.Println("strat1 storage obj assertion fail")
-	// 		return nil
-	// 	}
-	// }
-
 	newLabels, _ := findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows))
 
 	//TP cooldown labels
@@ -129,6 +106,10 @@ func strat1(
 		}
 	}
 
+	//TEST
+	(*strategy).CloseLong(close[relCandleIndex-1], 100, relCandleIndex, "TEST", candles[len(candles)-1].DateTime(), bot)
+	return nil
+
 	if len(stored.PivotLows) >= 2 {
 		if strategy.GetPosLongSize() > 0 {
 			//manage/watch ongoing trend
@@ -136,7 +117,7 @@ func strat1(
 
 			//check SL
 			if low[relCandleIndex] <= low[stored.EntryFirstPivotIndex] {
-				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime(), "")
+				(*strategy).CloseLong(close[relCandleIndex-1], 100, relCandleIndex, "SL", candles[len(candles)-1].DateTime(), bot)
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.SLIndex = relCandleIndex
 				stored.TPIndex = 0
@@ -151,7 +132,7 @@ func strat1(
 			//check TP
 			tpPrice := (1 + (tpPerc / 100)) * stored.LongEntryPrice
 			if high[relCandleIndex] >= tpPrice {
-				(*strategy).CloseLong(tpPrice, 0, relCandleIndex, "TP", candles[len(candles)-1].DateTime(), "")
+				(*strategy).CloseLong(tpPrice, 100, relCandleIndex, "TP", candles[len(candles)-1].DateTime(), bot)
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.TPIndex = relCandleIndex
 				stored.SLIndex = 0
@@ -234,7 +215,7 @@ func strat1(
 
 			//exit if exitWatch sufficient
 			if len(trendBreakPivots) >= exitWatchPivots {
-				(*strategy).CloseLong(close[relCandleIndex-1], 0, relCandleIndex, "SL", candles[len(candles)-1].DateTime(), "")
+				(*strategy).CloseLong(close[relCandleIndex-1], 100, relCandleIndex, "SL", candles[len(candles)-1].DateTime(), bot)
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.SLIndex = relCandleIndex
 				stored.TPIndex = 0
@@ -266,7 +247,7 @@ func strat1(
 				slPrice := prevPL
 				stored.LongSLPrice = slPrice
 				stored.LongEntryPrice = entryPrice
-				(*strategy).Buy(close[relCandleIndex], slPrice, -1, risk, int(lev), relCandleIndex, true, "")
+				(*strategy).Buy(close[relCandleIndex], slPrice, -1, risk, int(lev), relCandleIndex, true, bot.KEY)
 				// newLabels["middle"] = map[int]string{
 				// 	0: fmt.Sprintf("%v|SL %v, TP %v", relCandleIndex, slPrice, ((1 + (tpPerc / 100)) * stored.LongEntryPrice)),
 				// }

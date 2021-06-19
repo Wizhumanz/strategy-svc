@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -63,12 +64,18 @@ func createJSONFile(botName, period string) {
 func loggingInJSON(text string) string {
 	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		panic(err)
+		_, file, line, _ := runtime.Caller(0)
+		go Log(err.Error(),
+			fmt.Sprintf("<%v> %v", line, file))
+		return ""
 	}
 	defer f.Close()
 
 	if _, err = f.WriteString(text + "\n"); err != nil {
-		panic(err)
+		_, file, line, _ := runtime.Caller(0)
+		go Log(err.Error(),
+			fmt.Sprintf("<%v> %v", line, file))
+		return ""
 	}
 
 	return text

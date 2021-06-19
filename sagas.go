@@ -185,10 +185,57 @@ var ExitTradeSaga saga.Saga = saga.Saga{
 func calcCloseSize(allArgs ...interface{}) (interface{}, error) {
 	fmt.Println("SAGA: Running calcCloseSize")
 
+	transactionArgs := allArgs[0].(map[string]interface{})
 	funcArgs := allArgs[1].(map[string]interface{})
-	fmt.Printf("Inside ExitTradeSaga step, args = %v\n", funcArgs)
+	fmt.Printf("Inside OpenTradeSaga step, args = %v\n", funcArgs)
 
-	return 420.69, nil
+	//get pos size for pos size calc (send msg to order-svc)
+	msgs := []string{}
+	msgs = append(msgs, "Calc")
+	msgs = append(msgs, "GetPosSize")
+	msgs = append(msgs, "Ticker")
+	msgs = append(msgs, funcArgs["ticker"].(string))
+	msngr.AddToStream(transactionArgs["botStream"].(string), msgs)
+
+	//listen for msg resp
+	listenArgs := make(map[string]string)
+	listenArgs["streamName"] = transactionArgs["botStream"].(string)
+	listenArgs["groupName"] = svcConsumerGroupName
+	listenArgs["consumerName"] = redisConsumerID
+	listenArgs["start"] = ">"
+	listenArgs["count"] = "1"
+
+	var posSize string
+	parserHandlers := []msngr.CommandHandler{
+		{
+			Command: "PosSize",
+			HandlerMatches: []msngr.HandlerMatch{
+				{
+					Matcher: func(fieldVal string) bool {
+						return fieldVal != ""
+					},
+					Handler: func(msg redis.XMessage, output *interface{}) {
+						posSize = msngr.FilterMsgVals(msg, func(k, v string) bool {
+							return (k == "PosSize" && v != "")
+						})
+
+						if posSize != "" {
+							_, file, line, _ := runtime.Caller(0)
+							go Log(loggingInJSON(fmt.Sprintf("ExitTradeSaga get total pos size = %v <%v>", posSize, time.Now().UTC().Format(httpTimeFormat))),
+								fmt.Sprintf("<%v> %v", line, file))
+						}
+					},
+				},
+			},
+		},
+	}
+	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
+
+	//calc exit size
+	posSzFloat, _ := strconv.ParseFloat(posSize, 32)
+	exitSz := (funcArgs["posPercToClose"].(float64) / 100) * posSzFloat
+
+	return exitSz, nil
 }
 
 // OpenTradeSaga T-1

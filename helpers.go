@@ -22,7 +22,7 @@ func initRedis() {
 		redisPortMsngr = "6379"
 	}
 	_, file, line, _ := runtime.Caller(0)
-	go Log("api-gateway connecting to Redis on "+redisHostChartmaster+":"+redisPortChartmaster+" - "+redisPassChartmaster,
+	go Log(svcConsumerGroupName+" connecting to Redis on "+redisHostChartmaster+":"+redisPortChartmaster+" - "+redisPassChartmaster,
 		fmt.Sprintf("<%v> %v", line, file))
 
 	rdbChartmaster = redis.NewClient(&redis.Options{

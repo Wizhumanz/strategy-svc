@@ -40,8 +40,7 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 	if totalLen < indicatorParts {
 		indicatorParts = 1
 	}
-	lenPart := totalLen / indicatorParts
-	for i, c := range candles {
+	for _, c := range candles {
 		// fmt.Println(c)
 		ctx := context.Background()
 		key := ticker + ":" + period + ":" + c.PeriodStart
@@ -51,11 +50,6 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 			go Log(fmt.Sprintf("redis cache candlestick data err: %v\n", err),
 				fmt.Sprintf("<%v> %v", line, file))
 			return
-		}
-
-		if (i > 1) && ((i % lenPart) == 0) {
-			// _, file, line, _ := runtime.Caller(0)
-			// go Log(fmt.Sprintf("Section %v of %v complete\n", (i/lenPart), indicatorParts), fmt.Sprintf("<%v> %v", line, file))
 		}
 	}
 }
@@ -75,7 +69,7 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		fetchEndTime.Format(httpTimeFormat))
 
 	req, _ := http.NewRequest("GET", full, nil)
-	req.Header.Add("X-CoinAPI-Key", "A2642A7A-A8C8-48C1-83CE-8D258BD7BBF5")
+	req.Header.Add("X-CoinAPI-Key", "170F2DBA-F62F-4649-857C-2A2A5A6C62A1")
 	client := &http.Client{}
 	response, err := client.Do(req)
 
@@ -105,7 +99,7 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		// _ = ioutil.WriteFile(fileName, file, 0644)
 	} else {
 		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprint(body), fmt.Sprintf("<%v> %v", line, file))
+		go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
 	}
 	return jStruct
 }

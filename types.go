@@ -343,44 +343,31 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		args["leverage"] = int(lev)
 		args["latestClosePrice"] = float64(price)
 		OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
-		fmt.Println(colorGreen + "\nSaga complete! " + botStreamName + colorReset)
+		fmt.Println(colorGreen + "\nOpen saga complete! " + botStreamName + colorReset)
 	}
 }
 
-func (strat *StrategyExecutor) CloseLong(price, orderSize float64, cIndex int, action string, timestamp string, botStreamName string) {
-	// fmt.Printf("<%v> closing %v at %v, action = %v\n", timestamp, orderSize, price, action)
-	if strat.liveTrade {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("Closing pos %v at %v | action = %v\n", orderSize, price, action),
-			fmt.Sprintf("<%v> %v", line, file))
-	}
-
+func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex int, action string, timestamp string, bot Bot) {
 	if !strat.liveTrade {
-		//close entire long
-		closeSz := 0.0
-		if orderSize == 0 {
-			closeSz = strat.posLongSize
-			strat.totalEquity = strat.availableEquity + (strat.posLongSize * price)
-			strat.posLongSize = 0
-		} else {
-			strat.totalEquity = strat.availableEquity + (orderSize * price)
-			strat.posLongSize = strat.posLongSize - orderSize
-		}
-		strat.availableEquity = strat.totalEquity
+		orderSize := (posPercToClose / 100) * strat.posLongSize
+		strat.availableEquity = strat.availableEquity + (orderSize * price)
+		strat.posLongSize = strat.posLongSize - orderSize
+		strat.totalEquity = strat.availableEquity + (strat.posLongSize * price)
 
 		strat.Actions[cIndex] = StrategyExecutorAction{
 			Action:  action,
 			Price:   price,
-			PosSize: closeSz,
+			PosSize: orderSize,
 		}
 	} else {
 		_, file, line, _ := runtime.Caller(0)
-		go Log(loggingInJSON(fmt.Sprintf("[%v] ExitTradeSaga simulated START", cIndex)),
+		go Log(fmt.Sprintf("Closing pos %v/100 at %v | action = %v\n", posPercToClose, price, action),
 			fmt.Sprintf("<%v> %v", line, file))
 
 		args := map[string]interface{}{}
-		args["accSzPerc"] = 4.20
-		// ExitTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
-		fmt.Println(colorGreen + "\nSaga complete! " + botStreamName + colorReset)
+		args["posPercToClose"] = posPercToClose
+		args["ticker"] = bot.Ticker
+		ExitTradeSaga.Execute(bot.KEY, svcConsumerGroupName, redisConsumerID, args)
+		fmt.Println(colorGreen + "\nExit saga complete! " + bot.KEY + colorReset)
 	}
 }
