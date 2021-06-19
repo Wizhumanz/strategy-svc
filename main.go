@@ -64,7 +64,10 @@ func main() {
 	httpTimeFormat = "2006-01-02T15:04:05"
 
 	initRedis()
+	fmt.Println(colorRed + "redis CM done" + colorReset)
+
 	initDatastore()
+	fmt.Println(colorRed + "datastore init done" + colorReset)
 
 	wsConnections = make(map[string]*websocket.Conn)
 	wsConnectionsChartmaster = make(map[string]*websocket.Conn)
@@ -78,6 +81,7 @@ func main() {
 		go Log(log, fmt.Sprintf("<%v> %v \n| <%v> %v \n| <%v> %v \n| <%v> %v", line, file, line2, file2, line3, file3, line4, file4))
 	}
 	msngr.InitRedis(redisHostMsngr, redisPortMsngr, redisPassMsngr)
+	fmt.Println(colorRed + "msngr redis init done" + colorReset)
 
 	periodDurationMap["1MIN"] = 1 * time.Minute
 	periodDurationMap["2MIN"] = 2 * time.Minute

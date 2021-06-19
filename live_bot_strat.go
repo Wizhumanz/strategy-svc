@@ -77,9 +77,9 @@ func executeLiveStrategy(
 	str := strings.Replace(checkCandle[len(checkCandle)-1].PeriodEnd, "0000", "", 1)
 	t, _ := time.Parse(layout, str) //CoinAPI's standardized time interval
 	runningIndex := 0
-	_, file, line, _ := runtime.Caller(0)
-	go Log(loggingInJSON(fmt.Sprintf("Calculated time: %v", t)),
-		fmt.Sprintf("<%v> %v", line, file))
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log(loggingInJSON(fmt.Sprintf("Calculated time: %v", t)),
+	// 	fmt.Sprintf("<%v> %v", line, file))
 
 	for {
 		//wait for current time to equal closest standardized interval time, t (only once)
