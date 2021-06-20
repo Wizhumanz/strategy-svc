@@ -32,7 +32,13 @@ func initRedis() {
 	})
 
 	ctx := context.Background()
-	rdbChartmaster.Do(ctx, "AUTH", redisPassChartmaster)
+	_, redisCMErr := rdbChartmaster.Do(ctx, "AUTH", redisPassChartmaster).Result()
+	if redisCMErr != nil {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(redisCMErr.Error(),
+			fmt.Sprintf("<%v> %v", line, file))
+		return
+	}
 	rdbChartmaster.Do(ctx, "CLIENT", "SET", "TIMEOUT", "999999999999")
 	rdbChartmaster.Do(ctx, "CLIENT", "SETNAME", msngr.GenerateNewConsumerID("strategy-svc"))
 }

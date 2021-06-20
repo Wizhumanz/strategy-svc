@@ -153,7 +153,7 @@ func executeLiveStrategy(
 
 				var msgs []redis.XStream
 				doExit := false
-				_, ret, _ := msngr.ReadStream(readArgs)
+				_, ret, _ := msngr.ReadStream(readArgs, "strat-svc live strat loop initial candle fetch")
 				if realRes, ok := ret.([]redis.XStream); ok {
 					msgs = realRes
 				}

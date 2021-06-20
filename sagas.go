@@ -74,7 +74,7 @@ func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 			},
 		},
 	}
-	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
+	msngr.ReadAndParse(msngr.ReadStream, "OpenTradeSaga calcPosSize", msngr.ParseStream, listenArgs, parserHandlers)
 
 	//calc pos size
 	accBal, _ := strconv.ParseFloat(bal, 32)
@@ -138,10 +138,10 @@ func submitEntryOrder(allArgs ...interface{}) (interface{}, error) {
 			},
 		},
 	}
-	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
+	msngr.ReadAndParse(msngr.ReadStream, "strat-svc submitEntryOrder consec headers retrieve", msngr.ParseStream, listenArgs, parserHandlers)
 
 	//listen for consec responses
-	msngr.ListenConsecResponses(transactionArgs, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
+	msngr.ListenConsecResponses(transactionArgs, "strat-svc submitEntryOrder ListenConsecResponses", func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
 		fmt.Printf("Read consec header at index %v val: %s, IsMatch = %v (%s)", i, v, isHeaderMatch, m.ID)
 	})
 
@@ -187,7 +187,7 @@ func calcCloseSize(allArgs ...interface{}) (interface{}, error) {
 
 	transactionArgs := allArgs[0].(map[string]interface{})
 	funcArgs := allArgs[1].(map[string]interface{})
-	fmt.Printf("Inside OpenTradeSaga step, args = %v\n", funcArgs)
+	fmt.Printf("Inside ExitTradeSaga step, args = %v\n", funcArgs)
 
 	//get pos size for pos size calc (send msg to order-svc)
 	msgs := []string{}
@@ -206,32 +206,25 @@ func calcCloseSize(allArgs ...interface{}) (interface{}, error) {
 	listenArgs["count"] = "1"
 
 	var posSize string
-	parserHandlers := []msngr.CommandHandler{
-		{
-			Command: "PosSize",
-			HandlerMatches: []msngr.HandlerMatch{
-				{
-					Matcher: func(fieldVal string) bool {
-						return fieldVal != ""
-					},
-					Handler: func(msg redis.XMessage, output *interface{}) {
-						posSize = msngr.FilterMsgVals(msg, func(k, v string) bool {
-							return (k == "PosSize" && v != "")
-						})
-
-						if posSize != "" {
-							_, file, line, _ := runtime.Caller(0)
-							go Log(loggingInJSON(fmt.Sprintf("ExitTradeSaga get total pos size = %v <%v>", posSize, time.Now().UTC().Format(httpTimeFormat))),
-								fmt.Sprintf("<%v> %v", line, file))
-						}
-					},
-				},
-			},
-		},
+	_, msg, err := msngr.ReadStream(listenArgs, "OpenTradeSaga calcCloseSize")
+	fmt.Println(colorGreen + "Finished ReadStream" + colorReset)
+	if err != nil {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(loggingInJSON(fmt.Sprintf("CalcPosSize saga step ReadStream err = %v", err)),
+			fmt.Sprintf("<%v> %v", line, file))
+		return nil, err
 	}
-	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
+
+	if str, ok := msg.([]redis.XStream); ok {
+		posSize = msngr.FilterMsgVals(str[0].Messages[0], func(k, v string) bool {
+			return k == "PosSize" && v != ""
+		})
+	}
 
 	//calc exit size
+	if posSize == "" {
+		return 0, fmt.Errorf("posSize calc result empty %v", allArgs...)
+	}
 	posSzFloat, _ := strconv.ParseFloat(posSize, 32)
 	exitSz := (funcArgs["posPercToClose"].(float64) / 100) * posSzFloat
 
@@ -274,30 +267,9 @@ func submitExitOrder(allArgs ...interface{}) (interface{}, error) {
 	listenArgs["consumerName"] = redisConsumerID
 	listenArgs["start"] = ">"
 	listenArgs["count"] = "1"
-	fmt.Println("help")
-	var order string
-	parserHandlers := []msngr.CommandHandler{
-		{
-			Command: "Exit Order",
-			HandlerMatches: []msngr.HandlerMatch{
-				{
-					Matcher: func(fieldVal string) bool {
-						return fieldVal != ""
-					},
-					Handler: func(msg redis.XMessage, output *interface{}) {
-						order = msngr.FilterMsgVals(msg, func(k, v string) bool {
-							return (k == "Exit Order" && v != "")
-						})
-						fmt.Println(order)
-					},
-				},
-			},
-		},
-	}
-	msngr.ReadAndParse(msngr.ReadStream, msngr.ParseStream, listenArgs, parserHandlers)
 
 	//listen for consec responses
-	return msngr.ListenConsecResponses(transactionArgs, func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
+	return msngr.ListenConsecResponses(transactionArgs, "strat-svc submitExitOrder ListenConsecResponses", func(i int, v string, m redis.XMessage, isHeaderMatch bool) {
 		fmt.Printf("Read consec header at index %v val: %s, IsMatch = %v (%s)\n", i, v, isHeaderMatch, m.ID)
 	})
 

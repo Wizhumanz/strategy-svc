@@ -343,7 +343,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		args["leverage"] = int(lev)
 		args["latestClosePrice"] = float64(price)
 		OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
-		fmt.Println(colorGreen + "\nOpen saga complete! " + botStreamName + colorReset)
+		fmt.Println(colorGreen + "\nEntry saga complete! " + botStreamName + colorReset)
 	}
 }
 

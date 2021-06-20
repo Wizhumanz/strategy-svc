@@ -64,10 +64,7 @@ func main() {
 	httpTimeFormat = "2006-01-02T15:04:05"
 
 	initRedis()
-	fmt.Println(colorRed + "redis CM done" + colorReset)
-
-	initDatastore()
-	fmt.Println(colorRed + "datastore init done" + colorReset)
+	go initDatastore()
 
 	wsConnections = make(map[string]*websocket.Conn)
 	wsConnectionsChartmaster = make(map[string]*websocket.Conn)
@@ -81,7 +78,6 @@ func main() {
 		go Log(log, fmt.Sprintf("<%v> %v \n| <%v> %v \n| <%v> %v \n| <%v> %v", line, file, line2, file2, line3, file3, line4, file4))
 	}
 	msngr.InitRedis(redisHostMsngr, redisPortMsngr, redisPassMsngr)
-	fmt.Println(colorRed + "msngr redis init done" + colorReset)
 
 	periodDurationMap["1MIN"] = 1 * time.Minute
 	periodDurationMap["2MIN"] = 2 * time.Minute
@@ -117,8 +113,6 @@ func main() {
 		},
 	}
 
-	fmt.Println(colorRed + "initialized everything" + colorReset)
-
 	//create new redis consumer group for webhookTrades stream
 	_, err := msngr.CreateNewConsumerGroup(newCmdStream, svcConsumerGroupName, "0")
 	if err != nil {
@@ -130,18 +124,14 @@ func main() {
 	//always create new ID because dead consumers' pending msgs will be autoclaimed by other instances
 	redisConsumerID = msngr.GenerateNewConsumerID("strat")
 
-	fmt.Println(colorRed + "consumer group done" + colorReset)
-
 	//live servicing
 
 	//autoclaim pending messages from dead consumers in same group (instances of same svc)
 	//listen on bot status change stream (waiting room)
-	go msngr.AutoClaimMsgsLoop(newCmdStream, svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1", botStatusChangeHandlers)
-	fmt.Println(colorRed + "autoclaim loop" + colorReset)
+	go msngr.AutoClaimMsgsLoop(newCmdStream, "strat-svc autoclaim main.go", svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1", botStatusChangeHandlers)
 
 	//continuously listen for new trades to manage in bot status change stream
-	go msngr.StreamListenLoop(newCmdStream, ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey, botStatusChangeHandlers)
-	fmt.Println(colorRed + "stream listen loop" + colorReset)
+	go msngr.StreamListenLoop(newCmdStream, "strat-svc streamListenLoop main.go", ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey, botStatusChangeHandlers)
 
 	//TODO: make autoclaim loop for specific bot streams
 
@@ -160,8 +150,6 @@ func main() {
 	router.Methods("GET", "OPTIONS").Path("/getChartmasterTickers").HandlerFunc(getTickersHandler)
 	router.Methods("GET", "OPTIONS").Path("/backtestHistory").HandlerFunc(getBacktestHistoryHandler)
 	router.Methods("GET", "OPTIONS").Path("/backtestHistory/{id}").HandlerFunc(getBacktestResHandler)
-
-	fmt.Println(colorRed + "method def" + colorReset)
 
 	port := os.Getenv("PORT")
 	fmt.Println("strategy-svc listening on port " + port)

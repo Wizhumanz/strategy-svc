@@ -35,7 +35,7 @@ func StatusActivateHandler(msg redis.XMessage, output *interface{}) {
 	}
 
 	//listen on new bot stream
-	go msngr.StreamListenLoop(newBotStreamName, ">", svcConsumerGroupName, redisConsumerID, "1", "0", botStreamCmdHandlers)
+	go msngr.StreamListenLoop(newBotStreamName, "strat-svc StatusActivateHandler", ">", svcConsumerGroupName, redisConsumerID, "1", "0", botStreamCmdHandlers)
 
 	//start live strat execution loop
 	botInfo := msngr.FilterMsgVals(msg, func(k, v string) bool {
