@@ -337,13 +337,15 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		// go Log(loggingInJSON(fmt.Sprintf("[%v] OpenTradeSaga simulated START", cIndex)),
 		// 	fmt.Sprintf("<%v> %v", line, file))
 
+		//TODO: replace with binance func
 		args := map[string]interface{}{}
 		args["slPrice"] = float64(sl)
 		args["accRisk"] = float64(accRisk)
 		args["leverage"] = int(lev)
 		args["latestClosePrice"] = float64(price)
+		pauseStreamListening(botStreamName, fmt.Sprintf("OpenTradeSaga | %v", args))
 		OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
-		fmt.Println(colorGreen + "\nEntry saga complete! " + botStreamName + colorReset)
+		continueStreamListening(botStreamName)
 	}
 }
 
@@ -364,10 +366,12 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex i
 		go Log(fmt.Sprintf("Closing pos %v/100 at %v | action = %v\n", posPercToClose, price, action),
 			fmt.Sprintf("<%v> %v", line, file))
 
+		//TODO: replace with binance func
 		args := map[string]interface{}{}
 		args["posPercToClose"] = posPercToClose
 		args["ticker"] = bot.Ticker
+		pauseStreamListening(bot.KEY, fmt.Sprintf("ExitTradeSaga | %v", args))
 		ExitTradeSaga.Execute(bot.KEY, svcConsumerGroupName, redisConsumerID, args)
-		fmt.Println(colorGreen + "\nExit saga complete! " + bot.KEY + colorReset)
+		continueStreamListening(bot.KEY)
 	}
 }

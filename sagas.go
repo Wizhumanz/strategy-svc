@@ -196,6 +196,7 @@ func calcCloseSize(allArgs ...interface{}) (interface{}, error) {
 	msgs = append(msgs, "Ticker")
 	msgs = append(msgs, funcArgs["ticker"].(string))
 	msngr.AddToStream(transactionArgs["botStream"].(string), msgs)
+	time.Sleep(1 * time.Second)
 
 	//listen for msg resp
 	listenArgs := make(map[string]string)
@@ -206,24 +207,29 @@ func calcCloseSize(allArgs ...interface{}) (interface{}, error) {
 	listenArgs["count"] = "1"
 
 	var posSize string
-	_, msg, err := msngr.ReadStream(listenArgs, "OpenTradeSaga calcCloseSize")
-	fmt.Println(colorGreen + "Finished ReadStream" + colorReset)
-	if err != nil {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(loggingInJSON(fmt.Sprintf("CalcPosSize saga step ReadStream err = %v", err)),
-			fmt.Sprintf("<%v> %v", line, file))
-		return nil, err
-	}
+	for {
+		_, msg, err := msngr.ReadStream(listenArgs, "OpenTradeSaga calcCloseSize")
+		fmt.Println(colorGreen + "Finished ReadStream" + colorReset)
+		if err != nil {
+			_, file, line, _ := runtime.Caller(0)
+			go Log(loggingInJSON(fmt.Sprintf("CalcPosSize saga step ReadStream err = %v", err)),
+				fmt.Sprintf("<%v> %v", line, file))
+			return nil, err
+		}
 
-	if str, ok := msg.([]redis.XStream); ok {
-		posSize = msngr.FilterMsgVals(str[0].Messages[0], func(k, v string) bool {
-			return k == "PosSize" && v != ""
-		})
-	}
+		if str, ok := msg.([]redis.XStream); ok {
+			posSize = msngr.FilterMsgVals(str[0].Messages[0], func(k, v string) bool {
+				return k == "PosSize" && v != ""
+			})
+		}
 
-	//calc exit size
-	if posSize == "" {
-		return 0, fmt.Errorf("posSize calc result empty %v", allArgs...)
+		//calc exit size
+		if posSize == "" {
+			// return 0, fmt.Errorf("posSize calc result empty %v", allArgs...)
+			fmt.Printf("posSize calc result empty %v", allArgs...)
+		} else {
+			break
+		}
 	}
 	posSzFloat, _ := strconv.ParseFloat(posSize, 32)
 	exitSz := (funcArgs["posPercToClose"].(float64) / 100) * posSzFloat

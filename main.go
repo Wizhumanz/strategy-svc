@@ -29,6 +29,7 @@ var svcConsumerGroupName string
 var lastIDSaveKey string
 var redisConsumerID string
 var minIdleAutoclaim string
+var stopListenCmdChecker func([]redis.XStream, error) bool
 
 var rdbChartmaster *redis.Client
 var dsClient *datastore.Client
@@ -99,6 +100,7 @@ func main() {
 	periodDurationMap["1DAY"] = 24 * time.Hour
 	periodDurationMap["2DAY"] = 48 * time.Hour
 
+	//note: stream listening pause + continue handlers in StatusActivateHandler
 	botStatusChangeHandlers := []msngr.CommandHandler{
 		{
 			Command: "CMD",
@@ -111,6 +113,22 @@ func main() {
 				},
 			},
 		},
+	}
+
+	stopListenCmdChecker = func(msgs []redis.XStream, e error) bool {
+		msg := msgs[0].Messages[0]
+		doContinue := true
+		cmdVal := msngr.FilterMsgVals(msg, func(k, v string) bool {
+			return k == svcConsumerGroupName+"_LISTENER_CMD" || k == "CMD"
+		})
+
+		if cmdVal == "PAUSE" || cmdVal == "SHUTDOWN" {
+			doContinue = false
+		} else {
+			doContinue = true
+		}
+
+		return doContinue
 	}
 
 	//create new redis consumer group for webhookTrades stream
@@ -131,7 +149,10 @@ func main() {
 	go msngr.AutoClaimMsgsLoop(newCmdStream, "strat-svc autoclaim main.go", svcConsumerGroupName, redisConsumerID, minIdleAutoclaim, "0-0", "1", botStatusChangeHandlers)
 
 	//continuously listen for new trades to manage in bot status change stream
-	go msngr.StreamListenLoop(newCmdStream, "strat-svc streamListenLoop main.go", ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey, botStatusChangeHandlers)
+	go msngr.StreamListenLoop(newCmdStream, "strat-svc streamListenLoop main.go", ">", svcConsumerGroupName, redisConsumerID, "1", lastIDSaveKey, botStatusChangeHandlers, func(msgs []redis.XStream, e error) bool {
+		//never kill this listen loop
+		return true
+	})
 
 	//TODO: make autoclaim loop for specific bot streams
 

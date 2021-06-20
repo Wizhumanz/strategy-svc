@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
+	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/go-redis/redis/v8"
@@ -68,4 +69,20 @@ func generateRandomID(n int) string {
 		b[i] = nums[rand.Intn(len(nums))]
 	}
 	return string(b)
+}
+
+func pauseStreamListening(streamKey, callerLog string) {
+	//stop other instances from listening temporarily
+	stopMsg := []string{}
+	stopMsg = append(stopMsg, svcConsumerGroupName+"_LISTENER_CMD")
+	stopMsg = append(stopMsg, "PAUSE")
+	stopMsg = append(stopMsg, "Caller")
+	stopMsg = append(stopMsg, callerLog)
+	stopMsg = append(stopMsg, "Timestamp")
+	stopMsg = append(stopMsg, time.Now().UTC().Format(httpTimeFormat))
+	msngr.AddToStream(streamKey, stopMsg)
+}
+
+func continueStreamListening(streamKey string) {
+	go msngr.StreamListenLoop(streamKey, "strat-svc continueStreamListening", ">", svcConsumerGroupName, redisConsumerID, "1", "0", botStreamCmdHandlers, stopListenCmdChecker)
 }
