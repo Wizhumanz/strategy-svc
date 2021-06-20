@@ -333,9 +333,9 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 			PosSize: posSize,
 		}
 	} else {
-		// _, file, line, _ := runtime.Caller(0)
-		// go Log(loggingInJSON(fmt.Sprintf("[%v] OpenTradeSaga simulated START", cIndex)),
-		// 	fmt.Sprintf("<%v> %v", line, file))
+		// get acc balance <
+		// calculate pos size
+		// submit 3 orders: stop limit SL, stop limit TP, limit entry (long/short) <
 
 		//TODO: replace with binance func
 		args := map[string]interface{}{}
@@ -365,6 +365,10 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex i
 		_, file, line, _ := runtime.Caller(0)
 		go Log(fmt.Sprintf("Closing pos %v/100 at %v | action = %v\n", posPercToClose, price, action),
 			fmt.Sprintf("<%v> %v", line, file))
+
+		// get acc balance <
+		// calculate pos size
+		// submit limit order
 
 		//TODO: replace with binance func
 		args := map[string]interface{}{}

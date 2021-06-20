@@ -106,10 +106,6 @@ func strat1(
 		}
 	}
 
-	//TEST
-	(*strategy).CloseLong(close[relCandleIndex-1], 100, relCandleIndex, "TEST", candles[len(candles)-1].DateTime(), bot)
-	return nil
-
 	if len(stored.PivotLows) >= 2 {
 		if strategy.GetPosLongSize() > 0 {
 			//manage/watch ongoing trend
