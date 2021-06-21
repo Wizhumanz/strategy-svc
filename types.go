@@ -276,10 +276,11 @@ func (c *Candlestick) DateTime() string {
 }
 
 type StrategyExecutorAction struct {
-	Action  string
-	Price   float64
-	SL      float64
-	PosSize float64
+	Action       string
+	Price        float64
+	SL           float64
+	PosSize      float64
+	RiskedEquity float64
 }
 
 type StrategyExecutor struct {
@@ -317,11 +318,10 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex int, directionIsLong bool, botStreamName string) {
 	if !strat.liveTrade {
 		_, posSize := calcEntry(price, sl, accRisk, strat.availableEquity, lev)
-
 		strat.availableEquity = strat.availableEquity - (posSize * price)
 
 		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("<%v> SIM enter %v at %v | SL=%v, TP=%v\n ---> $%v", cIndex, posSize, price, sl, tp, strat.totalEquity),
+		Log(fmt.Sprintf("<%v> SIM enter %v at %v | SL=%v, TP=%v\n ---> $%v", cIndex, posSize, price, sl, tp, strat.totalEquity),
 			fmt.Sprintf("<%v> %v", line, file))
 
 		if directionIsLong {
@@ -331,10 +331,11 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		}
 
 		strat.Actions[cIndex] = StrategyExecutorAction{
-			Action:  "ENTER",
-			Price:   price,
-			SL:      sl,
-			PosSize: posSize,
+			Action:       "ENTER",
+			Price:        price,
+			SL:           sl,
+			PosSize:      posSize,
+			RiskedEquity: (accRisk / 100) * strat.availableEquity,
 		}
 	} else {
 		// get acc balance <
@@ -356,12 +357,12 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex int, action string, timestamp string, bot Bot) {
 	if !strat.liveTrade {
 		orderSize := (posPercToClose / 100) * strat.posLongSize
-		strat.availableEquity = strat.availableEquity + (orderSize * price)
 		strat.posLongSize = strat.posLongSize - orderSize
-		strat.totalEquity = strat.availableEquity + (strat.posLongSize * price)
+		strat.availableEquity = strat.availableEquity + (orderSize * price)
+		strat.totalEquity = strat.availableEquity + (strat.posLongSize * price) //run this line on every iteration to constantly update equity (including unrealized PnL)
 
 		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("<%v> SIM closed pos %v/100 at %v | action = %v\n ---> $%v", cIndex, posPercToClose, price, action, strat.totalEquity),
+		Log(fmt.Sprintf("<%v> SIM closed pos %v/100 at %v | action = %v\n ---> $%v", cIndex, posPercToClose, price, action, strat.totalEquity),
 			fmt.Sprintf("<%v> %v", line, file))
 
 		strat.Actions[cIndex] = StrategyExecutorAction{

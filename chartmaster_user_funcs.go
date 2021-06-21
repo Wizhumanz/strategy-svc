@@ -231,6 +231,9 @@ func strat1(
 				//enter long\
 				entryPrice := close[relCandleIndex]
 				slPrice := prevPL
+				if slPrice >= entryPrice {
+					return newLabels
+				}
 				stored.LongSLPrice = slPrice
 				stored.LongEntryPrice = entryPrice
 				(*strategy).Buy(close[relCandleIndex], slPrice, -1, risk, int(lev), relCandleIndex, true, bot.KEY)
