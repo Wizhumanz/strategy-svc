@@ -282,6 +282,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	//check if candles exist in cache
 	periodAdd, _ := strconv.Atoi(strings.Split(period, "M")[0])
 
+	// Checking whether the candle exists in cache. Separates them into two arrays.
 	for i := 0; i < int(fetchCandlesEnd.Sub(fetchCandlesStart).Minutes()); i += periodAdd {
 		retCandles := getCachedCandleData(ticker, period, fetchCandlesStart.Add(time.Minute*time.Duration(i)), fetchCandlesStart.Add(time.Minute*time.Duration(i+1)))
 		if len(retCandles) == 0 {
@@ -291,6 +292,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		}
 	}
 
+	// Fetching candles from COIN API in 300s
 	for i := 0; i < len(candlesNotInCache); i += 300 {
 		if len(candlesNotInCache) > i+300 {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
@@ -299,6 +301,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		}
 	}
 
+	// Fetching candles from Redis cache
 	if len(candlesInCache) > 0 {
 		chunkCandles = append(chunkCandles, getCachedCandleData(ticker, period, candlesInCache[0], candlesInCache[len(candlesInCache)-1])...)
 	}
@@ -308,6 +311,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	// go Log(string(candles),
 	// 	fmt.Sprintf("<%v> %v", line, file))
 
+	// Sorting them in order
 	var tempTimeArray []string
 	var sortedChunkCandles []Candlestick
 	for _, v := range chunkCandles {
@@ -322,6 +326,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		}
 	}
 
+	// Checking for error
 	if len(sortedChunkCandles) == 0 {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(fmt.Sprintf("chunkCandles fetch err %v\n", startTime.Format(httpTimeFormat)),
