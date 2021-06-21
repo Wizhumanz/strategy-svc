@@ -277,7 +277,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	startTime, endTime, fetchCandlesStart, fetchCandlesEnd time.Time) {
 	var chunkCandles []Candlestick
 	var candlesNotInCache []time.Time
-	var candlesInCache []time.Time
+	var candlesInCache []Candlestick
 
 	//check if candles exist in cache
 	periodAdd, _ := strconv.Atoi(strings.Split(period, "M")[0])
@@ -288,7 +288,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		if len(retCandles) == 0 {
 			candlesNotInCache = append(candlesNotInCache, fetchCandlesStart.Add(time.Minute*time.Duration(i)))
 		} else {
-			candlesInCache = append(candlesInCache, fetchCandlesStart.Add(time.Minute*time.Duration(i)))
+			candlesInCache = append(candlesInCache, retCandles[0])
 		}
 	}
 
@@ -301,10 +301,8 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		}
 	}
 
-	// Fetching candles from Redis cache
-	if len(candlesInCache) > 0 {
-		chunkCandles = append(chunkCandles, getCachedCandleData(ticker, period, candlesInCache[0], candlesInCache[len(candlesInCache)-1])...)
-	}
+	// // Fetching candles from Redis cache
+	chunkCandles = append(chunkCandles, candlesInCache...)
 
 	// candles, _ := json.Marshal(chunkCandles)
 	// _, file, line, _ := runtime.Caller(0)
