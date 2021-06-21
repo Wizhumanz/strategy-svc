@@ -334,6 +334,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		}
 	} else {
 		// get acc balance <
+		getFuturesAccountBalance()
 		// calculate pos size
 		// submit 3 orders: stop limit SL, stop limit TP, limit entry (long/short) <
 
@@ -367,6 +368,7 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex i
 			fmt.Sprintf("<%v> %v", line, file))
 
 		// get acc balance <
+		getFuturesAccountBalance()
 		// calculate pos size
 		// submit limit order
 
