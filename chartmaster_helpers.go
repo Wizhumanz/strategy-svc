@@ -105,9 +105,9 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 }
 
 func getCachedCandleData(ticker, period string, start, end time.Time) []Candlestick {
-	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf("CACHE getting from %v to %v\n", start.Format(httpTimeFormat), end.Format(httpTimeFormat)),
-		fmt.Sprintf("<%v> %v", line, file))
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log(fmt.Sprintf("CACHE getting from %v to %v\n", start.Format(httpTimeFormat), end.Format(httpTimeFormat)),
+	// 	fmt.Sprintf("<%v> %v", line, file))
 
 	var retCandles []Candlestick
 	checkEnd := end.Add(periodDurationMap[period])
@@ -303,10 +303,10 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		chunkCandles = append(chunkCandles, getCachedCandleData(ticker, period, candlesInCache[0], candlesInCache[len(candlesInCache)-1])...)
 	}
 
-	candles, _ := json.Marshal(chunkCandles)
-	_, file, line, _ := runtime.Caller(0)
-	go Log(string(candles),
-		fmt.Sprintf("<%v> %v", line, file))
+	// candles, _ := json.Marshal(chunkCandles)
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log(string(candles),
+	// 	fmt.Sprintf("<%v> %v", line, file))
 
 	var tempTimeArray []string
 	var sortedChunkCandles []Candlestick

@@ -73,21 +73,11 @@ func strat1(
 	}
 
 	if len(stored.PivotHighs) == 0 {
-		if relCandleIndex <= 0 {
-			stored.PivotHighs = []int{}
-		} else {
-			fmt.Println("strat1 storage obj assertion fail")
-			return nil
-		}
+		stored.PivotHighs = []int{}
 	}
 
 	if len(stored.PivotLows) == 0 {
-		if relCandleIndex <= 0 {
-			stored.PivotLows = []int{}
-		} else {
-			fmt.Println("strat1 storage obj assertion fail")
-			return nil
-		}
+		stored.PivotLows = []int{}
 	}
 
 	newLabels, _ := findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows))

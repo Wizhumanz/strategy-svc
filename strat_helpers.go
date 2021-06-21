@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -22,7 +21,7 @@ func findPivots(
 	relCandleIndex int,
 	ph, pl *[]int) (map[string]map[int]string, bool) {
 	foundPL := false
-	fmt.Printf(colorWhite+"findPivots index %v | o = %v, h = %v, l = %v, c = %v\n"+colorReset, relCandleIndex, len(open), len(high), len(low), len(close))
+	// fmt.Printf(colorWhite+"findPivots index %v | o = %v, h = %v, l = %v, c = %v\n"+colorReset, relCandleIndex, len(open), len(high), len(low), len(close))
 
 	//find pivot highs + lows
 	var lookForHigh bool
@@ -34,10 +33,6 @@ func findPivots(
 		lookForHigh = true
 	} else {
 		lookForHigh = false
-	}
-
-	if len(*ph) < 30 && len(*pl) < 30 {
-		fmt.Printf(colorWhite+"lookForHigh = %v | phs = %v \n pls = %v\n"+colorReset, lookForHigh, *ph, *pl)
 	}
 
 	newLabels := make(map[string]map[int]string) //map of labelPos:map of labelBarsBack:labelText
@@ -87,7 +82,7 @@ func findPivots(
 				}
 
 				if newPHIndex >= 0 && !(checkExists(newPHIndex, *ph)) {
-					fmt.Printf("Appending PH %v\n", newPHIndex)
+					// fmt.Printf("Appending PH %v\n", newPHIndex)
 
 					*ph = append(*ph, newPHIndex)
 					pivotBarsBack = relCandleIndex - newPHIndex
@@ -143,7 +138,7 @@ func findPivots(
 				}
 
 				if newPLIndex >= 0 {
-					fmt.Printf("Appending PL %v\n", newPLIndex)
+					// fmt.Printf("Appending PL %v\n", newPLIndex)
 
 					*pl = append(*pl, newPLIndex)
 					pivotBarsBack = relCandleIndex - newPLIndex

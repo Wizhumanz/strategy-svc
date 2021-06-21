@@ -320,6 +320,10 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 
 		strat.availableEquity = strat.availableEquity - (posSize * price)
 
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("<%v> SIM enter %v at %v | SL=%v, TP=%v\n ---> $%v", cIndex, posSize, price, sl, tp, strat.totalEquity),
+			fmt.Sprintf("<%v> %v", line, file))
+
 		if directionIsLong {
 			strat.posLongSize = posSize
 		} else {
@@ -338,15 +342,14 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		// calculate pos size
 		// submit 3 orders: stop limit SL, stop limit TP, limit entry (long/short) <
 
-		//TODO: replace with binance func
-		args := map[string]interface{}{}
-		args["slPrice"] = float64(sl)
-		args["accRisk"] = float64(accRisk)
-		args["leverage"] = int(lev)
-		args["latestClosePrice"] = float64(price)
-		pauseStreamListening(botStreamName, fmt.Sprintf("OpenTradeSaga | %v", args))
-		OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
-		continueStreamListening(botStreamName)
+		// args := map[string]interface{}{}
+		// args["slPrice"] = float64(sl)
+		// args["accRisk"] = float64(accRisk)
+		// args["leverage"] = int(lev)
+		// args["latestClosePrice"] = float64(price)
+		// pauseStreamListening(botStreamName, fmt.Sprintf("OpenTradeSaga | %v", args))
+		// OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
+		// continueStreamListening(botStreamName)
 	}
 }
 
@@ -356,6 +359,10 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex i
 		strat.availableEquity = strat.availableEquity + (orderSize * price)
 		strat.posLongSize = strat.posLongSize - orderSize
 		strat.totalEquity = strat.availableEquity + (strat.posLongSize * price)
+
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("<%v> SIM closed pos %v/100 at %v | action = %v\n ---> $%v", cIndex, posPercToClose, price, action, strat.totalEquity),
+			fmt.Sprintf("<%v> %v", line, file))
 
 		strat.Actions[cIndex] = StrategyExecutorAction{
 			Action:  action,
@@ -372,12 +379,11 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex i
 		// calculate pos size
 		// submit limit order
 
-		//TODO: replace with binance func
-		args := map[string]interface{}{}
-		args["posPercToClose"] = posPercToClose
-		args["ticker"] = bot.Ticker
-		pauseStreamListening(bot.KEY, fmt.Sprintf("ExitTradeSaga | %v", args))
-		ExitTradeSaga.Execute(bot.KEY, svcConsumerGroupName, redisConsumerID, args)
-		continueStreamListening(bot.KEY)
+		// args := map[string]interface{}{}
+		// args["posPercToClose"] = posPercToClose
+		// args["ticker"] = bot.Ticker
+		// pauseStreamListening(bot.KEY, fmt.Sprintf("ExitTradeSaga | %v", args))
+		// ExitTradeSaga.Execute(bot.KEY, svcConsumerGroupName, redisConsumerID, args)
+		// continueStreamListening(bot.KEY)
 	}
 }
