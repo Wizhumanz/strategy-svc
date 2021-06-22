@@ -52,7 +52,7 @@ func strat1(
 	strategy *StrategyExecutor,
 	storage *interface{}, bot Bot) map[string]map[int]string {
 	//TODO: pass these 2 from frontend
-	strategy.OrderSlippagePerc = 0.2
+	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
 	exitWatchPivots := 3
@@ -62,7 +62,8 @@ func strat1(
 
 	tpTradeCooldownCandles := 5
 	slTradeCooldownCandles := 9
-	tpPerc := 0.5
+	tpPerc := 0.3
+	slPrevPLAbovePerc := 0.6
 
 	var stored PivotsStore
 
@@ -106,8 +107,8 @@ func strat1(
 			// fmt.Printf(colorYellow+"checking existing trend %v %v\n"+colorReset, relCandleIndex, candles[len(candles)-1].DateTime)
 
 			//check SL
-			if low[relCandleIndex] <= low[stored.EntryFirstPivotIndex] {
-				(*strategy).CloseLong(close[relCandleIndex-1], 100, relCandleIndex, "SL", candles[len(candles)-1].DateTime(), bot)
+			if low[relCandleIndex] <= stored.LongSLPrice {
+				(*strategy).CloseLong(stored.LongSLPrice, 100, relCandleIndex, "SL", candles[len(candles)-1].DateTime(), bot)
 				stored.MinSearchIndex = stored.EntrySecondPivotIndex
 				stored.SLIndex = relCandleIndex
 				stored.TPIndex = 0
@@ -234,7 +235,7 @@ func strat1(
 
 				//enter long\
 				entryPrice := close[relCandleIndex]
-				slPrice := prevPL
+				slPrice := prevPL + ((entryPrice - prevPL) * slPrevPLAbovePerc)
 				if slPrice >= entryPrice {
 					return newLabels
 				}

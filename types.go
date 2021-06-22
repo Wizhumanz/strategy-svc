@@ -282,6 +282,7 @@ type StrategyExecutorAction struct {
 	SL           float64
 	PosSize      float64
 	RiskedEquity float64
+	ProfitCap    float64
 	ExchangeFee  float64
 }
 
@@ -292,6 +293,7 @@ type StrategyExecutor struct {
 	availableEquity float64
 	Actions         map[int]StrategyExecutorAction //map bar index to action that occured at that index
 	liveTrade       bool
+	lastEntryEquity float64
 
 	OrderSlippagePerc    float64
 	ExchangeTradeFeePerc float64
@@ -332,6 +334,10 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		exchangeFee := (strat.ExchangeTradeFeePerc / 100) * desiredPosCap
 		actualPosSize := actualCap / actualPrice
 		strat.availableEquity = strat.availableEquity - actualCap
+		strat.totalEquity = strat.availableEquity + actualCap
+		strat.lastEntryEquity = actualCap
+
+		fmt.Printf(colorGreen+"actualPrice= %v (%v)\nsl= %v\ntp= %v\nactualCap= (%v)%v\nactualPosSize= %v\n --> $%v\n"+colorReset, actualPrice, price, sl, tp, actualCap, desiredPosCap, actualPosSize, strat.totalEquity)
 
 		if directionIsLong {
 			strat.posLongSize = actualPosSize
@@ -375,15 +381,18 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex i
 		strat.posLongSize = strat.posLongSize - orderSize
 		strat.totalEquity = strat.availableEquity + (strat.posLongSize * price) //run this line on every iteration to constantly update equity (including unrealized PnL)
 
+		fmt.Printf(colorYellow+"CLOSE actualPrice= %v (%v)\nactualCloseEquity= %v\norderSz = %v\n --> $%v\n"+colorReset, actualClosePrice, price, actualCloseCap, orderSize, strat.totalEquity)
+
 		// _, file, line, _ := runtime.Caller(0)
 		// Log(fmt.Sprintf("<%v> SIM closed pos %v/100 at %v | action = %v\n ---> $%v", cIndex, posPercToClose, price, action, strat.totalEquity),
 		// 	fmt.Sprintf("<%v> %v", line, file))
 
 		strat.Actions[cIndex] = StrategyExecutorAction{
 			Action:      action,
-			Price:       price,
+			Price:       actualClosePrice,
 			PosSize:     orderSize,
 			ExchangeFee: exchangeFee,
+			ProfitCap:   actualCloseCap - strat.lastEntryEquity,
 		}
 	} else {
 		_, file, line, _ := runtime.Caller(0)
