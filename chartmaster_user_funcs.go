@@ -51,6 +51,10 @@ func strat1(
 	relCandleIndex int,
 	strategy *StrategyExecutor,
 	storage *interface{}, bot Bot) map[string]map[int]string {
+	//TODO: pass these 2 from frontend
+	strategy.OrderSlippagePerc = 0.2
+	strategy.ExchangeTradeFeePerc = 0.075
+
 	exitWatchPivots := 3
 	checkTrendBreakFromStartingPivots := false
 	minEntryPivotsDiffPerc := float64(0)

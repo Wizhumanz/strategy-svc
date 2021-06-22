@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -36,27 +37,32 @@ func findPivots(
 	}
 
 	newLabels := make(map[string]map[int]string) //map of labelPos:map of labelBarsBack:labelText
-	// newLabels["middle"] = map[int]string{
-	// 	0: fmt.Sprintf("%v", relCandleIndex),
-	// }
+	newLabels["middle"] = map[int]string{
+		0: fmt.Sprintf("%v", relCandleIndex),
+	}
 
 	pivotBarsBack := 0
-	var lastPivotIndex int
+	var newPivotSearchStartIndex int
 	if len(*ph) == 0 && len(*pl) == 0 {
-		lastPivotIndex = 0
+		newPivotSearchStartIndex = 0
 	} else if len(*ph) == 0 {
-		lastPivotIndex = (*pl)[len(*pl)-1]
+		newPivotSearchStartIndex = (*pl)[len(*pl)-1]
 	} else if len(*pl) == 0 {
-		lastPivotIndex = (*ph)[len(*ph)-1]
+		newPivotSearchStartIndex = (*ph)[len(*ph)-1]
 	} else {
-		lastPivotIndex = int(math.Max(float64((*ph)[len(*ph)-1]), float64((*pl)[len(*pl)-1])))
-		lastPivotIndex = int(math.Max(float64(1), float64(lastPivotIndex))) //make sure index is at least 1 to subtract 1 later
-		lastPivotIndex++                                                    //don't allow both pivot high and low on same candle
+		newPivotSearchStartIndex = int(math.Max(float64((*ph)[len(*ph)-1]), float64((*pl)[len(*pl)-1])))
+		newPivotSearchStartIndex = int(math.Max(float64(1), float64(newPivotSearchStartIndex))) //make sure index is at least 1 to subtract 1 later
+		newPivotSearchStartIndex++                                                              //don't allow both pivot high and low on same candle
 	}
+
+	// if relCandleIndex > 127 && relCandleIndex < 170 {
+	// 	fmt.Printf(colorGreen+"<%v> lookHigh= %v / searchStartIndex= %v\n ph(%v)=%v \n pl(%v)= %v\n"+colorReset, relCandleIndex, lookForHigh, newPivotSearchStartIndex, len(*ph), *ph, len(*pl), *pl)
+	// }
+
 	if lookForHigh {
 		// fmt.Println(colorRed + "looking for HIGH" + colorReset)
 		//check if new candle took out the low of previous candles since last pivot
-		for i := lastPivotIndex; (i+1) < len(low) && (i+1) < len(high); i++ { //TODO: should be relCandleIndex-1 but causes index outta range err
+		for i := newPivotSearchStartIndex; (i+1) < len(low) && (i+1) < len(high); i++ { //TODO: should be relCandleIndex-1 but causes index outta range err
 			if (low[i+1] < low[i]) && (high[i+1] < high[i]) {
 				//check if pivot already exists
 				found := checkExists(i, *ph)
@@ -98,7 +104,11 @@ func findPivots(
 		}
 	} else {
 		// fmt.Println(colorYellow + "looking for LOW" + colorReset)
-		for i := lastPivotIndex; (i+1) < len(high) && (i+1) < len(low); i++ {
+		for i := newPivotSearchStartIndex; (i+1) < len(high) && (i+1) < len(low); i++ {
+			// if relCandleIndex > 127 && relCandleIndex < 170 {
+			// 	fmt.Printf(colorPurple+"<%v> checking PL %v\n", relCandleIndex, i)
+			// }
+
 			if (high[i+1] > high[i]) && (low[i+1] > low[i]) {
 				//check if pivot already exists
 				found := false
@@ -111,14 +121,14 @@ func findPivots(
 				if found {
 					continue
 				}
-				// fmt.Printf("Found PL at index %v", j)
 
-				//find lowest low since last PL
-				newPLIndex := i
-				// if relCandleIndex > 150 && relCandleIndex < 170 {
-				// 	fmt.Printf(colorYellow+"<%v> new PL init index = %v\n"+colorReset, relCandleIndex, newPLIndex)
+				// //find lowest low since last PL
+				// newPLIndex := i
+				// if relCandleIndex > 127 && relCandleIndex < 170 {
+				// 	fmt.Printf(colorYellow+"<%v, %v> new PL init index = %v\n"+colorReset, relCandleIndex, close[relCandleIndex], newPLIndex)
 				// }
 
+				//find actual lowest point since last PH to label as PL
 				if len(*ph) > 0 && len(*pl) > 0 && newPLIndex > 0 {
 					latestPHIndex := (*ph)[len(*ph)-1]
 					latestPLIndex := (*pl)[len(*pl)-1]
@@ -133,24 +143,22 @@ func findPivots(
 
 					//check if current candle actually clears new selected candle as pivot high
 					if !((high[i+1] > high[newPLIndex]) && (low[i+1] > low[newPLIndex])) {
+						if relCandleIndex > 127 && relCandleIndex < 170 {
+							fmt.Printf(colorRed+"<%v, %v> skipping add = %v\n"+colorReset, relCandleIndex, close[relCandleIndex], newPLIndex)
+						}
 						continue
 					}
 				}
 
 				if newPLIndex >= 0 {
-					// fmt.Printf("Appending PL %v\n", newPLIndex)
-
 					*pl = append(*pl, newPLIndex)
 					pivotBarsBack = relCandleIndex - newPLIndex
 					newLabels["bottom"] = map[int]string{
 						// pivotBarsBack: fmt.Sprintf("L from %v", relCandleIndex),
-						pivotBarsBack: "L",
+						pivotBarsBack: fmt.Sprintf("L%v", relCandleIndex),
 					}
 					foundPL = true
-					// fmt.Printf("Adding PL index %v\n", newPLIndex)
 				}
-
-				break
 			}
 		}
 	}
