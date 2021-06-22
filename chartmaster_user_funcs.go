@@ -51,6 +51,9 @@ func strat1(
 	relCandleIndex int,
 	strategy *StrategyExecutor,
 	storage *interface{}, bot Bot) map[string]map[int]string {
+
+	//entry watch should look for 3 lower lows in a row
+
 	//TODO: pass these 2 from frontend
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
@@ -62,8 +65,8 @@ func strat1(
 
 	tpTradeCooldownCandles := 5
 	slTradeCooldownCandles := 9
-	tpPerc := 0.3
-	slPrevPLAbovePerc := 0.6
+	tpPerc := 0.75
+	slPrevPLAbovePerc := 0.8
 
 	var stored PivotsStore
 
