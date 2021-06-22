@@ -292,8 +292,8 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	}
 
 	// Fetching candles from COIN API in 300s
-	for i := 0; i < len(candlesNotInCache); i += 300 {
-		if len(candlesNotInCache) > i+300 {
+	for i := 0; i < len(candlesNotInCache); i += 5 {
+		if len(candlesNotInCache) > i+5 {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
 		} else {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[len(candlesNotInCache)-1])...)
@@ -362,34 +362,32 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 func concFetchCandleData(startTime, endTime time.Time, period, ticker string, packetSize int, chunksArr *[]*[]Candlestick, c chan time.Time) {
 	fetchCandlesStart := startTime
 	for {
-		if fetchCandlesStart.After(endTime) {
+		if fetchCandlesStart.Equal(endTime) || fetchCandlesStart.After(endTime) {
 			break
 		}
 
-		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 300)
+		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 5)
 		if fetchCandlesEnd.After(endTime) {
 			fetchCandlesEnd = endTime
 		}
 		var chunkSlice []Candlestick
-		// fmt.Println(startTime, endTime)
 
 		*chunksArr = append(*chunksArr, &chunkSlice)
-		go getChunkCandleData(&chunkSlice, 300, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c)
+		go getChunkCandleData(&chunkSlice, 5, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c)
 
 		//increment
-		fetchCandlesStart = fetchCandlesEnd.Add(periodDurationMap[period])
+		fetchCandlesStart = fetchCandlesEnd
 	}
 }
 
 func computeBacktest(
-	allCandleData []Candlestick,
 	risk, lev, accSz float64,
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
 	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string,
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
-	chunksArr []*[]Candlestick) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
+	chunksArr *[]*[]Candlestick) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
 	var store interface{} //save state between strategy executions on each candle
 	var retCandles []CandlestickChartData
 	var retProfitCurve []ProfitCurveData
@@ -413,7 +411,9 @@ func computeBacktest(
 	allCloses := []float64{}
 	allCandles := []Candlestick{}
 	relIndex := 0
+	requiredTime := startTime
 	// stratComputeStartIndex := 0
+
 	for {
 		// if stratComputeStartIndex > len(allCandleData) {
 		// 	break
@@ -424,11 +424,13 @@ func computeBacktest(
 		// 	stratComputeEndIndex = len(allCandleData)
 		// }
 		// periodCandles := allCandleData[stratComputeStartIndex:stratComputeEndIndex]
-
 		var allCandlesArr []Candlestick
-		requiredTime := startTime
-		for _, chunk := range chunksArr {
+
+		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
+			if len(allCandlesArr) > 0 {
+				// fmt.Printf("\ncandle: %v, %v\n", allCandlesArr, i)
+			}
 		}
 		// fmt.Printf("\nallCandlesArr: %v\n", allCandlesArr)
 		//run strat for all chunk's candles
@@ -492,11 +494,15 @@ func computeBacktest(
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
 			} else {
+				// requiredTime = requiredTime.Add(time.Minute * 1)
+
+				// fmt.Printf("\nrequiredTime: %v, %v\n", requiredTime, candle.PeriodStart)
 				break
 			}
 		}
 
 		if requiredTime.Equal(endTime) {
+			fmt.Println(requiredTime)
 			break
 		}
 	}
