@@ -43,33 +43,35 @@ func runScan(
 	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, PivotTrendScanDataPoint),
 	packetSender func(string, string, []CandlestickChartData, []PivotTrendScanDataPoint),
 ) ([]CandlestickChartData, []PivotTrendScanDataPoint) {
-	var allCandleData []Candlestick
 	var chunksArr []*[]Candlestick
 
+	// Channel to get timestamps for empty candles
+	c := make(chan time.Time)
 	//fetch all candle data concurrently
-	// concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr)
+	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c)
+	fmt.Println("scanning")
 
 	//wait for all candle data fetch complete before running strategy
-	for {
-		allChunksFilled := true
-		for _, e := range chunksArr {
-			if len(*e) <= 0 {
-				allChunksFilled = false
-				break
-			}
-		}
-		if allChunksFilled {
-			break
-		}
-	}
+	// for {
+	// 	allChunksFilled := true
+	// 	for _, e := range chunksArr {
+	// 		if len(*e) <= 0 {
+	// 			allChunksFilled = false
+	// 			break
+	// 		}
+	// 	}
+	// 	if allChunksFilled {
+	// 		break
+	// 	}
+	// }
 
-	for _, e := range chunksArr {
-		allCandleData = append(allCandleData, *e...)
-		// progressBar(userID, rid, len(allCandleData), startTime, endTime)
-	}
+	// for _, e := range chunksArr {
+	// 	allCandleData = append(allCandleData, *e...)
+	// 	// progressBar(userID, rid, len(allCandleData), startTime, endTime)
+	// }
 
 	//run strat on all candles in chunk, stream each chunk to client
-	retCandles, retScanRes := computeScan(allCandleData, packetSize, userID, rid, startTime, endTime, scannerFunc, packetSender)
+	retCandles, retScanRes := computeScan(packetSize, userID, rid, startTime, endTime, scannerFunc, packetSender, &chunksArr, c)
 
 	_, file, line, _ := runtime.Caller(0)
 	go Log(fmt.Sprintf(colorGreen+"\n!!! Backtest complete!"+colorReset), fmt.Sprintf("<%v> %v", line, file))
