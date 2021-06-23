@@ -559,16 +559,17 @@ func computeBacktest(
 }
 
 func computeScan(
-	allCandleData []Candlestick,
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
 	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, PivotTrendScanDataPoint),
 	packetSender func(string, string, []CandlestickChartData, []PivotTrendScanDataPoint),
-) ([]CandlestickChartData, []PivotTrendScanDataPoint) {
+	chunksArr *[]*[]Candlestick,
+	c chan time.Time) ([]CandlestickChartData, []PivotTrendScanDataPoint) {
 	var store interface{} //save state between strategy executions on each candle
 	var retCandles []CandlestickChartData
 	var retScanRes []PivotTrendScanDataPoint
+	var allEmptyCandles []time.Time
 
 	allOpens := []float64{}
 	allHighs := []float64{}
@@ -576,53 +577,88 @@ func computeScan(
 	allCloses := []float64{}
 	allCandles := []Candlestick{}
 	relIndex := 0
-	stratComputeStartIndex := 0
+
+	requiredTime := startTime
 	for {
-		if stratComputeStartIndex > len(allCandleData) {
-			break
+		// Check for all empty candle start time
+		allEmptyCandles = append(allEmptyCandles, <-c)
+
+		// Check if the candles arrived
+		var allCandlesArr []Candlestick
+		for _, chunk := range *chunksArr {
+			allCandlesArr = append(allCandlesArr, *chunk...)
 		}
 
-		stratComputeEndIndex := stratComputeStartIndex + packetSize
-		if stratComputeEndIndex > len(allCandleData) {
-			stratComputeEndIndex = len(allCandleData)
-		}
-		periodCandles := allCandleData[stratComputeStartIndex:stratComputeEndIndex]
+		for _, candle := range allCandlesArr {
+			//run strat for all chunk's candles
+			var chunkAddedCandles []CandlestickChartData //separate chunk added vars to stream new data in packet only
+			var chunkAddedScanData []PivotTrendScanDataPoint
+			var labels map[string]map[int]string
 
-		//run strat for all chunk's candles
-		var chunkAddedCandles []CandlestickChartData //separate chunk added vars to stream new data in packet only
-		var chunkAddedScanData []PivotTrendScanDataPoint
-		var labels map[string]map[int]string
-		for _, candle := range periodCandles {
-			//run scanner func
-			allCandles = append(allCandles, candle)
-			allOpens = append(allOpens, candle.Open)
-			allHighs = append(allHighs, candle.High)
-			allLows = append(allLows, candle.Low)
-			allCloses = append(allCloses, candle.Close)
-			var pivotScanData PivotTrendScanDataPoint
-			labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
+			// Check if it's the right time. If it's not there, check in the allEmptyCandles to see if it's empty
+			if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+				//run scanner func
+				allCandles = append(allCandles, candle)
+				allOpens = append(allOpens, candle.Open)
+				allHighs = append(allHighs, candle.High)
+				allLows = append(allLows, candle.Low)
+				allCloses = append(allCloses, candle.Close)
+				var pivotScanData PivotTrendScanDataPoint
+				labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
 
-			//save res data
-			chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels)
-			if pivotScanData.Growth != 0 {
-				chunkAddedScanData = append(chunkAddedScanData, pivotScanData)
+				//save res data
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels)
+				if pivotScanData.Growth != 0 {
+					chunkAddedScanData = append(chunkAddedScanData, pivotScanData)
+				}
+
+				//update more global vars
+				retCandles = append(retCandles, chunkAddedCandles...)
+				retScanRes = append(retScanRes, chunkAddedScanData...)
+
+				progressBar(userID, rid, len(retCandles), startTime, endTime)
+
+				//stream data back to client in every chunk
+				if chunkAddedCandles != nil {
+					packetSender(userID, rid, chunkAddedCandles, chunkAddedScanData)
+				} else {
+					break
+				}
+
+				//absolute index from absolute start of computation period
+				relIndex++
+				requiredTime = requiredTime.Add(time.Minute * 1)
+			} else if containsEmptyCandles(allEmptyCandles, requiredTime) && requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
+				// fmt.Printf("\ndoesnt exist: %v,%v\n", requiredTime, i)
+				// fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, i)
+				restartLoop := false
+				for {
+					// fmt.Printf("\nkms: %v,%v\n", requiredTime, i)
+					requiredTime = requiredTime.Add(time.Minute * 1)
+
+					// Break for loop if the empty candle timestamp reaches the requiredTime
+					if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+						requiredTime = requiredTime.Add(time.Minute * 1)
+						break
+					}
+
+					// See if it's actually empty or just didn't arrive yet
+					if !containsEmptyCandles(allEmptyCandles, requiredTime) {
+						restartLoop = true
+						requiredTime = requiredTime.Add(time.Minute * -1)
+						break
+					}
+				}
+
+				if restartLoop {
+					fmt.Println("break restartloop")
+					break
+				}
 			}
-
-			//absolute index from absolute start of computation period
-			relIndex++
 		}
 
-		//update more global vars
-		retCandles = append(retCandles, chunkAddedCandles...)
-		retScanRes = append(retScanRes, chunkAddedScanData...)
-
-		progressBar(userID, rid, len(retCandles), startTime, endTime)
-
-		//stream data back to client in every chunk
-		if chunkAddedCandles != nil {
-			packetSender(userID, rid, chunkAddedCandles, chunkAddedScanData)
-			stratComputeStartIndex = stratComputeEndIndex
-		} else {
+		if requiredTime.Equal(endTime) {
+			fmt.Printf("\nbreak: %v\n", requiredTime)
 			break
 		}
 	}
