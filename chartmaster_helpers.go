@@ -552,7 +552,6 @@ func computeBacktest(
 		}
 
 		if requiredTime.Equal(endTime) {
-			fmt.Printf("\nbreak: %v\n", requiredTime)
 			break
 		}
 	}
