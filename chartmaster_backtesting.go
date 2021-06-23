@@ -15,32 +15,35 @@ func runBacktest(
 	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string,
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 ) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
-	// var allCandleData []Candlestick
 	var chunksArr []*[]Candlestick
+
+	// Channel to get timestamps for empty candles
 	c := make(chan time.Time)
 
 	//fetch all candle data concurrently
 	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c)
 
+	// var emptyCandles []time.Time
 	// for i := range c {
-	// 	fmt.Printf("\nchannel: %v\n", i)
+	// 	emptyCandles = append(emptyCandles, i)
 	// }
+	// fmt.Printf("\nchannel: %v\n", emptyCandles)
 
 	//wait for all candle data fetch complete before running strategy
-	for {
-		allChunksFilled := true
-		for _, e := range chunksArr {
-			// fmt.Printf("\nchunk: %v\n", *e)
+	// for {
+	// 	allChunksFilled := true
+	// 	for _, e := range chunksArr {
+	// 		// fmt.Printf("\nchunk: %v\n", *e)
 
-			if len(*e) <= 0 {
-				allChunksFilled = false
-				break
-			}
-		}
-		if allChunksFilled {
-			break
-		}
-	}
+	// 		if len(*e) <= 0 {
+	// 			allChunksFilled = false
+	// 			break
+	// 		}
+	// 	}
+	// 	if allChunksFilled {
+	// 		break
+	// 	}
+	// }
 	fmt.Println("KYS")
 
 	// for _, e := range chunksArr {
@@ -53,7 +56,7 @@ func runBacktest(
 	// go Log(string(candles),
 	// 	fmt.Sprintf("<%v> %v", line, file))
 	//run strat on all candles in chunk, stream each chunk to client
-	retCandles, retProfitCurve, retSimTrades := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr)
+	retCandles, retProfitCurve, retSimTrades := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c)
 
 	_, file, line, _ := runtime.Caller(0)
 	go Log(fmt.Sprintf("Backtest complete for %v to %v, %v | %v | user=%v\n", startTime.UTC().Format(httpTimeFormat), endTime.UTC().Format(httpTimeFormat), ticker, period, userID),

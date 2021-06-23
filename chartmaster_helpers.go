@@ -311,40 +311,44 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	// Sorting chunkCandles in order
 	var tempTimeArray []string
 	var sortedChunkCandles []Candlestick
-
 	for _, v := range chunkCandles {
 		tempTimeArray = append(tempTimeArray, v.PeriodStart)
 	}
 	sort.Strings(tempTimeArray)
-	for _, t := range tempTimeArray {
-		// eachTime := fetchCandlesStart
+	for i, t := range tempTimeArray {
+		eachTime := fetchCandlesStart
 		for _, candle := range chunkCandles {
 			if candle.PeriodStart == t {
 				sortedChunkCandles = append(sortedChunkCandles, candle)
 			}
-			// if i == 0 {
-			// 	// fmt.Printf("\nTIME: %v, %v\n", candle.PeriodStart, eachTime.Format(httpTimeFormat)+".0000000Z")
-			// 	if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
 
-			// 		// Send missing time through channels
-			// 		c <- eachTime
-			// 		// fmt.Printf("\nchannel: %v\n", eachTime)
+			// Only run once
+			if i == 0 {
+				// fmt.Printf("\nTIME: %v, %v\n", candle.PeriodStart, eachTime.Format(httpTimeFormat)+".0000000Z")
+				if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
 
-			// 		for {
-			// 			eachTime = eachTime.Add(time.Minute * 1)
+					// Send missing time through channels
+					// c <- eachTime
 
-			// 			if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
-			// 				c <- eachTime
-			// 				// fmt.Printf("\nchannel: %v\n", eachTime)
+					fmt.Printf("\nchannel: %v\n", eachTime)
 
-			// 			} else {
-			// 				eachTime = eachTime.Add(time.Minute * -1)
-			// 				break
-			// 			}
-			// 		}
-			// 	}
-			// 	eachTime = eachTime.Add(time.Minute * 1)
-			// }
+					for {
+						eachTime = eachTime.Add(time.Minute * 1)
+
+						if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
+							// c <- eachTime
+							fmt.Printf("\nchannel: %v\n", eachTime)
+
+						} else {
+							eachTime = eachTime.Add(time.Minute * -1)
+							break
+						}
+					}
+				}
+				// c <- eachTime
+				// fmt.Printf("\neachtime: %v\n", eachTime)
+				eachTime = eachTime.Add(time.Minute * 1)
+			}
 		}
 	}
 
@@ -355,7 +359,6 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 			fmt.Sprintf("<%v> %v", line, file))
 		return
 	}
-
 	*chunkSlice = sortedChunkCandles
 }
 
@@ -387,7 +390,8 @@ func computeBacktest(
 	startTime, endTime time.Time,
 	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string,
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
-	chunksArr *[]*[]Candlestick) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
+	chunksArr *[]*[]Candlestick,
+	c chan time.Time) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
 	var store interface{} //save state between strategy executions on each candle
 	var retCandles []CandlestickChartData
 	var retProfitCurve []ProfitCurveData
@@ -413,11 +417,11 @@ func computeBacktest(
 	relIndex := 0
 	requiredTime := startTime
 	// stratComputeStartIndex := 0
-
 	for {
 		// if stratComputeStartIndex > len(allCandleData) {
 		// 	break
 		// }
+		// fmt.Printf("\nC: %v\n", <-c)
 
 		// stratComputeEndIndex := stratComputeStartIndex + packetSize
 		// if stratComputeEndIndex > len(allCandleData) {
@@ -428,19 +432,24 @@ func computeBacktest(
 
 		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
-			if len(allCandlesArr) > 0 {
-				// fmt.Printf("\ncandle: %v, %v\n", allCandlesArr, i)
-			}
+
 		}
-		// fmt.Printf("\nallCandlesArr: %v\n", allCandlesArr)
+		// if len(allCandlesArr) > 0 {
+		// 	fmt.Printf("\nallCandlesArr: %v\n", allCandlesArr)
+		// }
 		//run strat for all chunk's candles
 
 		for _, candle := range allCandlesArr {
+			// if i <= 1 {
+			// fmt.Println(candle)
+			// fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, requiredTime.Format(httpTimeFormat))
+			// }
 			var chunkAddedCandles []CandlestickChartData //separate chunk added vars to stream new data in packet only
 			var chunkAddedPCData []ProfitCurveDataPoint
 			var chunkAddedSTData []SimulatedTradeDataPoint
 			var labels map[string]map[int]string
 			if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+
 				allOpens = append(allOpens, candle.Open)
 				allHighs = append(allHighs, candle.High)
 				allLows = append(allLows, candle.Low)
@@ -493,16 +502,11 @@ func computeBacktest(
 				//absolute index from absolute start of computation period
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
-			} else {
-				// requiredTime = requiredTime.Add(time.Minute * 1)
-
-				// fmt.Printf("\nrequiredTime: %v, %v\n", requiredTime, candle.PeriodStart)
-				break
 			}
 		}
 
 		if requiredTime.Equal(endTime) {
-			fmt.Println(requiredTime)
+			fmt.Printf("\nbreak: %v\n", requiredTime)
 			break
 		}
 	}
