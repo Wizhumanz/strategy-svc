@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -36,9 +37,9 @@ func findPivots(
 	}
 
 	newLabels := make(map[string]map[int]string) //map of labelPos:map of labelBarsBack:labelText
-	// newLabels["middle"] = map[int]string{
-	// 	0: fmt.Sprintf("%v", relCandleIndex),
-	// }
+	newLabels["middle"] = map[int]string{
+		0: fmt.Sprintf("%v", relCandleIndex),
+	}
 
 	pivotBarsBack := 0
 	var newPivotSearchStartIndex int
