@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -94,9 +95,9 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		go cacheCandleData(jStruct, ticker, period)
 
 		//temp save to loval file to preserve CoinAPI credits
-		// fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
-		// file, _ := json.MarshalIndent(jStruct, "", " ")
-		// _ = ioutil.WriteFile(fileName, file, 0644)
+		fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
+		file, _ := json.MarshalIndent(jStruct, "", " ")
+		_ = ioutil.WriteFile(fileName, file, 0644)
 	} else {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
@@ -278,99 +279,156 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 }
 
 func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, period string,
-	startTime, endTime, fetchCandlesStart, fetchCandlesEnd time.Time) {
+	startTime, endTime, fetchCandlesStart, fetchCandlesEnd time.Time, c chan time.Time, wg *sync.WaitGroup) {
 	var chunkCandles []Candlestick
 	var candlesNotInCache []time.Time
-	var candlesInCache []time.Time
+	var candlesInCache []Candlestick
+	var eachTime time.Time
+	eachTime = fetchCandlesStart
+	// WaitGroup used to show that a thread has finished processing
+	defer wg.Done()
 
 	//check if candles exist in cache
 	periodAdd, _ := strconv.Atoi(strings.Split(period, "M")[0])
 
+	// Checking whether the candle exists in cache. Separates them into two arrays.
 	for i := 0; i < int(fetchCandlesEnd.Sub(fetchCandlesStart).Minutes()); i += periodAdd {
 		retCandles := getCachedCandleData(ticker, period, fetchCandlesStart.Add(time.Minute*time.Duration(i)), fetchCandlesStart.Add(time.Minute*time.Duration(i+1)))
 		if len(retCandles) == 0 {
 			candlesNotInCache = append(candlesNotInCache, fetchCandlesStart.Add(time.Minute*time.Duration(i)))
 		} else {
-			candlesInCache = append(candlesInCache, fetchCandlesStart.Add(time.Minute*time.Duration(i)))
+			candlesInCache = append(candlesInCache, retCandles[0])
 		}
 	}
 
-	for i := 0; i < len(candlesNotInCache); i += 300 {
-		if len(candlesNotInCache) > i+300 {
+	// Fetching candles from COIN API in 300s
+	for i := 0; i < len(candlesNotInCache); i += 5 {
+		if len(candlesNotInCache) > i+5 {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
 		} else {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[len(candlesNotInCache)-1])...)
 		}
 	}
 
-	if len(candlesInCache) > 0 {
-		chunkCandles = append(chunkCandles, getCachedCandleData(ticker, period, candlesInCache[0], candlesInCache[len(candlesInCache)-1])...)
-	}
+	// // Fetching candles from Redis cache
+	chunkCandles = append(chunkCandles, candlesInCache...)
 
 	// candles, _ := json.Marshal(chunkCandles)
 	// _, file, line, _ := runtime.Caller(0)
 	// go Log(string(candles),
 	// 	fmt.Sprintf("<%v> %v", line, file))
 
+	// Sorting chunkCandles in order
 	var tempTimeArray []string
 	var sortedChunkCandles []Candlestick
 	for _, v := range chunkCandles {
 		tempTimeArray = append(tempTimeArray, v.PeriodStart)
 	}
 	sort.Strings(tempTimeArray)
-	for _, time := range tempTimeArray {
+	if len(chunkCandles) == 0 {
+		for i := 0; i < 5; i += 1 {
+			c <- eachTime
+			eachTime = eachTime.Add(time.Minute * 1)
+			// fmt.Printf("\nchannel: %v\n", eachTime)
+		}
+	}
+	for i, t := range tempTimeArray {
 		for _, candle := range chunkCandles {
-			if candle.PeriodStart == time {
+			if candle.PeriodStart == t {
 				sortedChunkCandles = append(sortedChunkCandles, candle)
+			}
+
+			// Only run once
+			if i == 0 {
+				// fmt.Printf("\nTIME: %v, %v\n", candle.PeriodStart, eachTime.Format(httpTimeFormat)+".0000000Z")
+				if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
+
+					// Send missing time through channels
+					c <- eachTime
+
+					// fmt.Printf("\nchannel: %v\n", eachTime)
+
+					for {
+						eachTime = eachTime.Add(time.Minute * 1)
+
+						if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
+							c <- eachTime
+							// fmt.Printf("\nchannel: %v\n", eachTime)
+
+						} else {
+							eachTime = eachTime.Add(time.Minute * -1)
+							break
+						}
+					}
+				}
+				eachTime = eachTime.Add(time.Minute * 1)
 			}
 		}
 	}
 
-	if len(sortedChunkCandles) == 0 {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("chunkCandles fetch err %v\n", startTime.Format(httpTimeFormat)),
-			fmt.Sprintf("<%v> %v", line, file))
-		return
-	}
-
+	// Checking for error
+	// if len(sortedChunkCandles) == 0 {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprintf("chunkCandles fetch err %v\n", startTime.Format(httpTimeFormat)),
+	// 		fmt.Sprintf("<%v> %v", line, file))
+	// 	return
+	// }
 	*chunkSlice = sortedChunkCandles
 }
 
-func concFetchCandleData(startTime, endTime time.Time, period, ticker string, packetSize int, chunksArr *[]*[]Candlestick) {
+func concFetchCandleData(startTime, endTime time.Time, period, ticker string, packetSize int, chunksArr *[]*[]Candlestick, c chan time.Time) {
 	fetchCandlesStart := startTime
+	var wg sync.WaitGroup
+
 	for {
-		if fetchCandlesStart.After(endTime) {
+		if fetchCandlesStart.Equal(endTime) || fetchCandlesStart.After(endTime) {
 			break
 		}
+		wg.Add(1)
 
-		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 300)
+		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 5)
 		if fetchCandlesEnd.After(endTime) {
 			fetchCandlesEnd = endTime
 		}
 		var chunkSlice []Candlestick
-		// fmt.Println(startTime, endTime)
 
 		*chunksArr = append(*chunksArr, &chunkSlice)
-		go getChunkCandleData(&chunkSlice, 300, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd)
+		go getChunkCandleData(&chunkSlice, 5, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg)
 
 		//increment
-		fetchCandlesStart = fetchCandlesEnd.Add(periodDurationMap[period])
+		fetchCandlesStart = fetchCandlesEnd
 	}
+
+	// Close channel afterwards. Otherwise, the program will get stuck
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+}
+
+func containsEmptyCandles(s []time.Time, e time.Time) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 func computeBacktest(
-	allCandleData []Candlestick,
 	risk, lev, accSz float64,
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
 	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string,
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
-) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
+	chunksArr *[]*[]Candlestick,
+	c chan time.Time) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
 	var store interface{} //save state between strategy executions on each candle
 	var retCandles []CandlestickChartData
 	var retProfitCurve []ProfitCurveData
 	var retSimTrades []SimulatedTradeData
+	var allEmptyCandles []time.Time
 	retProfitCurve = []ProfitCurveData{
 		{
 			Label: "strat1", //TODO: prep for dynamic strategy param values
@@ -390,77 +448,114 @@ func computeBacktest(
 	allCloses := []float64{}
 	allCandles := []Candlestick{}
 	relIndex := 0
-	stratComputeStartIndex := 0
+	requiredTime := startTime
 	for {
-		if stratComputeStartIndex > len(allCandleData) {
-			break
-		}
+		// Check for all empty candle start time
+		allEmptyCandles = append(allEmptyCandles, <-c)
+		// fmt.Println(allEmptyCandles)
 
-		stratComputeEndIndex := stratComputeStartIndex + packetSize
-		if stratComputeEndIndex > len(allCandleData) {
-			stratComputeEndIndex = len(allCandleData)
+		// Check if the candles arrived
+		var allCandlesArr []Candlestick
+		for _, chunk := range *chunksArr {
+			allCandlesArr = append(allCandlesArr, *chunk...)
+
 		}
-		periodCandles := allCandleData[stratComputeStartIndex:stratComputeEndIndex]
 
 		//run strat for all chunk's candles
-		var chunkAddedCandles []CandlestickChartData //separate chunk added vars to stream new data in packet only
-		var chunkAddedPCData []ProfitCurveDataPoint
-		var chunkAddedSTData []SimulatedTradeDataPoint
-		var labels map[string]map[int]string
-		for _, candle := range periodCandles {
-			allOpens = append(allOpens, candle.Open)
-			allHighs = append(allHighs, candle.High)
-			allLows = append(allLows, candle.Low)
-			allCloses = append(allCloses, candle.Close)
-			allCandles = append(allCandles, candle)
-			//TODO: build results and run for different param sets
-			labels = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
+		for _, candle := range allCandlesArr {
+			var chunkAddedCandles []CandlestickChartData //separate chunk added vars to stream new data in packet only
+			var chunkAddedPCData []ProfitCurveDataPoint
+			var chunkAddedSTData []SimulatedTradeDataPoint
+			var labels map[string]map[int]string
 
-			//build display data using strategySim
-			var pcData ProfitCurveDataPoint
-			var simTradeData SimulatedTradeDataPoint
-			chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, &chunkAddedPCData, candle, strategySim, relIndex, labels)
-			if pcData.Equity > 0 {
-				chunkAddedPCData = append(chunkAddedPCData, pcData)
-			}
-			if simTradeData.DateTime != "" {
-				chunkAddedSTData = append(chunkAddedSTData, simTradeData)
-			}
+			// Check if it's the right time. If it's not there, check in the allEmptyCandles to see if it's empty
+			if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+				allOpens = append(allOpens, candle.Open)
+				allHighs = append(allHighs, candle.High)
+				allLows = append(allLows, candle.Low)
+				allCloses = append(allCloses, candle.Close)
+				allCandles = append(allCandles, candle)
+				//TODO: build results and run for different param sets
+				labels = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
 
-			//absolute index from absolute start of computation period
-			relIndex++
+				//build display data using strategySim
+				var pcData ProfitCurveDataPoint
+				var simTradeData SimulatedTradeDataPoint
+				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, &chunkAddedPCData, candle, strategySim, relIndex, labels)
+				if pcData.Equity > 0 {
+					chunkAddedPCData = append(chunkAddedPCData, pcData)
+				}
+				if simTradeData.DateTime != "" {
+					chunkAddedSTData = append(chunkAddedSTData, simTradeData)
+				}
+
+				//update more global vars
+				retCandles = append(retCandles, chunkAddedCandles...)
+				(retProfitCurve)[0].Data = append((retProfitCurve)[0].Data, chunkAddedPCData...)
+				(retSimTrades)[0].Data = append((retSimTrades)[0].Data, chunkAddedSTData...)
+
+				progressBar(userID, rid, len(retCandles), startTime, endTime)
+
+				//stream data back to client in every chunk
+				if chunkAddedCandles != nil {
+					packetSender(userID, rid,
+						chunkAddedCandles,
+						[]ProfitCurveData{
+							{
+								Label: "strat1", //TODO: prep for dynamic strategy param values
+								Data:  chunkAddedPCData,
+							},
+						},
+						[]SimulatedTradeData{
+							{
+								Label: "strat1",
+								Data:  chunkAddedSTData,
+							},
+						})
+
+					// stratComputeStartIndex = stratComputeEndIndex
+				} else {
+					fmt.Println("BIG ERROR")
+					break
+				}
+
+				//absolute index from absolute start of computation period
+				relIndex++
+				requiredTime = requiredTime.Add(time.Minute * 1)
+			} else if containsEmptyCandles(allEmptyCandles, requiredTime) && requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
+				// fmt.Printf("\ndoesnt exist: %v,%v\n", requiredTime, i)
+				// fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, i)
+				restartLoop := false
+				for {
+					// fmt.Printf("\nkms: %v,%v\n", requiredTime, i)
+					requiredTime = requiredTime.Add(time.Minute * 1)
+
+					// Break for loop if the empty candle timestamp reaches the requiredTime
+					if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+						requiredTime = requiredTime.Add(time.Minute * 1)
+						break
+					}
+
+					// See if it's actually empty or just didn't arrive yet
+					if !containsEmptyCandles(allEmptyCandles, requiredTime) {
+						restartLoop = true
+						requiredTime = requiredTime.Add(time.Minute * -1)
+						break
+					}
+				}
+
+				if restartLoop {
+					fmt.Println("break restartloop")
+					break
+				}
+			}
 		}
 
-		//update more global vars
-		retCandles = append(retCandles, chunkAddedCandles...)
-		(retProfitCurve)[0].Data = append((retProfitCurve)[0].Data, chunkAddedPCData...)
-		(retSimTrades)[0].Data = append((retSimTrades)[0].Data, chunkAddedSTData...)
-
-		progressBar(userID, rid, len(retCandles), startTime, endTime)
-
-		//stream data back to client in every chunk
-		if chunkAddedCandles != nil {
-			packetSender(userID, rid,
-				chunkAddedCandles,
-				[]ProfitCurveData{
-					{
-						Label: "strat1", //TODO: prep for dynamic strategy param values
-						Data:  chunkAddedPCData,
-					},
-				},
-				[]SimulatedTradeData{
-					{
-						Label: "strat1",
-						Data:  chunkAddedSTData,
-					},
-				})
-
-			stratComputeStartIndex = stratComputeEndIndex
-		} else {
+		if requiredTime.Equal(endTime) {
+			fmt.Printf("\nbreak: %v\n", requiredTime)
 			break
 		}
 	}
-
 	return retCandles, retProfitCurve, retSimTrades
 }
 
