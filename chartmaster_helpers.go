@@ -277,6 +277,8 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	var chunkCandles []Candlestick
 	var candlesNotInCache []time.Time
 	var candlesInCache []Candlestick
+	var eachTime time.Time
+	eachTime = fetchCandlesStart
 
 	//check if candles exist in cache
 	periodAdd, _ := strconv.Atoi(strings.Split(period, "M")[0])
@@ -315,8 +317,15 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		tempTimeArray = append(tempTimeArray, v.PeriodStart)
 	}
 	sort.Strings(tempTimeArray)
+	if len(chunkCandles) == 0 {
+		for i := 0; i < 5; i += 1 {
+			c <- eachTime
+			eachTime = eachTime.Add(time.Minute * 1)
+			// fmt.Printf("\nchannel: %v\n", eachTime)
+
+		}
+	}
 	for i, t := range tempTimeArray {
-		eachTime := fetchCandlesStart
 		for _, candle := range chunkCandles {
 			if candle.PeriodStart == t {
 				sortedChunkCandles = append(sortedChunkCandles, candle)
@@ -328,16 +337,16 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 				if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
 
 					// Send missing time through channels
-					// c <- eachTime
+					c <- eachTime
 
-					fmt.Printf("\nchannel: %v\n", eachTime)
+					// fmt.Printf("\nchannel: %v\n", eachTime)
 
 					for {
 						eachTime = eachTime.Add(time.Minute * 1)
 
 						if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
-							// c <- eachTime
-							fmt.Printf("\nchannel: %v\n", eachTime)
+							c <- eachTime
+							// fmt.Printf("\nchannel: %v\n", eachTime)
 
 						} else {
 							eachTime = eachTime.Add(time.Minute * -1)
@@ -353,12 +362,12 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	}
 
 	// Checking for error
-	if len(sortedChunkCandles) == 0 {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("chunkCandles fetch err %v\n", startTime.Format(httpTimeFormat)),
-			fmt.Sprintf("<%v> %v", line, file))
-		return
-	}
+	// if len(sortedChunkCandles) == 0 {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprintf("chunkCandles fetch err %v\n", startTime.Format(httpTimeFormat)),
+	// 		fmt.Sprintf("<%v> %v", line, file))
+	// 	return
+	// }
 	*chunkSlice = sortedChunkCandles
 }
 
@@ -383,6 +392,15 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 	}
 }
 
+func containsEmptyCandles(s []time.Time, e time.Time) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
 func computeBacktest(
 	risk, lev, accSz float64,
 	packetSize int,
@@ -396,6 +414,7 @@ func computeBacktest(
 	var retCandles []CandlestickChartData
 	var retProfitCurve []ProfitCurveData
 	var retSimTrades []SimulatedTradeData
+	var allEmptyCandles []time.Time
 	retProfitCurve = []ProfitCurveData{
 		{
 			Label: "strat1", //TODO: prep for dynamic strategy param values
@@ -422,6 +441,8 @@ func computeBacktest(
 		// 	break
 		// }
 		// fmt.Printf("\nC: %v\n", <-c)
+		// fmt.Printf("\nC: %v\n", <-c)
+		allEmptyCandles = append(allEmptyCandles, <-c)
 
 		// stratComputeEndIndex := stratComputeStartIndex + packetSize
 		// if stratComputeEndIndex > len(allCandleData) {
@@ -439,17 +460,18 @@ func computeBacktest(
 		// }
 		//run strat for all chunk's candles
 
-		for _, candle := range allCandlesArr {
+		for i, candle := range allCandlesArr {
 			// if i <= 1 {
 			// fmt.Println(candle)
 			// fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, requiredTime.Format(httpTimeFormat))
 			// }
+			// fmt.Printf("\ncurrent time: %v\n", allCandlesArr)
+
 			var chunkAddedCandles []CandlestickChartData //separate chunk added vars to stream new data in packet only
 			var chunkAddedPCData []ProfitCurveDataPoint
 			var chunkAddedSTData []SimulatedTradeDataPoint
 			var labels map[string]map[int]string
 			if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
-
 				allOpens = append(allOpens, candle.Open)
 				allHighs = append(allHighs, candle.High)
 				allLows = append(allLows, candle.Low)
@@ -502,6 +524,32 @@ func computeBacktest(
 				//absolute index from absolute start of computation period
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
+			} else if containsEmptyCandles(allEmptyCandles, requiredTime) && requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
+				fmt.Printf("\ndoesnt exist: %v,%v\n", requiredTime, i)
+				fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, i)
+				restartLoop := false
+				for {
+					fmt.Printf("\nkms: %v,%v\n", requiredTime, i)
+					requiredTime = requiredTime.Add(time.Minute * 1)
+
+					if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+						requiredTime = requiredTime.Add(time.Minute * 1)
+						fmt.Println("KYS")
+						break
+					}
+
+					if !containsEmptyCandles(allEmptyCandles, requiredTime) {
+						restartLoop = true
+						requiredTime = requiredTime.Add(time.Minute * -1)
+						fmt.Println("restartLoop")
+						break
+					}
+				}
+
+				if restartLoop == true {
+					fmt.Println("break restartloop")
+					break
+				}
 			}
 		}
 
@@ -510,7 +558,7 @@ func computeBacktest(
 			break
 		}
 	}
-
+	// fmt.Println(allEmptyCandles)
 	return retCandles, retProfitCurve, retSimTrades
 }
 
