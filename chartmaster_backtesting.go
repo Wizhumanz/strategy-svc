@@ -22,45 +22,17 @@ func runBacktest(
 
 	//fetch all candle data concurrently
 	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c)
-
-	// var emptyCandles []time.Time
-	// for i := range c {
-	// 	emptyCandles = append(emptyCandles, i)
-	// }
-	// fmt.Printf("\nchannel: %v\n", emptyCandles)
-
-	//wait for all candle data fetch complete before running strategy
-	// for {
-	// 	allChunksFilled := true
-	// 	for _, e := range chunksArr {
-	// 		// fmt.Printf("\nchunk: %v\n", *e)
-
-	// 		if len(*e) <= 0 {
-	// 			allChunksFilled = false
-	// 			break
-	// 		}
-	// 	}
-	// 	if allChunksFilled {
-	// 		break
-	// 	}
-	// }
 	fmt.Println("KYS")
 
-	// for _, e := range chunksArr {
-	// 	allCandleData = append(allCandleData, *e...)
-	// 	// progressBar(userID, rid, len(allCandleData), startTime, endTime)
-	// }
-
-	// candles, _ := json.Marshal(allCandleData)
-	// _, file, line, _ := runtime.Caller(0)
-	// go Log(string(candles),
-	// 	fmt.Sprintf("<%v> %v", line, file))
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retProfitCurve, retSimTrades := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c)
 
 	_, file, line, _ := runtime.Caller(0)
 	go Log(fmt.Sprintf("Backtest complete for %v to %v, %v | %v | user=%v\n", startTime.UTC().Format(httpTimeFormat), endTime.UTC().Format(httpTimeFormat), ticker, period, userID),
 		fmt.Sprintf("<%v> %v", line, file))
+
+	// Show progress bar as finish
+
 	return retCandles, retProfitCurve, retSimTrades
 }
 

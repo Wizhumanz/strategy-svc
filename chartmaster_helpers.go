@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -93,13 +94,14 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 	// 	go cacheCandleData(jStruct, ticker, period)
 
 	// 	//temp save to loval file to preserve CoinAPI credits
-	// 	// fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
-	// 	// file, _ := json.MarshalIndent(jStruct, "", " ")
-	// 	// _ = ioutil.WriteFile(fileName, file, 0644)
+	// 	fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
+	// 	file, _ := json.MarshalIndent(jStruct, "", " ")
+	// 	_ = ioutil.WriteFile(fileName, file, 0644)
 	// } else {
 	// 	_, file, line, _ := runtime.Caller(0)
 	// 	go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
 	// }
+	// return jStruct
 	return nil
 }
 
@@ -273,12 +275,14 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 }
 
 func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, period string,
-	startTime, endTime, fetchCandlesStart, fetchCandlesEnd time.Time, c chan time.Time) {
+	startTime, endTime, fetchCandlesStart, fetchCandlesEnd time.Time, c chan time.Time, wg *sync.WaitGroup) {
 	var chunkCandles []Candlestick
 	var candlesNotInCache []time.Time
 	var candlesInCache []Candlestick
 	var eachTime time.Time
 	eachTime = fetchCandlesStart
+	// WaitGroup used to show that a thread has finished processing
+	defer wg.Done()
 
 	//check if candles exist in cache
 	periodAdd, _ := strconv.Atoi(strings.Split(period, "M")[0])
@@ -322,7 +326,6 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 			c <- eachTime
 			eachTime = eachTime.Add(time.Minute * 1)
 			// fmt.Printf("\nchannel: %v\n", eachTime)
-
 		}
 	}
 	for i, t := range tempTimeArray {
@@ -354,8 +357,6 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 						}
 					}
 				}
-				// c <- eachTime
-				// fmt.Printf("\neachtime: %v\n", eachTime)
 				eachTime = eachTime.Add(time.Minute * 1)
 			}
 		}
@@ -373,10 +374,13 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 
 func concFetchCandleData(startTime, endTime time.Time, period, ticker string, packetSize int, chunksArr *[]*[]Candlestick, c chan time.Time) {
 	fetchCandlesStart := startTime
+	var wg sync.WaitGroup
+
 	for {
 		if fetchCandlesStart.Equal(endTime) || fetchCandlesStart.After(endTime) {
 			break
 		}
+		wg.Add(1)
 
 		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 5)
 		if fetchCandlesEnd.After(endTime) {
@@ -385,11 +389,17 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 		var chunkSlice []Candlestick
 
 		*chunksArr = append(*chunksArr, &chunkSlice)
-		go getChunkCandleData(&chunkSlice, 5, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c)
+		go getChunkCandleData(&chunkSlice, 5, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg)
 
 		//increment
 		fetchCandlesStart = fetchCandlesEnd
 	}
+
+	// Close channel afterwards. Otherwise, the program will get stuck
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
 }
 
 func containsEmptyCandles(s []time.Time, e time.Time) bool {
@@ -435,42 +445,26 @@ func computeBacktest(
 	allCandles := []Candlestick{}
 	relIndex := 0
 	requiredTime := startTime
-	// stratComputeStartIndex := 0
 	for {
-		// if stratComputeStartIndex > len(allCandleData) {
-		// 	break
-		// }
-		// fmt.Printf("\nC: %v\n", <-c)
-		// fmt.Printf("\nC: %v\n", <-c)
+		// Check for all empty candle start time
 		allEmptyCandles = append(allEmptyCandles, <-c)
+		// fmt.Println(allEmptyCandles)
 
-		// stratComputeEndIndex := stratComputeStartIndex + packetSize
-		// if stratComputeEndIndex > len(allCandleData) {
-		// 	stratComputeEndIndex = len(allCandleData)
-		// }
-		// periodCandles := allCandleData[stratComputeStartIndex:stratComputeEndIndex]
+		// Check if the candles arrived
 		var allCandlesArr []Candlestick
-
 		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
 
 		}
-		// if len(allCandlesArr) > 0 {
-		// 	fmt.Printf("\nallCandlesArr: %v\n", allCandlesArr)
-		// }
+
 		//run strat for all chunk's candles
-
 		for i, candle := range allCandlesArr {
-			// if i <= 1 {
-			// fmt.Println(candle)
-			// fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, requiredTime.Format(httpTimeFormat))
-			// }
-			// fmt.Printf("\ncurrent time: %v\n", allCandlesArr)
-
 			var chunkAddedCandles []CandlestickChartData //separate chunk added vars to stream new data in packet only
 			var chunkAddedPCData []ProfitCurveDataPoint
 			var chunkAddedSTData []SimulatedTradeDataPoint
 			var labels map[string]map[int]string
+
+			// Check if it's the right time. If it's not there, check in the allEmptyCandles to see if it's empty
 			if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
 				allOpens = append(allOpens, candle.Open)
 				allHighs = append(allHighs, candle.High)
@@ -525,28 +519,28 @@ func computeBacktest(
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
 			} else if containsEmptyCandles(allEmptyCandles, requiredTime) && requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
-				fmt.Printf("\ndoesnt exist: %v,%v\n", requiredTime, i)
-				fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, i)
+				// fmt.Printf("\ndoesnt exist: %v,%v\n", requiredTime, i)
+				// fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, i)
 				restartLoop := false
 				for {
-					fmt.Printf("\nkms: %v,%v\n", requiredTime, i)
+					// fmt.Printf("\nkms: %v,%v\n", requiredTime, i)
 					requiredTime = requiredTime.Add(time.Minute * 1)
 
+					// Break for loop if the empty candle timestamp reaches the requiredTime
 					if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
 						requiredTime = requiredTime.Add(time.Minute * 1)
-						fmt.Println("KYS")
 						break
 					}
 
+					// See if it's actually empty or just didn't arrive yet
 					if !containsEmptyCandles(allEmptyCandles, requiredTime) {
 						restartLoop = true
 						requiredTime = requiredTime.Add(time.Minute * -1)
-						fmt.Println("restartLoop")
 						break
 					}
 				}
 
-				if restartLoop == true {
+				if restartLoop {
 					fmt.Println("break restartloop")
 					break
 				}
@@ -558,7 +552,6 @@ func computeBacktest(
 			break
 		}
 	}
-	// fmt.Println(allEmptyCandles)
 	return retCandles, retProfitCurve, retSimTrades
 }
 
