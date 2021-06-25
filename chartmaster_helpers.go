@@ -148,6 +148,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 	// fmt.Printf("CACHE fetch DONE %v to %v\n", start.Format(httpTimeFormat), end.Format(httpTimeFormat))
 	return retCandles
 }
+
 func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string) ([]CandlestickChartData, ProfitCurveDataPoint, SimulatedTradeDataPoint) {
 	//candlestick
 	retCandlesArr := cArr
@@ -481,7 +482,6 @@ func computeBacktest(
 				var pcData ProfitCurveDataPoint
 				var simTradeData SimulatedTradeDataPoint
 				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, &chunkAddedPCData, candle, strategySim, relIndex, labels)
-				fmt.Println(chunkAddedCandles)
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
 				}

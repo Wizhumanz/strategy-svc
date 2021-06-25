@@ -112,6 +112,11 @@ func strat1(
 	tpPerc := 0.75
 	slPrevPLAbovePerc := 0.8
 
+	newLabels := map[string]map[int]string{
+		"top":    map[int]string{},
+		"middle": map[int]string{},
+		"bottom": map[int]string{},
+	}
 	var stored PivotsStore
 
 	switch (*storage).(type) {
@@ -132,20 +137,16 @@ func strat1(
 		stored.PivotLows = []int{}
 	}
 
-	newLabels, _ := findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows))
+	newLabels, _ = findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows))
 
 	//TP cooldown labels
 	if relCandleIndex <= (stored.TPIndex + tpTradeCooldownCandles) {
-		newLabels["middle"] = map[int]string{
-			0: "й",
-		}
+		newLabels["middle"][0] = "й"
 	}
 
 	//SL cooldown labels
 	if relCandleIndex <= (stored.SLIndex + slTradeCooldownCandles) {
-		newLabels["middle"] = map[int]string{
-			0: "ч",
-		}
+		newLabels["middle"][0] = "ч"
 	}
 
 	if len(stored.PivotLows) >= 2 {
@@ -280,7 +281,7 @@ func strat1(
 					return nil
 				}
 
-				//enter long\
+				//enter long
 				entryPrice := close[relCandleIndex]
 				slPrice := prevPL + ((entryPrice - prevPL) * slPrevPLAbovePerc)
 				if slPrice >= entryPrice {
@@ -298,9 +299,7 @@ func strat1(
 				stored.TPIndex = 0 //reset
 				stored.SLIndex = 0
 
-				newLabels["middle"] = map[int]string{
-					relCandleIndex - latestPLIndex: "L2",
-				}
+				newLabels["middle"][relCandleIndex-latestPLIndex] = "➤"
 			}
 		}
 	}

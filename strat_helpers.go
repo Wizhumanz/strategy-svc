@@ -35,7 +35,12 @@ func findPivots(
 		lookForHigh = false
 	}
 
-	newLabels := make(map[string]map[int]string) //map of labelPos:map of labelBarsBack:labelText
+	//map of labelPos:map of labelBarsBack:labelText
+	newLabels := map[string]map[int]string{
+		"top":    map[int]string{},
+		"middle": map[int]string{},
+		"bottom": map[int]string{},
+	}
 	// newLabels["middle"] = map[int]string{
 	// 	0: fmt.Sprintf("%v", relCandleIndex),
 	// }
@@ -92,10 +97,8 @@ func findPivots(
 					*ph = append(*ph, newPHIndex)
 					pivotBarsBack = relCandleIndex - newPHIndex
 
-					newLabels["top"] = map[int]string{
-						// pivotBarsBack: fmt.Sprintf("H from %v", relCandleIndex),
-						pivotBarsBack: "H",
-					}
+					newLabels["top"][pivotBarsBack] = "H"
+					// pivotBarsBack: fmt.Sprintf("H from %v", relCandleIndex),
 				}
 			}
 		}
@@ -150,10 +153,9 @@ func findPivots(
 				if newPLIndex >= 0 {
 					*pl = append(*pl, newPLIndex)
 					pivotBarsBack = relCandleIndex - newPLIndex
-					newLabels["bottom"] = map[int]string{
-						// pivotBarsBack: fmt.Sprintf("L%v", relCandleIndex),
-						pivotBarsBack: "L",
-					}
+					newLabels["bottom"][pivotBarsBack] = "L"
+					// pivotBarsBack: fmt.Sprintf("L%v", relCandleIndex),
+
 					foundPL = true
 				}
 			}
