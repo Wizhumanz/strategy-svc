@@ -145,6 +145,9 @@ func strat1(
 	//calculate pivots
 	newLabels, _ = findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows), newLabels)
 
+	//TESTs
+	(*strategy).Buy(close[relCandleIndex], 0.9*close[relCandleIndex], -1, risk, int(lev), relCandleIndex, true, bot)
+
 	if len(stored.PivotLows) >= 2 {
 		//manage/watch ongoing trend
 		if strategy.GetPosLongSize() > 0 {
