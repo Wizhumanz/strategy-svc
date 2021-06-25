@@ -362,7 +362,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		// submit 3 orders:
 		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
 		// 2. stop limit order TP (stop=1.5*price, limit=1.49*price, reduceOnly=true)
-		// 3. limit order entry (limit=1.01*price)
+		// 3. limit order entry (limit=0.8*price)
 
 		// args := map[string]interface{}{}
 		// args["slPrice"] = float64(sl)
