@@ -88,8 +88,10 @@ func findPivots(
 					*ph = append(*ph, newPHIndex)
 					pivotBarsBack = relCandleIndex - newPHIndex
 
-					labels["top"][pivotBarsBack] = "H"
-					// pivotBarsBack: fmt.Sprintf("H from %v", relCandleIndex),
+					if labels["top"] != nil {
+						labels["top"][pivotBarsBack] = "H"
+						// pivotBarsBack: fmt.Sprintf("H from %v", relCandleIndex),
+					}
 					break
 				}
 			}
@@ -145,8 +147,10 @@ func findPivots(
 				if newPLIndex >= 0 {
 					*pl = append(*pl, newPLIndex)
 					pivotBarsBack = relCandleIndex - newPLIndex
-					labels["bottom"][pivotBarsBack] = "L"
-					// pivotBarsBack: fmt.Sprintf("L%v", relCandleIndex),
+					if labels["bottom"] != nil {
+						labels["bottom"][pivotBarsBack] = "L"
+						// pivotBarsBack: fmt.Sprintf("L%v", relCandleIndex),
+					}
 
 					foundPL = true
 					break
