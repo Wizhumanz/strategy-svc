@@ -110,7 +110,7 @@ func changeInitialLeverage() {
 	go Log("changeInitialLeverage", fmt.Sprintf("<%v> %v", line, file))
 }
 
-func newOrder(symbol string, side string, quantity string, price string, reduceOnly string, stopPrice string) []byte {
+func newOrder(symbol, side, typeVar, quantity, price, reduceOnly, stopPrice string) []byte {
 	timeStamp := makeTimestamp()
 
 	secret := "BfqSCwpNCslkepaOO7dTejFRz5thaGiTUBX1p4fZp6sDPDuJrtmNt6Wse9hMpTOF"
@@ -118,9 +118,9 @@ func newOrder(symbol string, side string, quantity string, price string, reduceO
 
 	var data string
 	if stopPrice != "0" {
-		data = fmt.Sprintf("symbol=%s&side=%s&type=LIMIT&timeInForce=GTC&quantity=%s&price=%s&timestamp=%d&reduceOnly=%s&stopPrice=%s", symbol, side, quantity, price, timeStamp, reduceOnly, stopPrice)
+		data = fmt.Sprintf("symbol=%s&side=%s&type=%s&timeInForce=GTC&quantity=%s&price=%s&timestamp=%d&reduceOnly=%s&stopPrice=%s", symbol, side, typeVar, quantity, price, timeStamp, reduceOnly, stopPrice)
 	} else {
-		data = fmt.Sprintf("symbol=%s&side=%s&type=LIMIT&timeInForce=GTC&quantity=%s&price=%s&timestamp=%d&reduceOnly=%s", symbol, side, quantity, price, timeStamp, reduceOnly)
+		data = fmt.Sprintf("symbol=%s&side=%s&type=%s&timeInForce=GTC&quantity=%s&price=%s&timestamp=%d&reduceOnly=%s", symbol, side, typeVar, quantity, price, timeStamp, reduceOnly)
 	}
 
 	// Create a new HMAC by defining the hash type and the key (as byte array)
@@ -147,9 +147,9 @@ func newOrder(symbol string, side string, quantity string, price string, reduceO
 		log.Println(string(body))
 		return body
 	}
-	_, file, line, _ := runtime.Caller(0)
-	go Log("newOrder", fmt.Sprintf("<%v> %v", line, file))
-	return nil
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log("newOrder", fmt.Sprintf("<%v> %v", line, file))
+	// return nil
 }
 
 func startUserDataStream() {

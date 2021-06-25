@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"reflect"
 	"runtime"
@@ -357,29 +358,53 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		}
 	} else {
 		// get acc balance
+		fmt.Println("Came to Buy")
 		var objmap []map[string]interface{}
 		if err := json.Unmarshal(getFuturesAccountBalance(), &objmap); err != nil {
 			log.Fatal(err)
 		}
 
+		var binanceSymbolsFile []map[string]interface{}
+		file, _ := ioutil.ReadFile("./json-data/symbols-binance-fut-perp.json")
+		if err := json.Unmarshal(file, &binanceSymbolsFile); err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("objmap")
+		fmt.Println(objmap)
+
+		var symbol string
+		for _, s := range binanceSymbolsFile {
+			if s["symbol_id"] == botStreamName.Ticker {
+				symbol = s["symbol_id_exchange"].(string)
+			}
+		}
+
 		var balance string
 		for _, b := range objmap {
-			if b["asset"] == botStreamName.Ticker {
+			if b["asset"] == "USDT" {
 				balance = b["balance"].(string)
 			}
 		}
+
+		fmt.Println("balance")
+		fmt.Println(balance)
+		fmt.Println("symbol")
+		fmt.Println(symbol)
 
 		// calculate pos size (20% of account size)
 		bal, _ := strconv.ParseFloat(balance, 64)
 		currentBalance := bal * 0.2
 
+		fmt.Println(currentBalance / (0.1 * price))
+
 		// submit 3 orders:
 		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
-		newOrder(botStreamName.Ticker, "SELL", fmt.Sprint(currentBalance/(0.8*price)), fmt.Sprint(0.79*price), "true", fmt.Sprint(0.8*price))
+		newOrder(symbol, "SELL", "STOP", fmt.Sprintf("%.2f", currentBalance/(0.1*price)), fmt.Sprintf("%.2f", 0.79*price), "true", fmt.Sprintf("%.2f", 0.8*price))
 		// 2. stop limit order TP (stop=1.5*price, limit=1.49*price, reduceOnly=true)
-		newOrder(botStreamName.Ticker, "SELL", fmt.Sprint(currentBalance/(0.8*price)), fmt.Sprint(1.49*price), "true", fmt.Sprint(1.5*price))
+		newOrder(symbol, "SELL", "TAKE_PROFIT", fmt.Sprintf("%.2f", currentBalance/(0.1*price)), fmt.Sprintf("%.2f", 1.49*price), "true", fmt.Sprintf("%.2f", 1.5*price))
 		// 3. limit order entry (limit=0.8*price)
-		newOrder(botStreamName.Ticker, "BUY", fmt.Sprint(currentBalance/(0.8*price)), fmt.Sprint(1.49*price), "no", "0")
+		newOrder(symbol, "BUY", "LIMIT", fmt.Sprintf("%.2f", currentBalance/(0.1*price)), fmt.Sprintf("%.2f", 0.8*price), "no", "0")
 
 		// args := map[string]interface{}{}
 		// args["slPrice"] = float64(sl)
