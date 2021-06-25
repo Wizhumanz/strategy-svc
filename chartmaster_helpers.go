@@ -148,6 +148,9 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 	// fmt.Printf("CACHE fetch DONE %v to %v\n", start.Format(httpTimeFormat), end.Format(httpTimeFormat))
 	return retCandles
 }
+
+var totalCandles []CandlestickChartData
+
 func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string) ([]CandlestickChartData, ProfitCurveDataPoint, SimulatedTradeDataPoint) {
 	//candlestick
 	retCandlesArr := cArr
@@ -166,6 +169,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 		newCandleD.StratExitPrice = strat.Actions[relIndex].Price
 	}
 	retCandlesArr = append(retCandlesArr, newCandleD)
+	totalCandles = append(totalCandles, newCandleD)
 	//candle label
 	if len(retCandlesArr) > 0 {
 		if len(labels["top"]) > 0 {
@@ -176,13 +180,13 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				labelText = txt
 			}
 
-			index := len(retCandlesArr) - labelBB - 1
-			// fmt.Printf("TOP labelBB = %v\n", len(retCandlesArr), labelBB)
+			index := len(totalCandles) - labelBB - 1
+			fmt.Printf("TOP labelBB = %v, %v, %v\n", index, len(totalCandles), labelBB)
 			if index >= 0 {
-				if retCandlesArr[index].LabelTop != "" {
-					retCandlesArr[index].LabelTop = retCandlesArr[index].LabelTop + "-" + labelText
+				if totalCandles[index].LabelTop != "" {
+					totalCandles[index].LabelTop = totalCandles[index].LabelTop + "-" + labelText
 				} else {
-					retCandlesArr[index].LabelTop = labelText
+					totalCandles[index].LabelTop = labelText
 				}
 			}
 		}
@@ -195,13 +199,13 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				labelText = txt
 			}
 
-			index := len(retCandlesArr) - labelBB - 1
-			// fmt.Printf("MID labelBB = %v\n", len(retCandlesArr), labelBB)
+			index := len(totalCandles) - labelBB - 1
+			fmt.Printf("MID labelBB = %v, %v, %v\n", index, len(totalCandles), labelBB)
 			if index >= 0 {
-				if retCandlesArr[index].LabelMiddle != "" {
-					retCandlesArr[index].LabelMiddle = retCandlesArr[index].LabelMiddle + "-" + labelText
+				if totalCandles[index].LabelMiddle != "" {
+					totalCandles[index].LabelMiddle = totalCandles[index].LabelMiddle + "-" + labelText
 				} else {
-					retCandlesArr[index].LabelMiddle = labelText
+					totalCandles[index].LabelMiddle = labelText
 				}
 			}
 		}
@@ -214,13 +218,13 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				labelText = txt
 			}
 
-			index := len(retCandlesArr) - labelBB - 1
-			// fmt.Printf("BOTTOM labelBB = %v\n", len(retCandlesArr), labelBB)
+			index := len(totalCandles) - labelBB - 1
+			fmt.Printf("BOTTOM labelBB = %v, %v, %v\n", index, len(totalCandles), labelBB)
 			if index >= 0 {
-				if retCandlesArr[index].LabelBottom != "" {
-					retCandlesArr[index].LabelBottom = retCandlesArr[index].LabelBottom + "-" + labelText
+				if totalCandles[index].LabelBottom != "" {
+					totalCandles[index].LabelBottom = totalCandles[index].LabelBottom + "-" + labelText
 				} else {
-					retCandlesArr[index].LabelBottom = labelText
+					totalCandles[index].LabelBottom = labelText
 				}
 			}
 		}
@@ -477,7 +481,7 @@ func computeBacktest(
 				var pcData ProfitCurveDataPoint
 				var simTradeData SimulatedTradeDataPoint
 				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, &chunkAddedPCData, candle, strategySim, relIndex, labels)
-				fmt.Println(chunkAddedCandles)
+
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
 				}
