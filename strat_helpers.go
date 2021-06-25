@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -20,7 +19,8 @@ func checkExists(val int, slice []int) bool {
 func findPivots(
 	open, high, low, close []float64,
 	relCandleIndex int,
-	ph, pl *[]int) (map[string]map[int]string, bool) {
+	ph, pl *[]int,
+	labels map[string]map[int]string) (map[string]map[int]string, bool) {
 	foundPL := false
 	// fmt.Printf(colorWhite+"findPivots index %v | o = %v, h = %v, l = %v, c = %v\n"+colorReset, relCandleIndex, len(open), len(high), len(low), len(close))
 
@@ -35,14 +35,6 @@ func findPivots(
 	} else {
 		lookForHigh = false
 	}
-
-	//map of labelPos:map of labelBarsBack:labelText
-	newLabels := map[string]map[int]string{
-		"top":    map[int]string{},
-		"middle": map[int]string{},
-		"bottom": map[int]string{},
-	}
-	newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
 
 	pivotBarsBack := 0
 	var newPivotSearchStartIndex int
@@ -96,8 +88,9 @@ func findPivots(
 					*ph = append(*ph, newPHIndex)
 					pivotBarsBack = relCandleIndex - newPHIndex
 
-					newLabels["top"][pivotBarsBack] = "H"
+					labels["top"][pivotBarsBack] = "H"
 					// pivotBarsBack: fmt.Sprintf("H from %v", relCandleIndex),
+					break
 				}
 			}
 		}
@@ -152,14 +145,15 @@ func findPivots(
 				if newPLIndex >= 0 {
 					*pl = append(*pl, newPLIndex)
 					pivotBarsBack = relCandleIndex - newPLIndex
-					newLabels["bottom"][pivotBarsBack] = "L"
+					labels["bottom"][pivotBarsBack] = "L"
 					// pivotBarsBack: fmt.Sprintf("L%v", relCandleIndex),
 
 					foundPL = true
+					break
 				}
 			}
 		}
 	}
 
-	return newLabels, foundPL
+	return labels, foundPL
 }

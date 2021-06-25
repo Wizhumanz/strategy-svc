@@ -137,7 +137,8 @@ func strat1(
 		stored.PivotLows = []int{}
 	}
 
-	newLabels, _ = findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows))
+	newLabels, _ = findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows), newLabels)
+	newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
 
 	//TP cooldown labels
 	if relCandleIndex <= (stored.TPIndex + tpTradeCooldownCandles) {
@@ -305,6 +306,7 @@ func strat1(
 	}
 
 	*storage = stored
+	fmt.Printf(colorGreen+"<%v> labels=%v\n"+colorReset, relCandleIndex, newLabels)
 	return newLabels
 }
 
@@ -393,7 +395,7 @@ func scanPivotTrends(
 		stored.CurrentPoint = append(stored.CurrentPoint, PivotTrendScanDataPoint{})
 	}
 
-	newLabels, _ := findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows))
+	newLabels, _ := findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows), nil)
 	// newLabels["middle"] = map[int]string{
 	// 	0: fmt.Sprintf("%v", relCandleIndex),
 	// }

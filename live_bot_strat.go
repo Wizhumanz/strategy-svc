@@ -108,7 +108,7 @@ func executeLiveStrategy(
 				phs := stratStore.(PivotsStore).PivotHighs
 				pls := stratStore.(PivotsStore).PivotLows
 
-				findPivots(opens, highs, lows, closes, runningIndex, &phs, &pls)
+				findPivots(opens, highs, lows, closes, runningIndex, &phs, &pls, nil)
 
 				newStratStore := PivotsStore{
 					BotID:                 bot.KEY,
