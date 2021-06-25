@@ -32,6 +32,7 @@ func runBacktest(
 		fmt.Sprintf("<%v> %v", line, file))
 
 	// Show progress bar as finish
+	progressBar(userID, rid, len(retCandles), startTime, endTime, true)
 
 	return retCandles, retProfitCurve, retSimTrades
 }

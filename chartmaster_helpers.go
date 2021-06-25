@@ -148,7 +148,6 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 	// fmt.Printf("CACHE fetch DONE %v to %v\n", start.Format(httpTimeFormat), end.Format(httpTimeFormat))
 	return retCandles
 }
-
 func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string) ([]CandlestickChartData, ProfitCurveDataPoint, SimulatedTradeDataPoint) {
 	//candlestick
 	retCandlesArr := cArr
@@ -478,6 +477,7 @@ func computeBacktest(
 				var pcData ProfitCurveDataPoint
 				var simTradeData SimulatedTradeDataPoint
 				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, &chunkAddedPCData, candle, strategySim, relIndex, labels)
+				fmt.Println(chunkAddedCandles)
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
 				}
@@ -490,7 +490,7 @@ func computeBacktest(
 				(retProfitCurve)[0].Data = append((retProfitCurve)[0].Data, chunkAddedPCData...)
 				(retSimTrades)[0].Data = append((retSimTrades)[0].Data, chunkAddedSTData...)
 
-				progressBar(userID, rid, len(retCandles), startTime, endTime)
+				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
 				//stream data back to client in every chunk
 				if chunkAddedCandles != nil {
@@ -613,7 +613,7 @@ func computeScan(
 				retCandles = append(retCandles, chunkAddedCandles...)
 				retScanRes = append(retScanRes, chunkAddedScanData...)
 
-				progressBar(userID, rid, len(retCandles), startTime, endTime)
+				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
 				//stream data back to client in every chunk
 				if chunkAddedCandles != nil {
@@ -675,11 +675,15 @@ func streamPacket(ws *websocket.Conn, chartData []interface{}, resID string) {
 	ws.WriteMessage(1, data)
 }
 
-func progressBar(userID, rid string, numOfCandles int, start, end time.Time) {
+func progressBar(userID, rid string, numOfCandles int, start, end time.Time, finish bool) {
 	progressMap := make(map[string]float64)
 	var progressData []interface{}
-	progressPerc := (float64(numOfCandles) - 1) / end.Sub(start).Minutes() * 100
-
+	var progressPerc float64
+	if !finish {
+		progressPerc = (float64(numOfCandles) - 1) / end.Sub(start).Minutes() * 100
+	} else {
+		progressPerc = 100.0
+	}
 	progressMap["Progress"] = progressPerc
 	ws := wsConnectionsChartmaster[userID]
 
