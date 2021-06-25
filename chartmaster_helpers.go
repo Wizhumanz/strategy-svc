@@ -171,50 +171,63 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 	retCandlesArr = append(retCandlesArr, newCandleD)
 	//candle label
 	if len(retCandlesArr) > 0 {
+		//top labels
 		if len(labels["top"]) > 0 {
 			labelBB := 0
 			labelText := ""
 			for bb, txt := range labels["top"] {
 				labelBB = bb
 				labelText = txt
-			}
 
-			index := len(retCandlesArr) - labelBB - 1
-			// fmt.Printf("TOP labelBB = %v\n", len(retCandlesArr), labelBB)
-			if index >= 0 {
-				if retCandlesArr[index].LabelTop != "" {
-					retCandlesArr[index].LabelTop = retCandlesArr[index].LabelTop + "-" + labelText
-				} else {
-					retCandlesArr[index].LabelTop = labelText
+				index := len(retCandlesArr) - labelBB - 1
+				// fmt.Printf("TOP labelBB = %v\n", len(retCandlesArr), labelBB)
+				if index >= 0 {
+					if retCandlesArr[index].LabelTop != "" {
+						retCandlesArr[index].LabelTop = retCandlesArr[index].LabelTop + "-" + labelText
+					} else {
+						retCandlesArr[index].LabelTop = labelText
+					}
 				}
 			}
 		}
 
+		//middle labels
 		if len(labels["middle"]) > 0 {
 			labelBB := 0
 			labelText := ""
 			for bb, txt := range labels["middle"] {
 				labelBB = bb
 				labelText = txt
-			}
 
-			index := len(retCandlesArr) - labelBB - 1
-			// fmt.Printf("MID labelBB = %v\n", len(retCandlesArr), labelBB)
-			if index >= 0 {
-				if retCandlesArr[index].LabelMiddle != "" {
-					retCandlesArr[index].LabelMiddle = retCandlesArr[index].LabelMiddle + "-" + labelText
-				} else {
-					retCandlesArr[index].LabelMiddle = labelText
+				index := len(retCandlesArr) - labelBB - 1
+				// fmt.Printf("MID labelBB = %v\n", len(retCandlesArr), labelBB)
+				if index >= 0 {
+					if retCandlesArr[index].LabelMiddle != "" {
+						retCandlesArr[index].LabelMiddle = retCandlesArr[index].LabelMiddle + "-" + labelText
+					} else {
+						retCandlesArr[index].LabelMiddle = labelText
+					}
 				}
 			}
 		}
 
+		//bottom labels
 		if len(labels["bottom"]) > 0 {
 			labelBB := 0
 			labelText := ""
 			for bb, txt := range labels["bottom"] {
 				labelBB = bb
 				labelText = txt
+
+				index := len(retCandlesArr) - labelBB - 1
+				// fmt.Printf("BOTTOM labelBB = %v\n", len(retCandlesArr), labelBB)
+				if index >= 0 {
+					if retCandlesArr[index].LabelBottom != "" {
+						retCandlesArr[index].LabelBottom = retCandlesArr[index].LabelBottom + "-" + labelText
+					} else {
+						retCandlesArr[index].LabelBottom = labelText
+					}
+				}
 			}
 
 			index := len(retCandlesArr) - labelBB - 1
