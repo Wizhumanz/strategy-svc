@@ -31,6 +31,27 @@ func runBacktest(
 	go Log(fmt.Sprintf("Backtest complete %v -> %v | %v | %v | user=%v", startTime.UTC().Format(httpTimeFormat), endTime.UTC().Format(httpTimeFormat), ticker, period, userID),
 		fmt.Sprintf("<%v> %v", line, file))
 
+	// rid = fmt.Sprintf("%v", time.Now().UnixNano())
+	if totalCandles != nil {
+		packetSender(userID, fmt.Sprintf("%v", time.Now().UnixNano()),
+			totalCandles,
+			[]ProfitCurveData{
+				{
+					Label: "strat1", //TODO: prep for dynamic strategy param values
+					Data:  retProfitCurve[0].Data,
+				},
+			},
+			[]SimulatedTradeData{
+				{
+					Label: "strat1",
+					Data:  retSimTrades[0].Data,
+				},
+			})
+
+		// stratComputeStartIndex = stratComputeEndIndex
+	} else {
+		fmt.Println("BIG ERROR SECOND")
+	}
 	// Show progress bar as finish
 	progressBar(userID, rid, len(retCandles), startTime, endTime, true)
 
