@@ -166,7 +166,7 @@ func strat1(
 				stored.LongEntryPrice = 0
 				stored.LongSLPrice = 0
 				*storage = stored
-				return nil
+				return newLabels
 			}
 
 			//check TP
@@ -181,7 +181,7 @@ func strat1(
 				stored.LongEntryPrice = 0
 				stored.LongSLPrice = 0
 				*storage = stored
-				return nil
+				return newLabels
 			}
 
 			//check for dynamic number of trend breaks
@@ -276,10 +276,10 @@ func strat1(
 			if latestPL > prevPL && latestPLIndex > stored.MinSearchIndex && prevPLIndex > stored.MinSearchIndex && entryPivotsDiffPerc > minEntryPivotsDiffPerc && entryPivotsDiffPerc < maxEntryPivotsDiffPerc {
 				//check timeouts
 				if stored.TPIndex != 0 && relCandleIndex <= (stored.TPIndex+tpTradeCooldownCandles) {
-					return nil
+					return newLabels
 				}
 				if stored.SLIndex != 0 && relCandleIndex <= (stored.SLIndex+slTradeCooldownCandles) {
-					return nil
+					return newLabels
 				}
 
 				//enter long
@@ -457,5 +457,6 @@ func scanPivotTrends(
 	}
 
 	*storage = stored
+	fmt.Printf(colorRed+"<%v> labels=%v\n"+colorReset, relCandleIndex, newLabels)
 	return newLabels, retData
 }
