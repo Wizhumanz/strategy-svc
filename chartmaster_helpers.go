@@ -586,7 +586,6 @@ func computeScan(
 	allCloses := []float64{}
 	allCandles := []Candlestick{}
 	relIndex := 0
-
 	requiredTime := startTime
 	for {
 		// Check for all empty candle start time
