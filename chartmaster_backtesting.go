@@ -23,7 +23,6 @@ func runBacktest(
 
 	//fetch all candle data concurrently
 	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c)
-	fmt.Println("KYS")
 
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retProfitCurve, retSimTrades := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c)

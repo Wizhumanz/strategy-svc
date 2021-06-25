@@ -395,10 +395,14 @@ func scanPivotTrends(
 		stored.CurrentPoint = append(stored.CurrentPoint, PivotTrendScanDataPoint{})
 	}
 
-	newLabels, _ := findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows), nil)
-	// newLabels["middle"] = map[int]string{
-	// 	0: fmt.Sprintf("%v", relCandleIndex),
-	// }
+	newLabels := map[string]map[int]string{
+		"top":    map[int]string{},
+		"middle": map[int]string{},
+		"bottom": map[int]string{},
+	}
+
+	newLabels, _ = findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows), newLabels)
+	// newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
 
 	retData := PivotTrendScanDataPoint{}
 	if len(stored.PivotLows) >= 2 {
@@ -408,117 +412,13 @@ func scanPivotTrends(
 			retData = stored.CurrentPoint[len(stored.CurrentPoint)-1]
 
 			//check sl
-			if low[relCandleIndex] <= low[retData.EntryLastPLIndex] {
+			if low[relCandleIndex] <= 0.995*low[retData.EntryLastPLIndex] {
 				breakTrend(candles, relCandleIndex, relCandleIndex, high, close, &newLabels, &retData, &stored)
 				fmt.Println(stored.WatchingTrend)
 				*storage = stored
 				return newLabels, retData
 			}
-
-			// //check for dynamic number of trend breaks
-			// type PivotCalc struct {
-			// 	Index int
-			// 	Type  string //"PL" or "PH"
-			// }
-			// var pivotIndexesToCheck []PivotCalc
-			// //find all pivots since trend start, append to slice in order
-			// for i := retData.EntryFirstPivotIndex; i < relCandleIndex; i++ {
-			// 	addPivot := PivotCalc{}
-			// 	if contains(stored.PivotLows, i) {
-			// 		addPivot.Index = i
-			// 		addPivot.Type = "PL"
-			// 	} else if contains(stored.PivotHighs, i) {
-			// 		addPivot.Index = i
-			// 		addPivot.Type = "PH"
-			// 	}
-
-			// 	if addPivot.Index != 0 {
-			// 		pivotIndexesToCheck = append(pivotIndexesToCheck, addPivot)
-			// 	}
-			// }
-
-			// //check each pivot for trend break
-			// var trendBreakPivots []PivotCalc
-			// for j, p := range pivotIndexesToCheck {
-			// 	if j > len(pivotIndexesToCheck)-1 {
-			// 		break
-			// 	}
-			// 	//don't check trend's starting pivots
-			// 	if j < 2 {
-			// 		continue
-			// 	}
-
-			// 	//determine pivot type, set vars
-			// 	currentPivotIndex := pivotIndexesToCheck[j].Index
-			// 	var prevPivotIndex int
-			// 	var checkVal []float64
-			// 	if contains(stored.PivotHighs, pivotIndexesToCheck[j].Index) {
-			// 		checkVal = high
-			// 		if checkTrendBreakFromStartingPivots {
-			// 			prevPivotIndex = pivotIndexesToCheck[1].Index //use trend's starting high
-			// 		} else {
-			// 			prevPivotIndex = pivotIndexesToCheck[j-2].Index
-			// 		}
-			// 	} else {
-			// 		checkVal = low
-			// 		if checkTrendBreakFromStartingPivots {
-			// 			prevPivotIndex = pivotIndexesToCheck[0].Index //use trend's starting high
-			// 		} else {
-			// 			prevPivotIndex = pivotIndexesToCheck[j-2].Index
-			// 		}
-			// 	}
-
-			// 	//check if break trend
-			// 	if checkVal[prevPivotIndex] > checkVal[currentPivotIndex] {
-			// 		//if lower high, record as trend break
-			// 		trendBreakPivots = append(trendBreakPivots, p)
-			// 		if len(trendBreakPivots) >= exitWatchPivots {
-			// 			break
-			// 		}
-			// 	} else {
-			// 		if len(trendBreakPivots) < exitWatchPivots {
-			// 			trendBreakPivots = []PivotCalc{} //reset exit watch if not consecutive breaks
-			// 		} else {
-			// 			break
-			// 		}
-			// 	}
-			// }
-
-			// //break trend scan if exitWatch sufficient
-			// if len(trendBreakPivots) >= exitWatchPivots {
-			// 	breakTrend(candles, trendBreakPivots[exitWatchPivots-1].Index, relCandleIndex, high, close, &newLabels, &retData, &stored)
-			// }
 		} else {
-			// fmt.Printf("finding new trend %v %v\n", relCandleIndex, candles[len(candles)-1].DateTime)
-
-			// //find new trend to watch
-			// latestPLIndex := stored.PivotLows[len(stored.PivotLows)-1]
-			// latestPL := low[latestPLIndex]
-			// prevPLIndex := stored.PivotLows[len(stored.PivotLows)-2]
-			// prevPL := low[prevPLIndex]
-			// entryPivotsDiffPerc := ((latestPL - prevPL) / prevPL) * 100
-			// if latestPL > prevPL && latestPLIndex > stored.MinSearchIndex && prevPLIndex > stored.MinSearchIndex && entryPivotsDiffPerc > minEntryPivotsDiffPerc && entryPivotsDiffPerc < maxEntryPivotsDiffPerc {
-			// 	retData.EntryTime = candles[latestPLIndex].DateTime()
-			// 	retData.EntryFirstPivotIndex = prevPLIndex
-			// 	retData.EntrySecondPivotIndex = latestPLIndex
-			// 	retData.EntryPivotsPriceDiffPerc = ((low[latestPLIndex] - low[prevPLIndex]) / low[prevPLIndex]) * 100
-			// 	entryCandle := candles[retData.EntrySecondPivotIndex]
-			// 	for i := retData.EntrySecondPivotIndex + 1; i <= relCandleIndex; i++ {
-			// 		if candles[i].High > candles[retData.EntrySecondPivotIndex].High && candles[i].Low > candles[retData.EntrySecondPivotIndex].Low {
-			// 			entryCandle = candles[i]
-			// 			break
-			// 		}
-			// 	}
-			// 	retData.EntryTradeOpenCandle = entryCandle
-
-			// 	stored.CurrentPoint = retData
-			// 	stored.WatchingTrend = true
-
-			// 	newLabels["middle"] = map[int]string{
-			// 		relCandleIndex - latestPLIndex: "L2",
-			// 	}
-			// }
-
 			entryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, 3, 0)
 			var entrySearchStartIndex int
 			if len(stored.CurrentPoint) < 2 {

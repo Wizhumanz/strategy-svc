@@ -223,7 +223,6 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				labelText = txt
 
 				index := len(totalCandles) - labelBB - 1
-				fmt.Printf("BOTTOM labelBB = %v, %v, %v\n", index, len(totalCandles), labelBB)
 				if index >= 0 {
 					if totalCandles[index].LabelBottom != "" {
 						totalCandles[index].LabelBottom = totalCandles[index].LabelBottom + "-" + labelText
