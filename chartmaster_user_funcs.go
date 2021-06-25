@@ -233,7 +233,7 @@ type PivotTrendScanDataPoint struct {
 type PivotTrendScanStore struct {
 	PivotHighs    []int
 	PivotLows     []int
-	CurrentPoint  []PivotTrendScanDataPoint
+	ScanPoints    []PivotTrendScanDataPoint
 	WatchingTrend bool
 }
 
@@ -263,8 +263,12 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, high, clo
 
 	//reset
 	(*stored).WatchingTrend = false
-	(*stored).CurrentPoint[len((*stored).CurrentPoint)-1].BreakIndex = breakIndex //don't enter with same PL as past trend, must be after break of past trend
-	(*stored).CurrentPoint = append((*stored).CurrentPoint, PivotTrendScanDataPoint{})
+	(*stored).ScanPoints[len((*stored).ScanPoints)-1].BreakIndex = breakIndex //don't enter with same PL as past trend, must be after break of past trend
+	(*stored).ScanPoints = append((*stored).ScanPoints, PivotTrendScanDataPoint{})
+
+	for i, v := range stored.ScanPoints {
+		fmt.Printf(colorYellow+"<%v-%v> %+v\n"+colorReset, relCandleIndex, i+1, v)
+	}
 }
 
 func contains(sli []int, find int) bool {
@@ -298,8 +302,8 @@ func scanPivotTrends(
 			return nil, PivotTrendScanDataPoint{}
 		}
 	}
-	if len(stored.CurrentPoint) <= 0 {
-		stored.CurrentPoint = append(stored.CurrentPoint, PivotTrendScanDataPoint{})
+	if len(stored.ScanPoints) <= 0 {
+		stored.ScanPoints = append(stored.ScanPoints, PivotTrendScanDataPoint{})
 	}
 
 	newLabels := map[string]map[int]string{
@@ -316,26 +320,23 @@ func scanPivotTrends(
 		if stored.WatchingTrend {
 			//manage/watch ongoing trend
 			// fmt.Printf(colorYellow+"checking existing trend %v %v\n"+colorReset, relCandleIndex, candles[len(candles)-1].DateTime)
-			retData = stored.CurrentPoint[len(stored.CurrentPoint)-1]
+			retData = stored.ScanPoints[len(stored.ScanPoints)-1]
 
 			//check sl
 			if low[relCandleIndex] <= 0.995*low[retData.EntryLastPLIndex] {
 				breakTrend(candles, relCandleIndex, relCandleIndex, high, close, &newLabels, &retData, &stored)
-				fmt.Println(stored.WatchingTrend)
 				*storage = stored
 				return newLabels, retData
 			}
 		} else {
 			entryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, 3, 0)
 			var entrySearchStartIndex int
-			if len(stored.CurrentPoint) < 2 {
+			if len(stored.ScanPoints) < 2 {
 				entrySearchStartIndex = 0
 			} else {
-				entrySearchStartIndex = stored.CurrentPoint[len(stored.CurrentPoint)-2].BreakIndex
+				entrySearchStartIndex = stored.ScanPoints[len(stored.ScanPoints)-2].BreakIndex
 			}
 			if len(entryIndexes) > 0 && entryIndexes[len(entryIndexes)-1] > entrySearchStartIndex {
-				fmt.Printf(colorGreen+"%v\n"+colorReset, entryIndexes)
-
 				//find actual entry index from pivot low
 				actualEntryIndex := -1
 				for i := entryIndexes[len(entryIndexes)-1] + 1; i < len(high); i++ {
@@ -352,7 +353,7 @@ func scanPivotTrends(
 				retData.EntryTradeOpenCandle = candles[actualEntryIndex]
 				retData.EntryLastPLIndex = entryIndexes[len(entryIndexes)-1]
 				retData.ActualEntryIndex = actualEntryIndex
-				stored.CurrentPoint = append(stored.CurrentPoint, retData)
+				stored.ScanPoints = append(stored.ScanPoints, retData)
 
 				stored.WatchingTrend = true
 
@@ -364,6 +365,6 @@ func scanPivotTrends(
 	}
 
 	*storage = stored
-	fmt.Printf(colorRed+"<%v> labels=%v\n"+colorReset, relCandleIndex, newLabels)
+	// fmt.Printf(colorRed+"<%v> labels=%v\n"+colorReset, relCandleIndex, newLabels)
 	return newLabels, retData
 }
