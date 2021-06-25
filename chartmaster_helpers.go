@@ -253,13 +253,15 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 	if len(strat.Actions) > 0 {
 		if strat.Actions[relIndex].Action == "SL" || strat.Actions[relIndex].Action == "TP" {
 			//find entry conditions
-			var entryPrice float64
+			var entryPrice, riskedEquity, entryExchangeFee float64
 			var size float64
 			for i := 1; i < relIndex; i++ {
 				checkAction := strat.Actions[relIndex-i]
 				if checkAction.Action == "ENTER" {
 					entryPrice = checkAction.Price
 					size = checkAction.PosSize
+					riskedEquity = checkAction.RiskedEquity
+					entryExchangeFee = checkAction.ExchangeFee
 					break
 				}
 			}
@@ -269,8 +271,10 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 			sd.EntryPrice = entryPrice
 			sd.ExitPrice = strat.Actions[relIndex].Price
 			sd.PosSize = size
-			sd.RiskedEquity = size * entryPrice
+			sd.RiskedEquity = riskedEquity
 			sd.RawProfitPerc = ((sd.ExitPrice - sd.EntryPrice) / sd.EntryPrice) * 100
+			sd.TotalFees = strat.Actions[relIndex].ExchangeFee + entryExchangeFee
+			fmt.Printf(colorWhite+"> $%v\n"+colorReset, strat.Actions[relIndex].ProfitCap)
 		}
 	}
 
@@ -552,7 +556,6 @@ func computeBacktest(
 		}
 
 		if requiredTime.Equal(endTime) {
-			fmt.Printf("\nbreak: %v\n", requiredTime)
 			break
 		}
 	}
