@@ -182,13 +182,13 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				labelBB = bb
 				labelText = txt
 
-				index := len(retCandlesArr) - labelBB - 1
+				index := len(totalCandles) - labelBB - 1
 				// fmt.Printf("TOP labelBB = %v\n", len(retCandlesArr), labelBB)
 				if index >= 0 {
-					if retCandlesArr[index].LabelTop != "" {
-						retCandlesArr[index].LabelTop = retCandlesArr[index].LabelTop + "-" + labelText
+					if totalCandles[index].LabelTop != "" {
+						totalCandles[index].LabelTop = totalCandles[index].LabelTop + "-" + labelText
 					} else {
-						retCandlesArr[index].LabelTop = labelText
+						totalCandles[index].LabelTop = labelText
 					}
 				}
 			}
@@ -202,13 +202,13 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				labelBB = bb
 				labelText = txt
 
-				index := len(retCandlesArr) - labelBB - 1
+				index := len(totalCandles) - labelBB - 1
 				// fmt.Printf("MID labelBB = %v\n", len(retCandlesArr), labelBB)
 				if index >= 0 {
-					if retCandlesArr[index].LabelMiddle != "" {
-						retCandlesArr[index].LabelMiddle = retCandlesArr[index].LabelMiddle + "-" + labelText
+					if totalCandles[index].LabelMiddle != "" {
+						totalCandles[index].LabelMiddle = totalCandles[index].LabelMiddle + "-" + labelText
 					} else {
-						retCandlesArr[index].LabelMiddle = labelText
+						totalCandles[index].LabelMiddle = labelText
 					}
 				}
 			}
@@ -222,24 +222,14 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				labelBB = bb
 				labelText = txt
 
-				index := len(retCandlesArr) - labelBB - 1
-				// fmt.Printf("BOTTOM labelBB = %v\n", len(retCandlesArr), labelBB)
+				index := len(totalCandles) - labelBB - 1
+				fmt.Printf("BOTTOM labelBB = %v, %v, %v\n", index, len(totalCandles), labelBB)
 				if index >= 0 {
-					if retCandlesArr[index].LabelBottom != "" {
-						retCandlesArr[index].LabelBottom = retCandlesArr[index].LabelBottom + "-" + labelText
+					if totalCandles[index].LabelBottom != "" {
+						totalCandles[index].LabelBottom = totalCandles[index].LabelBottom + "-" + labelText
 					} else {
-						retCandlesArr[index].LabelBottom = labelText
+						totalCandles[index].LabelBottom = labelText
 					}
-				}
-			}
-
-			index := len(totalCandles) - labelBB - 1
-			fmt.Printf("BOTTOM labelBB = %v, %v, %v\n", index, len(totalCandles), labelBB)
-			if index >= 0 {
-				if totalCandles[index].LabelBottom != "" {
-					totalCandles[index].LabelBottom = totalCandles[index].LabelBottom + "-" + labelText
-				} else {
-					totalCandles[index].LabelBottom = labelText
 				}
 			}
 		}
