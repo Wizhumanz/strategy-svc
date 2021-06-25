@@ -96,7 +96,7 @@ func strat1(
 	strategy *StrategyExecutor,
 	storage *interface{}, bot Bot) map[string]map[int]string {
 
-	//entry watch should look for 3 lower lows in a row
+	//TODO: entry watch should look for 3 lower lows in a row
 
 	//TODO: pass these 2 from frontend
 	strategy.OrderSlippagePerc = 0.15
@@ -330,7 +330,7 @@ type PivotTrendScanStore struct {
 }
 
 func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, high, close []float64, newLabels *(map[string]map[int]string), retData *PivotTrendScanDataPoint, stored *PivotTrendScanStore) {
-	(*newLabels)["middle"] = map[int]string{
+	(*newLabels)["bottom"] = map[int]string{
 		relCandleIndex - breakIndex: "X",
 	}
 
@@ -345,6 +345,7 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, high, clo
 		relCandleIndex - trendExtentIndex: "$",
 	}
 	retData.ExtentTime = candles[trendExtentIndex].DateTime()
+	// fmt.Printf(colorRed+"actEntry=%v / extentIndex=%v\n"+colorReset, retData.ActualEntryIndex, trendExtentIndex)
 
 	(*retData).Growth = ((high[breakIndex] - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
 
