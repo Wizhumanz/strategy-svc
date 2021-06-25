@@ -484,6 +484,7 @@ func computeBacktest(
 				allCandles = append(allCandles, candle)
 				//TODO: build results and run for different param sets
 				labels = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
+				fmt.Printf("\nlabels: %v\n", labels)
 
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint

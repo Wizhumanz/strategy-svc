@@ -100,6 +100,8 @@ func main() {
 	periodDurationMap["1DAY"] = 24 * time.Hour
 	periodDurationMap["2DAY"] = 48 * time.Hour
 
+	(*strategy).Buy(close[relCandleIndex], slPrice, -1, risk, int(lev), relCandleIndex, true, bot)
+
 	//note: stream listening pause + continue handlers in StatusActivateHandler
 	botStatusChangeHandlers := []msngr.CommandHandler{
 		{

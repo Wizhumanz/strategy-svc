@@ -290,7 +290,7 @@ func strat1(
 				}
 				stored.LongSLPrice = slPrice
 				stored.LongEntryPrice = entryPrice
-				(*strategy).Buy(close[relCandleIndex], slPrice, -1, risk, int(lev), relCandleIndex, true, bot.KEY)
+				(*strategy).Buy(close[relCandleIndex], slPrice, -1, risk, int(lev), relCandleIndex, true, bot)
 				// newLabels["middle"] = map[int]string{
 				// 	0: fmt.Sprintf("%v|SL %v, TP %v", relCandleIndex, slPrice, ((1 + (tpPerc / 100)) * stored.LongEntryPrice)),
 				// }
