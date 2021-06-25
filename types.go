@@ -396,15 +396,15 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		bal, _ := strconv.ParseFloat(balance, 64)
 		currentBalance := bal * 0.2
 
-		fmt.Println(currentBalance / (0.1 * price))
+		fmt.Println(currentBalance / (0.8 * price))
 
 		// submit 3 orders:
 		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
-		newOrder(symbol, "SELL", "STOP", fmt.Sprintf("%.2f", currentBalance/(0.1*price)), fmt.Sprintf("%.2f", 0.79*price), "true", fmt.Sprintf("%.2f", 0.8*price))
+		newOrder(symbol, "SELL", "STOP", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 0.79*price), "true", fmt.Sprintf("%.2f", 0.8*price))
 		// 2. stop limit order TP (stop=1.5*price, limit=1.49*price, reduceOnly=true)
-		newOrder(symbol, "SELL", "TAKE_PROFIT", fmt.Sprintf("%.2f", currentBalance/(0.1*price)), fmt.Sprintf("%.2f", 1.49*price), "true", fmt.Sprintf("%.2f", 1.5*price))
+		newOrder(symbol, "SELL", "TAKE_PROFIT", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 1.49*price), "true", fmt.Sprintf("%.2f", 1.5*price))
 		// 3. limit order entry (limit=0.8*price)
-		newOrder(symbol, "BUY", "LIMIT", fmt.Sprintf("%.2f", currentBalance/(0.1*price)), fmt.Sprintf("%.2f", 0.8*price), "no", "0")
+		newOrder(symbol, "BUY", "LIMIT", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 0.8*price), "no", "0")
 
 		// args := map[string]interface{}{}
 		// args["slPrice"] = float64(sl)
