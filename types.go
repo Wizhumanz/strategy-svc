@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -322,7 +324,7 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 	return strat.posLongSize
 }
 
-func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex int, directionIsLong bool, botStreamName string) {
+func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex int, directionIsLong bool, botStreamName Bot) {
 	if !strat.liveTrade {
 		actualPrice := (1 + (strat.OrderSlippagePerc / 100)) * price //TODO: modify to - for shorting
 		desiredPosCap, _ := calcEntry(actualPrice, sl, accRisk, strat.availableEquity, lev)
@@ -355,14 +357,29 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		}
 	} else {
 		// get acc balance
-		getFuturesAccountBalance()
+		var objmap []map[string]interface{}
+		if err := json.Unmarshal(getFuturesAccountBalance(), &objmap); err != nil {
+			log.Fatal(err)
+		}
+
+		var balance string
+		for _, b := range objmap {
+			if b["asset"] == botStreamName.Ticker {
+				balance = b["balance"].(string)
+			}
+		}
 
 		// calculate pos size (20% of account size)
+		bal, _ := strconv.ParseFloat(balance, 64)
+		currentBalance := bal * 0.2
 
 		// submit 3 orders:
 		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
+		newOrder(botStreamName.Ticker, "SELL", fmt.Sprint(currentBalance/(0.8*price)), fmt.Sprint(0.79*price), "true", fmt.Sprint(0.8*price))
 		// 2. stop limit order TP (stop=1.5*price, limit=1.49*price, reduceOnly=true)
+		newOrder(botStreamName.Ticker, "SELL", fmt.Sprint(currentBalance/(0.8*price)), fmt.Sprint(1.49*price), "true", fmt.Sprint(1.5*price))
 		// 3. limit order entry (limit=0.8*price)
+		newOrder(botStreamName.Ticker, "BUY", fmt.Sprint(currentBalance/(0.8*price)), fmt.Sprint(1.49*price), "no", "0")
 
 		// args := map[string]interface{}{}
 		// args["slPrice"] = float64(sl)
