@@ -465,7 +465,6 @@ func computeBacktest(
 		var allCandlesArr []Candlestick
 		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
-
 		}
 
 		//run strat for all chunk's candles
@@ -483,6 +482,7 @@ func computeBacktest(
 				allCloses = append(allCloses, candle.Close)
 				allCandles = append(allCandles, candle)
 				//TODO: build results and run for different param sets
+				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
 				labels = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
 
 				//build display data using strategySim
