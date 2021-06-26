@@ -231,6 +231,7 @@ type PivotTrendScanDataPoint struct {
 	Duration                           float64     `json:"Duration"`
 	Growth                             float64     `json:"Growth"`
 	MaxDrawdownPerc                    float64     `json:"MaxDrawdownPerc"` //used to determine safe SL when trading
+	BreakTime                          string      `json:"BreakTime"`
 	BreakIndex                         int         `json:"BreakIndex"`
 	FirstSecondEntryPivotPriceDiffPerc float64     `json:"FirstSecondEntryPivotPriceDiffPerc"`
 	SecondThirdEntryPivotPriceDiffPerc float64     `json:"SecondThirdEntryPivotPriceDiffPerc"`
@@ -297,6 +298,7 @@ func logScanEntry(relCandleIndex, entryIndex int, candles []Candlestick, pivotLo
 		(*newLabels)["middle"][relCandleIndex-actualEntryIndex] = fmt.Sprintf("> /%v", relCandleIndex)
 	}
 
+	fmt.Printf(colorYellow+"<%v> retData= %+v\n"+colorReset, retData.EntryTradeOpenCandle.DateTime(), retData)
 	return *retData
 }
 
@@ -314,6 +316,7 @@ func checkSL(entryData PivotTrendScanDataPoint, relCandleIndex, startCheckIndex 
 
 func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels *(map[string]map[int]string), retData *PivotTrendScanDataPoint, stored *PivotTrendScanStore) {
 	(*retData).BreakIndex = breakIndex
+	(*retData).BreakTime = candles[breakIndex].DateTime()
 
 	//find lowest point between entry and break
 	maxDrawdownIndex := retData.ActualEntryIndex //rolling compare of highest high index
@@ -349,7 +352,7 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 	(*stored).WatchingTrend = false
 	(*stored).ScanPoints[len((*stored).ScanPoints)-1].BreakIndex = breakIndex //don't enter with same PL as past trend, must be after break of past trend
 
-	// fmt.Printf(colorRed+"<%v> retData=%+v\n"+colorReset, relCandleIndex, retData)
+	fmt.Printf(colorGreen+"<%v> retData= %+v\n"+colorReset, retData.BreakTime, retData)
 }
 
 func contains(sli []int, find int) bool {
