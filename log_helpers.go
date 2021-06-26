@@ -42,7 +42,7 @@ func Log(data, location string) {
 			log.Fatalf("Failed to save LogData: %v", err)
 		}
 	} else {
-		fmt.Printf("%v\n"+colorCyan+"%v\n"+colorReset, data, location)
+		fmt.Printf("%v\n"+colorRed+"%v\n"+colorReset, data, location)
 	}
 }
 

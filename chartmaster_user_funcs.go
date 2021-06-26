@@ -256,7 +256,7 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, high, clo
 	// fmt.Printf(colorRed+"actEntry=%v / extentIndex=%v\n"+colorReset, retData.ActualEntryIndex, trendExtentIndex)
 
 	(*retData).Growth = ((high[trendExtentIndex] - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
-	fmt.Printf(colorGreen+"break= %v / extent= %v / high[extent]= %v / entryClose=%v\n"+colorReset, breakIndex, trendExtentIndex, high[trendExtentIndex], retData.EntryTradeOpenCandle.Close)
+	// fmt.Printf(colorGreen+"break= %v / extent= %v / high[extent]= %v / entryClose=%v\n"+colorReset, breakIndex, trendExtentIndex, high[trendExtentIndex], retData.EntryTradeOpenCandle.Close)
 
 	entryTime, _ := time.Parse(httpTimeFormat, retData.EntryTime)
 	trendEndTime, _ := time.Parse(httpTimeFormat, candles[breakIndex].DateTime())
@@ -268,11 +268,7 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, high, clo
 	(*stored).WatchingTrend = false
 	(*stored).ScanPoints[len((*stored).ScanPoints)-1].BreakIndex = breakIndex //don't enter with same PL as past trend, must be after break of past trend
 
-	// for i, v := range stored.ScanPoints {
-	// 	fmt.Printf(colorYellow+"<%v-%v> %+v\n"+colorReset, relCandleIndex, i+1, v)
-	// }
-
-	fmt.Printf(colorRed+"<%v> retData=%+v\n"+colorReset, relCandleIndex, retData)
+	// fmt.Printf(colorRed+"<%v> retData=%+v\n"+colorReset, relCandleIndex, retData)
 }
 
 func contains(sli []int, find int) bool {
@@ -331,7 +327,7 @@ func scanPivotTrends(
 				breakTrend(candles, relCandleIndex, relCandleIndex, high, close, &newLabels, &retData, &stored)
 			}
 		} else {
-			fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
+			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
 			entryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, 3, 0)
 			var entrySearchStartIndex int
 			if len(stored.ScanPoints) < 2 {
@@ -366,7 +362,7 @@ func scanPivotTrends(
 
 	*storage = stored
 	if len(newLabels["middle"]) > 0 {
-		fmt.Printf(colorYellow+"<%v> labels= %v\n"+colorReset, relCandleIndex, newLabels)
+		// fmt.Printf(colorYellow+"<%v> labels= %v\n"+colorReset, relCandleIndex, newLabels)
 	}
 	return newLabels, retData
 }

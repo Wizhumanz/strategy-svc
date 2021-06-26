@@ -129,7 +129,7 @@ func executeLiveStrategy(
 				}
 				stratStore = newStratStore
 
-				fmt.Printf(colorGreen+"<%v> %v %v\n"+colorReset, i, len(stratStore.(PivotsStore).PivotHighs), len(stratStore.(PivotsStore).PivotLows))
+				// fmt.Printf(colorGreen+"<%v> %v %v\n"+colorReset, i, len(stratStore.(PivotsStore).PivotHighs), len(stratStore.(PivotsStore).PivotLows))
 			}
 
 			//fetch candle and run live strat on every interval tick
@@ -229,7 +229,7 @@ func executeLiveStrategy(
 						continue
 					}
 				}
-				fmt.Printf(colorGreen+"<%v> %v"+colorReset, runningIndex, readStore)
+				// fmt.Printf(colorGreen+"<%v> %v"+colorReset, runningIndex, readStore)
 
 				newStratStore := PivotsStore{
 					PivotHighs:            readStore.PivotHighs,
