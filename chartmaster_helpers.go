@@ -580,6 +580,8 @@ func computeScan(
 	var retScanRes []PivotTrendScanDataPoint
 	var allEmptyCandles []time.Time
 
+	m := sync.Mutex{}
+
 	allOpens := []float64{}
 	allHighs := []float64{}
 	allLows := []float64{}
@@ -626,12 +628,14 @@ func computeScan(
 
 				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
+				m.Lock()
 				//stream data back to client in every chunk
 				if chunkAddedCandles != nil {
 					packetSender(userID, rid, chunkAddedCandles, chunkAddedScanData)
 				} else {
 					break
 				}
+				m.Unlock()
 
 				//absolute index from absolute start of computation period
 				relIndex++
