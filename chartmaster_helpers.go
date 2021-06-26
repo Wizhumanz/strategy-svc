@@ -310,7 +310,6 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 
 	// Fetching candles from COIN API in 300s
 	for i := 0; i < len(candlesNotInCache); i += 5 {
-		time.Sleep(100 * time.Millisecond)
 		if len(candlesNotInCache) > i+5 {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
 		} else {
