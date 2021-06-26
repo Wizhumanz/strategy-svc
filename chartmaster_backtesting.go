@@ -77,8 +77,12 @@ func runScan(
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retScanRes := computeScan(packetSize, userID, rid, startTime, endTime, scannerFunc, packetSender, &chunksArr, c)
 
+	// for i, data := range retScanRes {
+	// 	fmt.Printf("%v / %+v\n", i, data)
+	// }
+
 	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf(colorGreen+"\n!!! Backtest complete!"+colorReset), fmt.Sprintf("<%v> %v", line, file))
+	go Log(fmt.Sprintf(colorGreen+"\n!!! Scan complete!"+colorReset), fmt.Sprintf("<%v> %v", line, file))
 
 	if totalCandles != nil {
 		packetSender(userID, fmt.Sprintf("%v", time.Now().UnixNano()), totalCandles, retScanRes)
