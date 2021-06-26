@@ -230,6 +230,7 @@ type PivotTrendScanDataPoint struct {
 	ExtentTime           string      `json:"ExtentTime"`
 	Duration             float64     `json:"Duration"`
 	Growth               float64     `json:"Growth"`
+	MaxDrawdownPerc      float64     `json:"MaxDrawdownPerc"` //used to determine safe SL when trading
 	BreakIndex           int         `json:"BreakIndex"`
 }
 
@@ -240,29 +241,38 @@ type PivotTrendScanStore struct {
 	WatchingTrend bool
 }
 
-func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, high, close []float64, newLabels *(map[string]map[int]string), retData *PivotTrendScanDataPoint, stored *PivotTrendScanStore) {
+func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, open, high, low, close []float64, newLabels *(map[string]map[int]string), retData *PivotTrendScanDataPoint, stored *PivotTrendScanStore) {
 	(*retData).BreakIndex = breakIndex
+
+	//find highest point between second entry pivot and trend break
+	maxDrawdownIndex := retData.ActualEntryIndex //rolling compare of highest high index
+	for i := retData.ActualEntryIndex + 1; i < breakIndex; i++ {
+		if low[i] < low[maxDrawdownIndex] {
+			maxDrawdownIndex = i
+		}
+	}
+	(*newLabels)["middle"][relCandleIndex-maxDrawdownIndex] = "ж"
+	(*retData).MaxDrawdownPerc = ((close[retData.ActualEntryIndex] - low[maxDrawdownIndex]) / close[retData.ActualEntryIndex]) * 100
+
 	//find highest point between second entry pivot and trend break
 	trendExtentIndex := retData.ActualEntryIndex //rolling compare of highest high index
-	for i := retData.ActualEntryIndex + 1; i <= relCandleIndex; i++ {
+	for i := retData.ActualEntryIndex + 1; i < breakIndex; i++ {
 		if high[i] > high[trendExtentIndex] {
 			trendExtentIndex = i
 		}
 	}
-	(*newLabels)["middle"] = map[int]string{
-		relCandleIndex - trendExtentIndex: "$",
-	}
+	(*newLabels)["middle"][relCandleIndex-trendExtentIndex] = "$"
 	(*retData).ExtentTime = candles[trendExtentIndex].DateTime()
 	// fmt.Printf(colorRed+"actEntry=%v / extentIndex=%v\n"+colorReset, retData.ActualEntryIndex, trendExtentIndex)
 
 	(*retData).Growth = ((high[trendExtentIndex] - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
 	// fmt.Printf(colorGreen+"break= %v / extent= %v / high[extent]= %v / entryClose=%v\n"+colorReset, breakIndex, trendExtentIndex, high[trendExtentIndex], retData.EntryTradeOpenCandle.Close)
 
+	// trendEndTime, _ := time.Parse(httpTimeFormat, candles[breakIndex].DateTime())
 	entryTime, _ := time.Parse(httpTimeFormat, retData.EntryTime)
-	trendEndTime, _ := time.Parse(httpTimeFormat, candles[breakIndex].DateTime())
-	//TODO: log extent duration, not end duration
+	trendExtentTime, _ := time.Parse(httpTimeFormat, candles[trendExtentIndex].DateTime())
+	(*retData).Duration = trendExtentTime.Sub(entryTime).Minutes() //log extent duration, not whole trade duration
 	//TODO: log max drawdown (for SL)
-	(*retData).Duration = trendEndTime.Sub(entryTime).Minutes()
 
 	(*newLabels)["bottom"][relCandleIndex-breakIndex] = fmt.Sprintf("X /%v/%v", relCandleIndex, entryTime)
 
@@ -326,7 +336,7 @@ func scanPivotTrends(
 
 			//check sl
 			if low[relCandleIndex] <= 0.995*low[retData.EntryLastPLIndex] {
-				breakTrend(candles, relCandleIndex, relCandleIndex, high, close, &newLabels, &retData, &stored)
+				breakTrend(candles, relCandleIndex, relCandleIndex, open, high, low, close, &newLabels, &retData, &stored)
 			}
 		} else {
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
