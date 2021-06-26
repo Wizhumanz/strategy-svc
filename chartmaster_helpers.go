@@ -286,7 +286,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 }
 
 func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, period string,
-	startTime, endTime, fetchCandlesStart, fetchCandlesEnd time.Time, c chan time.Time, wg *sync.WaitGroup) {
+	startTime, endTime, fetchCandlesStart, fetchCandlesEnd time.Time, c chan time.Time, wg *sync.WaitGroup, m *sync.Mutex) {
 	var chunkCandles []Candlestick
 	var candlesNotInCache []time.Time
 	var candlesInCache []Candlestick
@@ -294,7 +294,6 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	eachTime = fetchCandlesStart
 	// WaitGroup used to show that a thread has finished processing
 	defer wg.Done()
-	m := sync.Mutex{}
 	//check if candles exist in cache
 	periodAdd, _ := strconv.Atoi(strings.Split(period, "M")[0])
 	m.Lock()
@@ -386,6 +385,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 func concFetchCandleData(startTime, endTime time.Time, period, ticker string, packetSize int, chunksArr *[]*[]Candlestick, c chan time.Time) {
 	fetchCandlesStart := startTime
 	var wg sync.WaitGroup
+	m := sync.Mutex{}
 
 	for {
 		if fetchCandlesStart.Equal(endTime) || fetchCandlesStart.After(endTime) {
@@ -400,7 +400,7 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 		var chunkSlice []Candlestick
 
 		*chunksArr = append(*chunksArr, &chunkSlice)
-		go getChunkCandleData(&chunkSlice, 5, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg)
+		go getChunkCandleData(&chunkSlice, 5, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg, &m)
 
 		//increment
 		fetchCandlesStart = fetchCandlesEnd
