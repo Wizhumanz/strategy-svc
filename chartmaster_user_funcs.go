@@ -260,6 +260,8 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, high, clo
 
 	entryTime, _ := time.Parse(httpTimeFormat, retData.EntryTime)
 	trendEndTime, _ := time.Parse(httpTimeFormat, candles[breakIndex].DateTime())
+	//TODO: log extent duration, not end duration
+	//TODO: log max drawdown (for SL)
 	(*retData).Duration = trendEndTime.Sub(entryTime).Minutes()
 
 	(*newLabels)["bottom"][relCandleIndex-breakIndex] = fmt.Sprintf("X /%v/%v", relCandleIndex, entryTime)
@@ -333,7 +335,7 @@ func scanPivotTrends(
 			if len(stored.ScanPoints) < 2 {
 				entrySearchStartIndex = 0
 			} else {
-				entrySearchStartIndex = stored.ScanPoints[len(stored.ScanPoints)-2].BreakIndex
+				entrySearchStartIndex = stored.ScanPoints[len(stored.ScanPoints)-1].BreakIndex + 10
 			}
 			if len(entryIndexes) > 0 && entryIndexes[len(entryIndexes)-1] > entrySearchStartIndex {
 				//find actual entry index from pivot low
@@ -361,8 +363,8 @@ func scanPivotTrends(
 	}
 
 	*storage = stored
-	if len(newLabels["middle"]) > 0 {
-		// fmt.Printf(colorYellow+"<%v> labels= %v\n"+colorReset, relCandleIndex, newLabels)
-	}
+	// if len(newLabels["middle"]) > 0 {
+	// fmt.Printf(colorYellow+"<%v> labels= %v\n"+colorReset, relCandleIndex, newLabels)
+	// }
 	return newLabels, retData
 }
