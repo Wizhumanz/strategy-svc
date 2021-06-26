@@ -294,10 +294,10 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	eachTime = fetchCandlesStart
 	// WaitGroup used to show that a thread has finished processing
 	defer wg.Done()
-
+	m := sync.Mutex{}
 	//check if candles exist in cache
 	periodAdd, _ := strconv.Atoi(strings.Split(period, "M")[0])
-
+	m.Lock()
 	// Checking whether the candle exists in cache. Separates them into two arrays.
 	for i := 0; i < int(fetchCandlesEnd.Sub(fetchCandlesStart).Minutes()); i += periodAdd {
 		retCandles := getCachedCandleData(ticker, period, fetchCandlesStart.Add(time.Minute*time.Duration(i)), fetchCandlesStart.Add(time.Minute*time.Duration(i+1)))
@@ -307,10 +307,9 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 			candlesInCache = append(candlesInCache, retCandles[0])
 		}
 	}
-
+	m.Unlock()
 	// Fetching candles from COIN API in 300s
 	for i := 0; i < len(candlesNotInCache); i += 5 {
-		time.Sleep(100 * time.Millisecond)
 		if len(candlesNotInCache) > i+5 {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
 		} else {
