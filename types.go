@@ -358,7 +358,6 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		}
 	} else {
 		// get acc balance
-		fmt.Println("Came to Buy")
 		var objmap []map[string]interface{}
 		if err := json.Unmarshal(getFuturesAccountBalance(), &objmap); err != nil {
 			log.Fatal(err)
@@ -369,9 +368,6 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		if err := json.Unmarshal(file, &binanceSymbolsFile); err != nil {
 			log.Fatal(err)
 		}
-
-		fmt.Println("objmap")
-		fmt.Println(objmap)
 
 		var symbol string
 		for _, s := range binanceSymbolsFile {
@@ -387,16 +383,9 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 			}
 		}
 
-		fmt.Println("balance")
-		fmt.Println(balance)
-		fmt.Println("symbol")
-		fmt.Println(symbol)
-
 		// calculate pos size (20% of account size)
 		bal, _ := strconv.ParseFloat(balance, 64)
 		currentBalance := bal * 0.2
-
-		fmt.Println(currentBalance / (0.8 * price))
 
 		// submit 3 orders:
 		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
