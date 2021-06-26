@@ -296,17 +296,17 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	defer wg.Done()
 	//check if candles exist in cache
 	periodAdd, _ := strconv.Atoi(strings.Split(period, "M")[0])
-	m.Lock()
 	// Checking whether the candle exists in cache. Separates them into two arrays.
 	for i := 0; i < int(fetchCandlesEnd.Sub(fetchCandlesStart).Minutes()); i += periodAdd {
 		retCandles := getCachedCandleData(ticker, period, fetchCandlesStart.Add(time.Minute*time.Duration(i)), fetchCandlesStart.Add(time.Minute*time.Duration(i+1)))
+		m.Lock()
 		if len(retCandles) == 0 {
 			candlesNotInCache = append(candlesNotInCache, fetchCandlesStart.Add(time.Minute*time.Duration(i)))
 		} else {
 			candlesInCache = append(candlesInCache, retCandles[0])
 		}
+		m.Unlock()
 	}
-	m.Unlock()
 	// Fetching candles from COIN API in 300s
 	for i := 0; i < len(candlesNotInCache); i += 5 {
 		if len(candlesNotInCache) > i+5 {
