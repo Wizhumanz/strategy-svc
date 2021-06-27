@@ -279,7 +279,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 			sd.RiskedEquity = riskedEquity
 			sd.RawProfitPerc = ((sd.ExitPrice - sd.EntryPrice) / sd.EntryPrice) * 100
 			sd.TotalFees = strat.Actions[relIndex].ExchangeFee + entryExchangeFee
-			fmt.Printf(colorWhite+"> $%v\n"+colorReset, strat.Actions[relIndex].ProfitCap)
+			// fmt.Printf(colorWhite+"> $%v\n"+colorReset, strat.Actions[relIndex].ProfitCap)
 		}
 	}
 
