@@ -326,6 +326,10 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 }
 
 func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex int, directionIsLong bool, botStreamName Bot) {
+	if cIndex < 300 {
+		fmt.Printf(colorGreen+"<%v> $=%v / sl=%v / tp=%v / accRisk=%v/ lev=%v \n"+colorReset, cIndex, price, sl, tp, accRisk, lev)
+	}
+
 	if !strat.liveTrade {
 		actualPrice := (1 + (strat.OrderSlippagePerc / 100)) * price //TODO: modify to - for shorting
 		desiredPosCap, _ := calcEntry(actualPrice, sl, accRisk, strat.availableEquity, lev)
@@ -407,6 +411,10 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 }
 
 func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex int, action string, timestamp string, bot Bot) {
+	// if cIndex < 600 {
+	// 	fmt.Printf(colorRed+"<%v> $=%v / action=%v / posPercClose=%v \n"+colorReset, cIndex, price, action, posPercToClose)
+	// }
+
 	if !strat.liveTrade {
 		orderSize := (posPercToClose / 100) * strat.posLongSize
 		actualClosePrice := (1 - (strat.OrderSlippagePerc / 100)) * price //TODO: modify to + for shorting
