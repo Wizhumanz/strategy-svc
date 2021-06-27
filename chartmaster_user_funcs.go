@@ -274,7 +274,6 @@ func logScanEntry(relCandleIndex, entryIndex int, candles []Candlestick, pivotLo
 		retData.EntryTradeOpenCandle = candles[actualEntryIndex]
 		retData.EntryLastPLIndex = entryIndex
 		retData.ActualEntryIndex = actualEntryIndex
-		stored.ScanPoints = append(stored.ScanPoints, *retData)
 
 		if len(pivotLows) >= 3 {
 			plSliEntryIndex := len(pivotLows) - 1
@@ -297,19 +296,20 @@ func logScanEntry(relCandleIndex, entryIndex int, candles []Candlestick, pivotLo
 
 		retData.MaxExitIndex = actualEntryIndex + maxDurationCandles
 
+		stored.ScanPoints = append(stored.ScanPoints, *retData)
 		stored.WatchingTrend = true
 
 		(*newLabels)["middle"][relCandleIndex-actualEntryIndex] = fmt.Sprintf(">/%v", retData.ActualEntryIndex)
 	}
 
-	fmt.Printf(colorYellow+"<%v> retData= %+v\n"+colorReset, retData.EntryTradeOpenCandle.DateTime(), retData)
+	// fmt.Printf(colorYellow+"<%v> retData= %+v\n"+colorReset, retData.EntryTradeOpenCandle.DateTime(), retData)
 	return *retData
 }
 
 func checkSL(entryData PivotTrendScanDataPoint, relCandleIndex, startCheckIndex int, candles []Candlestick, slPrice float64) int {
-	if relCandleIndex < 150 && relCandleIndex > 90 {
-		fmt.Printf(colorPurple+"<%v> checkSL entryData= %+v\n", relCandleIndex, entryData)
-	}
+	// if relCandleIndex < 2100 && relCandleIndex > 1550 {
+	// 	fmt.Printf(colorPurple+"<%v> checkSL sl= %v / startCheckIndex= %v / entryData= %+v\n", relCandleIndex, slPrice, startCheckIndex, entryData)
+	// }
 
 	//check max index
 	if relCandleIndex >= entryData.MaxExitIndex && entryData.MaxExitIndex != 0 {
@@ -331,16 +331,6 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 	(*retData).BreakIndex = breakIndex
 	(*retData).BreakTime = candles[breakIndex].DateTime()
 
-	//find lowest point between entry and break
-	maxDrawdownIndex := retData.ActualEntryIndex //rolling compare of highest high index
-	for i := retData.ActualEntryIndex + 1; i < breakIndex; i++ {
-		if candles[i].Low < candles[maxDrawdownIndex].Low {
-			maxDrawdownIndex = i
-		}
-	}
-	(*newLabels)["middle"][relCandleIndex-maxDrawdownIndex] = fmt.Sprintf("?/%v", retData.ActualEntryIndex)
-	(*retData).MaxDrawdownPerc = ((candles[retData.ActualEntryIndex].Close - candles[maxDrawdownIndex].Low) / candles[retData.ActualEntryIndex].Close) * 100
-
 	//find highest point between second entry pivot and trend break
 	trendExtentIndex := retData.ActualEntryIndex //rolling compare of highest high index
 	for i := retData.ActualEntryIndex + 1; i < breakIndex; i++ {
@@ -351,6 +341,16 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 	(*newLabels)["middle"][relCandleIndex-trendExtentIndex] = fmt.Sprintf("$/%v", retData.ActualEntryIndex)
 	(*retData).ExtentTime = candles[trendExtentIndex].DateTime()
 	// fmt.Printf(colorRed+"actEntry=%v / extentIndex=%v\n"+colorReset, retData.ActualEntryIndex, trendExtentIndex)
+
+	//find lowest point between entry and extent
+	maxDrawdownIndex := retData.ActualEntryIndex //rolling compare of highest high index
+	for i := retData.ActualEntryIndex + 1; i < trendExtentIndex; i++ {
+		if candles[i].Low < candles[maxDrawdownIndex].Low {
+			maxDrawdownIndex = i
+		}
+	}
+	(*newLabels)["middle"][relCandleIndex-maxDrawdownIndex] = fmt.Sprintf("?/%v", retData.ActualEntryIndex)
+	(*retData).MaxDrawdownPerc = ((candles[retData.ActualEntryIndex].Close - candles[maxDrawdownIndex].Low) / candles[retData.ActualEntryIndex].Close) * 100
 
 	(*retData).Growth = ((candles[trendExtentIndex].High - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
 	// fmt.Printf(colorGreen+"break= %v / extent= %v / high[extent]= %v / entryClose=%v\n"+colorReset, breakIndex, trendExtentIndex, high[trendExtentIndex], retData.EntryTradeOpenCandle.Close)
@@ -365,7 +365,7 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 	(*stored).WatchingTrend = false
 	(*stored).ScanPoints[len((*stored).ScanPoints)-1].BreakIndex = breakIndex //don't enter with same PL as past trend, must be after break of past trend
 
-	fmt.Printf(colorGreen+"<%v> retData= %+v\n"+colorReset, retData.BreakTime, retData)
+	// fmt.Printf(colorGreen+"<%v> retData= %+v\n"+colorReset, retData.BreakTime, retData)
 }
 
 func contains(sli []int, find int) bool {
