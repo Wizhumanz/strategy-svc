@@ -111,21 +111,13 @@ func executeLiveStrategy(
 				findPivots(opens, highs, lows, closes, runningIndex, &phs, &pls, nil)
 
 				newStratStore := PivotsStore{
-					BotID:                 bot.KEY,
-					PivotHighs:            phs,
-					PivotLows:             pls,
-					LongEntryPrice:        stratStore.(PivotsStore).LongEntryPrice,
-					LongSLPrice:           stratStore.(PivotsStore).LongSLPrice,
-					LongPosSize:           stratStore.(PivotsStore).LongPosSize,
-					MinSearchIndex:        stratStore.(PivotsStore).MinSearchIndex,
-					EntryFirstPivotIndex:  stratStore.(PivotsStore).EntryFirstPivotIndex,
-					EntrySecondPivotIndex: stratStore.(PivotsStore).EntrySecondPivotIndex,
-					TPIndex:               stratStore.(PivotsStore).TPIndex,
-					SLIndex:               stratStore.(PivotsStore).SLIndex,
-					Opens:                 opens,
-					Highs:                 highs,
-					Lows:                  lows,
-					Closes:                closes,
+					BotID:      bot.KEY,
+					PivotHighs: phs,
+					PivotLows:  pls,
+					Opens:      opens,
+					Highs:      highs,
+					Lows:       lows,
+					Closes:     closes,
 				}
 				stratStore = newStratStore
 
@@ -232,20 +224,12 @@ func executeLiveStrategy(
 				// fmt.Printf(colorGreen+"<%v> %v"+colorReset, runningIndex, readStore)
 
 				newStratStore := PivotsStore{
-					PivotHighs:            readStore.PivotHighs,
-					PivotLows:             readStore.PivotLows,
-					LongEntryPrice:        readStore.LongEntryPrice,
-					LongSLPrice:           readStore.LongSLPrice,
-					LongPosSize:           readStore.LongPosSize,
-					MinSearchIndex:        readStore.MinSearchIndex,
-					EntryFirstPivotIndex:  readStore.EntryFirstPivotIndex,
-					EntrySecondPivotIndex: readStore.EntrySecondPivotIndex,
-					TPIndex:               readStore.TPIndex,
-					SLIndex:               readStore.SLIndex,
-					Opens:                 opens,
-					Highs:                 highs,
-					Lows:                  lows,
-					Closes:                closes,
+					PivotHighs: readStore.PivotHighs,
+					PivotLows:  readStore.PivotLows,
+					Opens:      opens,
+					Highs:      highs,
+					Lows:       lows,
+					Closes:     closes,
 				}
 				stratStore = newStratStore
 

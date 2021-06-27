@@ -61,9 +61,9 @@ func runScan(
 	userID, rid, ticker, period string,
 	startTime, endTime time.Time,
 	packetSize int,
-	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, PivotTrendScanDataPoint),
-	packetSender func(string, string, []CandlestickChartData, []PivotTrendScanDataPoint),
-) ([]CandlestickChartData, []PivotTrendScanDataPoint) {
+	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, StrategyDataPoint),
+	packetSender func(string, string, []CandlestickChartData, []StrategyDataPoint),
+) ([]CandlestickChartData, []StrategyDataPoint) {
 	var chunksArr []*[]Candlestick
 
 	totalCandles = nil

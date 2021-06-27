@@ -572,13 +572,13 @@ func computeScan(
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
-	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, PivotTrendScanDataPoint),
-	packetSender func(string, string, []CandlestickChartData, []PivotTrendScanDataPoint),
+	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, StrategyDataPoint),
+	packetSender func(string, string, []CandlestickChartData, []StrategyDataPoint),
 	chunksArr *[]*[]Candlestick,
-	c chan time.Time) ([]CandlestickChartData, []PivotTrendScanDataPoint) {
+	c chan time.Time) ([]CandlestickChartData, []StrategyDataPoint) {
 	var store interface{} //save state between strategy executions on each candle
 	var retCandles []CandlestickChartData
-	var retScanRes []PivotTrendScanDataPoint
+	var retScanRes []StrategyDataPoint
 	var allEmptyCandles []time.Time
 
 	m := sync.Mutex{}
@@ -603,7 +603,7 @@ func computeScan(
 		for _, candle := range allCandlesArr {
 			//run strat for all chunk's candles
 			var chunkAddedCandles []CandlestickChartData //separate chunk added vars to stream new data in packet only
-			var chunkAddedScanData []PivotTrendScanDataPoint
+			var chunkAddedScanData []StrategyDataPoint
 			var labels map[string]map[int]string
 
 			// Check if it's the right time. If it's not there, check in the allEmptyCandles to see if it's empty
@@ -614,7 +614,7 @@ func computeScan(
 				allHighs = append(allHighs, candle.High)
 				allLows = append(allLows, candle.Low)
 				allCloses = append(allCloses, candle.Close)
-				var pivotScanData PivotTrendScanDataPoint
+				var pivotScanData StrategyDataPoint
 				labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
 
 				//save res data
@@ -771,7 +771,7 @@ func streamBacktestResData(userID, rid string, c []CandlestickChartData, pc []Pr
 	}
 }
 
-func streamScanResData(userID, rid string, c []CandlestickChartData, scanData []PivotTrendScanDataPoint) {
+func streamScanResData(userID, rid string, c []CandlestickChartData, scanData []StrategyDataPoint) {
 	ws := wsConnectionsChartmaster[userID]
 	if ws != nil {
 		//scan pivot data point
