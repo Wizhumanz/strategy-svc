@@ -103,6 +103,7 @@ func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick 
 		go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
 	}
 	return jStruct
+	// return nil
 }
 
 func getCachedCandleData(ticker, period string, start, end time.Time) []Candlestick {
@@ -308,8 +309,8 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		m.Unlock()
 	}
 	// Fetching candles from COIN API in 300s
-	for i := 0; i < len(candlesNotInCache); i += 5 {
-		if len(candlesNotInCache) > i+5 {
+	for i := 0; i < len(candlesNotInCache); i += 300 {
+		if len(candlesNotInCache) > i+300 {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
 		} else {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[len(candlesNotInCache)-1])...)
@@ -332,10 +333,10 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	}
 	sort.Strings(tempTimeArray)
 	if len(chunkCandles) == 0 {
-		for i := 0; i < 5; i += 1 {
+		for i := 0; i < 300; i += 1 {
 			c <- eachTime
 			eachTime = eachTime.Add(time.Minute * 1)
-			// fmt.Printf("\nchannel: %v\n", eachTime)
+			// fmt.Printf("\nchannelA: %v\n", eachTime)
 		}
 	}
 	for i, t := range tempTimeArray {
@@ -352,14 +353,14 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 					// Send missing time through channels
 					c <- eachTime
 
-					// fmt.Printf("\nchannel: %v\n", eachTime)
+					// fmt.Printf("\nchannelB: %v\n", eachTime)
 
 					for {
 						eachTime = eachTime.Add(time.Minute * 1)
 
 						if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
 							c <- eachTime
-							// fmt.Printf("\nchannel: %v\n", eachTime)
+							// fmt.Printf("\nchannelC: %v\n", eachTime)
 
 						} else {
 							eachTime = eachTime.Add(time.Minute * -1)
@@ -393,14 +394,14 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 		}
 		wg.Add(1)
 
-		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 5)
+		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 300)
 		if fetchCandlesEnd.After(endTime) {
 			fetchCandlesEnd = endTime
 		}
 		var chunkSlice []Candlestick
 
 		*chunksArr = append(*chunksArr, &chunkSlice)
-		go getChunkCandleData(&chunkSlice, 5, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg, &m)
+		go getChunkCandleData(&chunkSlice, 300, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg, &m)
 
 		//increment
 		fetchCandlesStart = fetchCandlesEnd
@@ -476,6 +477,7 @@ func computeBacktest(
 
 			// Check if it's the right time. If it's not there, check in the allEmptyCandles to see if it's empty
 			if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+				// fmt.Printf("\nrequiredTime: %v\n", requiredTime)
 				allOpens = append(allOpens, candle.Open)
 				allHighs = append(allHighs, candle.High)
 				allLows = append(allLows, candle.Low)
@@ -531,11 +533,11 @@ func computeBacktest(
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
 			} else if containsEmptyCandles(allEmptyCandles, requiredTime) && requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
-				// fmt.Printf("\ndoesnt exist: %v,%v\n", requiredTime, i)
-				// fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, i)
+				// fmt.Printf("\ndoesnt exist: %v\n", requiredTime)
+				// fmt.Printf("\ncandle.PeriodStart: %v\n", candle.PeriodStart)
 				restartLoop := false
 				for {
-					// fmt.Printf("\nkms: %v,%v\n", requiredTime, i)
+					// fmt.Printf("\nkms: %v\n", requiredTime)
 					requiredTime = requiredTime.Add(time.Minute * 1)
 
 					// Break for loop if the empty candle timestamp reaches the requiredTime
