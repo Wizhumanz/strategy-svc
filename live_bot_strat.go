@@ -59,7 +59,7 @@ func executeLiveStrategy(
 			fmt.Sprintf("<%v> %v", line, file))
 	}
 
-	var skipCandles = 0
+	var skipCandles = 3
 
 	var fetchedCandles []Candlestick
 
