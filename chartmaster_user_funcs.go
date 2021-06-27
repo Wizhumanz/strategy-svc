@@ -109,7 +109,7 @@ func strat1(
 	open, high, low, close []float64,
 	relCandleIndex int,
 	strategy *StrategyExecutor,
-	storage *interface{}, bot Bot) map[string]map[int]string {
+	storage *interface{}, bot Bot) (map[string]map[int]string, int) {
 	//TODO: pass these 2 from frontend
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
@@ -217,7 +217,7 @@ func strat1(
 	// if relCandleIndex < 250 && relCandleIndex > 120 {
 	// 	fmt.Printf(colorRed+"<%v> pl=%v\nph=%v\n"+colorReset, relCandleIndex, stored.PivotLows, stored.PivotHighs)
 	// }
-	return newLabels
+	return newLabels, 0
 }
 
 // SCANNING //

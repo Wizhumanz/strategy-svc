@@ -11,7 +11,7 @@ func runBacktest(
 	userID, rid, ticker, period string,
 	startTime, endTime time.Time,
 	packetSize int,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string,
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) (map[string]map[int]string, int),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 ) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
 	var chunksArr []*[]Candlestick

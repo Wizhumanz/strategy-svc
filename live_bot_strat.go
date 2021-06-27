@@ -52,7 +52,7 @@ func minuteTicker(period string) *time.Ticker {
 
 func executeLiveStrategy(
 	bot Bot,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) map[string]map[int]string) {
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) (map[string]map[int]string, int)) {
 	if bot.Ticker == "" || bot.Period == "" {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(loggingInJSON(fmt.Sprintf("ticker or period nil| ticker = %v, period = %v\n", bot.Ticker, bot.Period)),
