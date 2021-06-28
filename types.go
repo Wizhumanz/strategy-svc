@@ -361,9 +361,6 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 			ExchangeFee:  exchangeFee,
 		}
 	} else {
-		changeMarginType()
-		changeInitialLeverage(lev)
-
 		// get acc balance
 		var objmap []map[string]interface{}
 		if err := json.Unmarshal(getFuturesAccountBalance(), &objmap); err != nil {
@@ -382,6 +379,9 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 				symbol = s["symbol_id_exchange"].(string)
 			}
 		}
+
+		changeMarginType(symbol)
+		changeInitialLeverage(symbol, lev)
 
 		var balance string
 		for _, b := range objmap {
