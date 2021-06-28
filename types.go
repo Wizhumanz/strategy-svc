@@ -361,6 +361,9 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 			ExchangeFee:  exchangeFee,
 		}
 	} else {
+		changeMarginType()
+		changeInitialLeverage(lev)
+
 		// get acc balance
 		var objmap []map[string]interface{}
 		if err := json.Unmarshal(getFuturesAccountBalance(), &objmap); err != nil {
