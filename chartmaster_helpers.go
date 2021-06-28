@@ -312,8 +312,8 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		m.Unlock()
 	}
 	// Fetching candles from COIN API in 300s
-	for i := 0; i < len(candlesNotInCache); i += 100 {
-		if len(candlesNotInCache) > i+100 {
+	for i := 0; i < len(candlesNotInCache); i += chunkSize {
+		if len(candlesNotInCache) > i+chunkSize {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
 		} else {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[len(candlesNotInCache)-1])...)
@@ -336,7 +336,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	}
 	sort.Strings(tempTimeArray)
 	if len(chunkCandles) == 0 {
-		for i := 0; i < 100; i += 1 {
+		for i := 0; i < chunkSize; i += 1 {
 			c <- eachTime
 			eachTime = eachTime.Add(time.Minute * 1)
 			// fmt.Printf("\nchannelA: %v\n", eachTime)
@@ -397,14 +397,14 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 		}
 		wg.Add(1)
 
-		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 100)
+		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * time.Duration(chunkSize))
 		if fetchCandlesEnd.After(endTime) {
 			fetchCandlesEnd = endTime
 		}
 		var chunkSlice []Candlestick
 
 		*chunksArr = append(*chunksArr, &chunkSlice)
-		go getChunkCandleData(&chunkSlice, 100, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg, &m)
+		go getChunkCandleData(&chunkSlice, chunkSize, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg, &m)
 
 		//increment
 		fetchCandlesStart = fetchCandlesEnd

@@ -17,6 +17,8 @@ import (
 	"gitlab.com/myikaco/msngr"
 )
 
+var chunkSize = 10
+
 var redisHostMsngr = os.Getenv("REDISHOST_MSNGR")
 var redisPortMsngr = os.Getenv("REDISPORT_MSNGR")
 var redisPassMsngr = os.Getenv("REDISPASS_MSNGR")
