@@ -167,8 +167,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 	//strategy enter/exit
 	if strat.Actions[relIndex].Action == "ENTER" {
 		newCandleD.StratEnterPrice = strat.Actions[relIndex].Price
-	}
-	if strat.Actions[relIndex].Action == "SL" || strat.Actions[relIndex].Action == "TP" {
+	} else if strat.Actions[relIndex].Action != "" {
 		newCandleD.StratExitPrice = strat.Actions[relIndex].Price
 	}
 	retCandlesArr = append(retCandlesArr, newCandleD)
