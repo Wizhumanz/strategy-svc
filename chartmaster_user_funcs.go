@@ -111,7 +111,7 @@ func strat1(
 	open, high, low, close []float64,
 	relCandleIndex int,
 	strategy *StrategyExecutor,
-	storage *interface{}, bot Bot) map[string]map[int]string {
+	storage *interface{}, bot Bot) (map[string]map[int]string, int) {
 	//TODO: pass these 2 from frontend
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
@@ -156,7 +156,7 @@ func strat1(
 	//SL cooldown labels
 	if len(stored.Trades) > 0 && relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex+slCooldownCandles) {
 		newLabels["middle"][0] = "ч"
-		return newLabels
+		return newLabels, 0
 	}
 
 	if len(stored.PivotLows) >= 3 {
@@ -205,7 +205,7 @@ func strat1(
 	// if relCandleIndex < 250 && relCandleIndex > 120 {
 	// 	fmt.Printf(colorRed+"<%v> pl=%v\nph=%v\n"+colorReset, relCandleIndex, stored.PivotLows, stored.PivotHighs)
 	// }
-	return newLabels
+	return newLabels, 0
 }
 
 // SCANNING //

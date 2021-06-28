@@ -376,6 +376,9 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 			}
 		}
 
+		changeMarginType(symbol)
+		changeInitialLeverage(symbol, lev)
+
 		var balance string
 		for _, b := range objmap {
 			if b["asset"] == "USDT" {
@@ -385,7 +388,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 
 		// calculate pos size (20% of account size)
 		bal, _ := strconv.ParseFloat(balance, 64)
-		currentBalance := bal * 0.2
+		currentBalance := bal * float64(lev) * 0.2
 
 		// submit 3 orders:
 		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
