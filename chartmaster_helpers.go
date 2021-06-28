@@ -474,7 +474,7 @@ func computeBacktest(
 			var chunkAddedPCData []ProfitCurveDataPoint
 			var chunkAddedSTData []SimulatedTradeDataPoint
 			var labels map[string]map[int]string
-			var skipCandles int
+			// var skipCandles int
 
 			// Check if it's the right time. If it's not there, check in the allEmptyCandles to see if it's empty
 			if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
@@ -486,8 +486,7 @@ func computeBacktest(
 				allCandles = append(allCandles, candle)
 				//TODO: build results and run for different param sets
 				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
-				labels, skipCandles = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
-				fmt.Printf("\nskipCandles: %v\n", skipCandles)
+				labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData SimulatedTradeDataPoint

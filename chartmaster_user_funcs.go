@@ -156,10 +156,7 @@ func strat1(
 	//SL cooldown labels
 	if len(stored.Trades) > 0 && relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex+slCooldownCandles) {
 		newLabels["middle"][0] = "ч"
-		return newLabels, 0
-	}
-
-	if len(stored.PivotLows) >= 3 {
+	} else if len(stored.PivotLows) >= 3 {
 		if strategy.GetPosLongSize() > 0 {
 			//manage pos
 			// fmt.Printf(colorYellow+"checking existing trend %v %v\n"+colorReset, relCandleIndex, candles[len(candles)-1].DateTime)
@@ -176,35 +173,34 @@ func strat1(
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
 			possibleEntryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, 3, 0)
 
-			//for each eligible PL after last trade's exit index, run scan to check trend
-			for _, pli := range possibleEntryIndexes {
+			if len(possibleEntryIndexes) > 0 {
+				//check if latest possible entry eligible
 				var lastTradeExitIndex int
 				if len(stored.Trades) == 0 {
 					lastTradeExitIndex = 0
 				} else {
 					lastTradeExitIndex = stored.Trades[len(stored.Trades)-1].ActualEntryIndex
 				}
-				// fmt.Printf(colorYellow+"<%v> checking pli= %v / lastEntryIndex= %v\n allPossibleEntries= %v\n"+colorReset, relCandleIndex, pli, lastTrendEntryIndex, possibleEntryIndexes)
-				if pli <= lastTradeExitIndex {
-					continue
+
+				latestPossibleEntry := possibleEntryIndexes[len(possibleEntryIndexes)-1]
+				if latestPossibleEntry > lastTradeExitIndex {
+					newEntryData := StrategyDataPoint{}
+					newEntryData = logScanEntry(relCandleIndex, latestPossibleEntry, candles, possibleEntryIndexes, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 0.98, -1, startTrailPerc, trailingPerc)
+					newEntryData.ActualEntryIndex = relCandleIndex
+
+					stored.Trades = append(stored.Trades, newEntryData)
+
+					//enter long
+					(*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, true, bot)
 				}
-
-				newEntryData := StrategyDataPoint{}
-				newEntryData = logScanEntry(relCandleIndex, pli, candles, possibleEntryIndexes, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 0.98, -1, startTrailPerc, trailingPerc)
-				newEntryData.ActualEntryIndex = relCandleIndex
-
-				stored.Trades = append(stored.Trades, newEntryData)
-
-				//enter long
-				(*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, true, bot)
 			}
 		}
 	}
 
-	*storage = stored
 	// if relCandleIndex < 250 && relCandleIndex > 120 {
 	// 	fmt.Printf(colorRed+"<%v> pl=%v\nph=%v\n"+colorReset, relCandleIndex, stored.PivotLows, stored.PivotHighs)
 	// }
+	*storage = stored
 	return newLabels, 0
 }
 
