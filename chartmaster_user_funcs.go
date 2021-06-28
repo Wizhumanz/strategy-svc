@@ -175,7 +175,7 @@ func strat1(
 			if breakIndex > 0 && breakPrice > 0 {
 				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
 				stored.Trades = append(stored.Trades, latestEntryData)
-				(*strategy).CloseLong(breakPrice, 100, relCandleIndex, action, candles[len(candles)-1].DateTime(), bot)
+				(*strategy).CloseLong(breakPrice, 100, relCandleIndex, action, candles[len(candles)-1], bot)
 			}
 		} else {
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
@@ -203,7 +203,7 @@ func strat1(
 					// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
 					// }
 					//enter long
-					(*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, true, bot)
+					(*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, candles[len(candles)-1], true, bot)
 				}
 			}
 		}

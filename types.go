@@ -212,7 +212,8 @@ type ProfitCurveData struct {
 }
 
 type SimulatedTradeDataPoint struct {
-	DateTime      string  `json:"DateTime"`
+	EntryDateTime string  `json:"EntryDateTime"`
+	ExitDateTime  string  `json:"ExitDateTime"`
 	Direction     string  `json:"Direction"`
 	EntryPrice    float64 `json:"EntryPrice"`
 	ExitPrice     float64 `json:"ExitPrice"`
@@ -288,6 +289,7 @@ type StrategyExecutorAction struct {
 	RiskedEquity float64
 	ProfitCap    float64
 	ExchangeFee  float64
+	DateTime     string
 }
 
 type StrategyExecutor struct {
@@ -326,7 +328,7 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 	return strat.posLongSize
 }
 
-func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, accRisk float64, lev, cIndex int, directionIsLong bool, botStreamName Bot) {
+func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, accRisk float64, lev, cIndex int, candle Candlestick, directionIsLong bool, botStreamName Bot) {
 	if !strat.liveTrade {
 		actualPrice := (1 + (strat.OrderSlippagePerc / 100)) * price //TODO: modify to - for shorting
 		desiredPosCap, _ := calcEntry(actualPrice, sl, accRisk, strat.availableEquity, lev)
@@ -356,6 +358,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 			PosSize:      actualPosSize,
 			RiskedEquity: (accRisk / 100) * strat.availableEquity,
 			ExchangeFee:  exchangeFee,
+			DateTime:     candle.DateTime(),
 		}
 	} else {
 		// get acc balance
@@ -416,7 +419,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 	// }
 }
 
-func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex int, action string, timestamp string, bot Bot) {
+func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex int, action string, candle Candlestick, bot Bot) {
 	// if cIndex < 400 {
 	// 	fmt.Printf(colorRed+"<%v> $=%v / action=%v / posPercClose=%v \n"+colorReset, cIndex, price, action, posPercToClose)
 	// }
@@ -443,6 +446,7 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex i
 			PosSize:     orderSize,
 			ExchangeFee: exchangeFee,
 			ProfitCap:   actualCloseCap - strat.lastEntryEquity,
+			DateTime:    candle.DateTime(),
 		}
 	} else {
 		_, file, line, _ := runtime.Caller(0)

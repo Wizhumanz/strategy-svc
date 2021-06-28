@@ -259,6 +259,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 			//find entry conditions
 			var entryPrice, riskedEquity, entryExchangeFee float64
 			var size float64
+			var entryDateTime string
 			for i := 1; i < relIndex; i++ {
 				checkAction := strat.Actions[relIndex-i]
 				if checkAction.Action == "ENTER" {
@@ -266,11 +267,13 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 					size = checkAction.PosSize
 					riskedEquity = checkAction.RiskedEquity
 					entryExchangeFee = checkAction.ExchangeFee
+					entryDateTime = checkAction.DateTime
 					break
 				}
 			}
 
-			sd.DateTime = c.DateTime()
+			sd.EntryDateTime = entryDateTime
+			sd.ExitDateTime = strat.Actions[relIndex].DateTime
 			sd.Direction = "LONG" //TODO: fix later when strategy changes
 			sd.EntryPrice = entryPrice
 			sd.ExitPrice = strat.Actions[relIndex].Price
@@ -495,7 +498,7 @@ func computeBacktest(
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
 				}
-				if simTradeData.DateTime != "" {
+				if simTradeData.EntryDateTime != "" {
 					chunkAddedSTData = append(chunkAddedSTData, simTradeData)
 				}
 
