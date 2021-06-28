@@ -182,14 +182,18 @@ func strat1(
 					lastTradeExitIndex = stored.Trades[len(stored.Trades)-1].ActualEntryIndex
 				}
 
+				//latest entry PL must be 1) after last trade end, and 2) be the latest PL
 				latestPossibleEntry := possibleEntryIndexes[len(possibleEntryIndexes)-1]
-				if latestPossibleEntry > lastTradeExitIndex {
+				if latestPossibleEntry > lastTradeExitIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] {
 					newEntryData := StrategyDataPoint{}
 					newEntryData = logScanEntry(relCandleIndex, latestPossibleEntry, candles, possibleEntryIndexes, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 0.98, -1, startTrailPerc, trailingPerc)
 					newEntryData.ActualEntryIndex = relCandleIndex
 
 					stored.Trades = append(stored.Trades, newEntryData)
 
+					if relCandleIndex < 300 {
+						fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
+					}
 					//enter long
 					(*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, true, bot)
 				}
@@ -304,11 +308,14 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 		}
 
 		//trailingTP
+		// if relCandleIndex < 150 && relCandleIndex > 100 {
+		// 	fmt.Printf(colorRed+"<%v> %+v\n"+colorReset, relCandleIndex, entryData)
+		// }
 		if entryData.StartTrailPerc > 0 && entryData.TrailingPerc > 0 {
 			if entryData.TrailingStarted {
 				//adjust trailing min + max
 				if candles[i].High > entryData.TrailingMax {
-					entryData.TrailingMax = candles[i].High
+					(*entryData).TrailingMax = candles[i].High
 				}
 
 				//check if hit trailing stop
@@ -320,12 +327,12 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 				//check if should activate trailing stop
 				startTrailPrice := candles[entryData.ActualEntryIndex].Close * (1 + (entryData.StartTrailPerc / 100))
 				if candles[i].High >= startTrailPrice {
-					entryData.TrailingStarted = true
-					entryData.TrailingMax = candles[i].High //only track trailing max for strategy simulate, trailing min only needed for scanning purposes
+					(*entryData).TrailingStarted = true
+					(*entryData).TrailingMax = candles[i].High //only track trailing max for strategy simulate, trailing min only needed for scanning purposes
 
-					if relCandleIndex < 600 {
-						fmt.Printf(colorGreen+"<%v> TRAIL_STOP(%v) triggered @ $%v \n > %+v\n\n"+colorReset, relCandleIndex, startTrailPrice, candles[i].High, entryData)
-					}
+					// if relCandleIndex < 200 {
+					// 	fmt.Printf(colorGreen+"<%v> TRAIL_STOP(%v) triggered @ $%v \n > %+v\n\n"+colorReset, relCandleIndex, startTrailPrice, candles[i].High, entryData)
+					// }
 				}
 			}
 		}
@@ -458,6 +465,7 @@ func scanPivotTrends(
 				stored.WatchingTrend = false
 				stored.ScanPoints[len(stored.ScanPoints)-1].BreakIndex = breakIndex
 			} else {
+				stored.ScanPoints[len(stored.ScanPoints)-1] = retData
 				retData = StrategyDataPoint{}
 			}
 		} else {
@@ -487,6 +495,7 @@ func scanPivotTrends(
 					stored.WatchingTrend = false
 					stored.ScanPoints[len(stored.ScanPoints)-1].BreakIndex = breakIndex
 				} else {
+					stored.ScanPoints[len(stored.ScanPoints)-1] = retData
 					retData = StrategyDataPoint{}
 				}
 			}

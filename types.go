@@ -409,7 +409,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 	}
 
 	if cIndex < 300 {
-		fmt.Printf(colorYellow+"<%v> $=%v / sl=%v \n >> %+v\n\n"+colorReset, cIndex, price, sl, strat)
+		fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v \n >> %+v\n\n"+colorReset, cIndex, price, sl, strat)
 	}
 }
 
