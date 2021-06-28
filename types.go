@@ -218,6 +218,7 @@ type SimulatedTradeDataPoint struct {
 	ExitPrice     float64 `json:"ExitPrice"`
 	PosSize       float64 `json:"PosSize"`
 	RiskedEquity  float64 `json:"RiskedEquity"`
+	Profit        float64 `json:"Profit"`
 	RawProfitPerc float64 `json:"RawProfitPerc"`
 	TotalFees     float64 `json:"TotalFees"`
 }
@@ -410,9 +411,9 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 
 	startTrailPrice := price * (1 + (startTrailPerc / 100))
 	fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v / trailStart= %v \n len(strat.Actions)= %v\n\n"+colorReset, cIndex, price, sl, startTrailPrice, len(strat.Actions))
-	for _, action := range strat.Actions {
-		fmt.Printf("%+v\n", action)
-	}
+	// for _, action := range strat.Actions {
+	// 	fmt.Printf("%+v\n", action)
+	// }
 }
 
 func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex int, action string, timestamp string, bot Bot) {
