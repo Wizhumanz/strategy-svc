@@ -325,11 +325,7 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 	return strat.posLongSize
 }
 
-func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex int, directionIsLong bool, botStreamName Bot) {
-	if cIndex < 300 {
-		fmt.Printf(colorGreen+"<%v> $=%v / sl=%v / tp=%v / accRisk=%v/ lev=%v \n"+colorReset, cIndex, price, sl, tp, accRisk, lev)
-	}
-
+func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, accRisk float64, lev, cIndex int, directionIsLong bool, botStreamName Bot) {
 	if !strat.liveTrade {
 		actualPrice := (1 + (strat.OrderSlippagePerc / 100)) * price //TODO: modify to - for shorting
 		desiredPosCap, _ := calcEntry(actualPrice, sl, accRisk, strat.availableEquity, lev)
@@ -407,6 +403,10 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 		// pauseStreamListening(botStreamName, fmt.Sprintf("OpenTradeSaga | %v", args))
 		// OpenTradeSaga.Execute(botStreamName, svcConsumerGroupName, redisConsumerID, args)
 		// continueStreamListening(botStreamName)
+	}
+
+	if cIndex < 300 {
+		fmt.Printf(colorYellow+"<%v> $=%v / sl=%v \n >> %+v\n\n"+colorReset, cIndex, price, sl, strat)
 	}
 }
 
