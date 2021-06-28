@@ -116,10 +116,17 @@ func strat1(
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
-	pivotLowsToEnter := 3
-	maxDurationCandles := 600
-	startTrailPerc := 0.3
-	trailingPerc := 0.68
+	//map of tp lambda(phs, pls, price) => bool TO account size perc to close (multi-tp)
+	// tpMap := map[float64]int{
+	// 	0.5: 50,
+	// 	0.7: 50,
+	// }
+
+	pivotLowsToEnter := 4
+	maxDurationCandles := 200
+	slPerc := 0.7
+	startTrailPerc := 1.3
+	trailingPerc := 0.4
 	slCooldownCandles := 20 //TODO: change to pivots
 
 	newLabels := map[string]map[int]string{
@@ -187,14 +194,14 @@ func strat1(
 				latestPossibleEntry := possibleEntryIndexes[len(possibleEntryIndexes)-1]
 				if latestPossibleEntry > lastTradeExitIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] {
 					newEntryData := StrategyDataPoint{}
-					newEntryData = logScanEntry(relCandleIndex, latestPossibleEntry, candles, possibleEntryIndexes, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 0.98, -1, startTrailPerc, trailingPerc)
+					newEntryData = logScanEntry(relCandleIndex, latestPossibleEntry, candles, possibleEntryIndexes, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, startTrailPerc, trailingPerc)
 					newEntryData.ActualEntryIndex = relCandleIndex
 
 					stored.Trades = append(stored.Trades, newEntryData)
 
-					if relCandleIndex < 300 {
-						fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
-					}
+					// if relCandleIndex < 300 {
+					// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
+					// }
 					//enter long
 					(*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, true, bot)
 				}

@@ -408,7 +408,11 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		// continueStreamListening(botStreamName)
 	}
 
-	fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v \n len(strat.Actions)= %v\n\n"+colorReset, cIndex, price, sl, len(strat.Actions))
+	startTrailPrice := price * (1 + (startTrailPerc / 100))
+	fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v / trailStart= %v \n len(strat.Actions)= %v\n\n"+colorReset, cIndex, price, sl, startTrailPrice, len(strat.Actions))
+	for _, action := range strat.Actions {
+		fmt.Printf("%+v\n", action)
+	}
 }
 
 func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex int, action string, timestamp string, bot Bot) {

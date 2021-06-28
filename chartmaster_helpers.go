@@ -255,7 +255,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 	//sim trades
 	sd := SimulatedTradeDataPoint{}
 	if len(strat.Actions) > 0 {
-		if strat.Actions[relIndex].Action == "SL" || strat.Actions[relIndex].Action == "TP" {
+		if strat.Actions[relIndex].Action != "ENTER" && strat.Actions[relIndex].Action != "" {
 			//find entry conditions
 			var entryPrice, riskedEquity, entryExchangeFee float64
 			var size float64
@@ -308,8 +308,8 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		m.Unlock()
 	}
 	// Fetching candles from COIN API in 300s
-	for i := 0; i < len(candlesNotInCache); i += 300 {
-		if len(candlesNotInCache) > i+300 {
+	for i := 0; i < len(candlesNotInCache); i += 100 {
+		if len(candlesNotInCache) > i+100 {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
 		} else {
 			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[len(candlesNotInCache)-1])...)
@@ -332,7 +332,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	}
 	sort.Strings(tempTimeArray)
 	if len(chunkCandles) == 0 {
-		for i := 0; i < 300; i += 1 {
+		for i := 0; i < 100; i += 1 {
 			c <- eachTime
 			eachTime = eachTime.Add(time.Minute * 1)
 			// fmt.Printf("\nchannelA: %v\n", eachTime)
@@ -393,14 +393,14 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 		}
 		wg.Add(1)
 
-		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 300)
+		fetchCandlesEnd := fetchCandlesStart.Add(periodDurationMap[period] * 100)
 		if fetchCandlesEnd.After(endTime) {
 			fetchCandlesEnd = endTime
 		}
 		var chunkSlice []Candlestick
 
 		*chunksArr = append(*chunksArr, &chunkSlice)
-		go getChunkCandleData(&chunkSlice, 300, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg, &m)
+		go getChunkCandleData(&chunkSlice, 100, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg, &m)
 
 		//increment
 		fetchCandlesStart = fetchCandlesEnd
