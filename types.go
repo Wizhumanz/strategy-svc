@@ -408,15 +408,13 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		// continueStreamListening(botStreamName)
 	}
 
-	if cIndex < 300 {
-		fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v \n >> %+v\n\n"+colorReset, cIndex, price, sl, strat)
-	}
+	fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v \n len(strat.Actions)= %v\n\n"+colorReset, cIndex, price, sl, len(strat.Actions))
 }
 
 func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex int, action string, timestamp string, bot Bot) {
-	if cIndex < 400 {
-		fmt.Printf(colorRed+"<%v> $=%v / action=%v / posPercClose=%v \n"+colorReset, cIndex, price, action, posPercToClose)
-	}
+	// if cIndex < 400 {
+	// 	fmt.Printf(colorRed+"<%v> $=%v / action=%v / posPercClose=%v \n"+colorReset, cIndex, price, action, posPercToClose)
+	// }
 
 	if !strat.liveTrade {
 		orderSize := (posPercToClose / 100) * strat.posLongSize

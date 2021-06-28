@@ -116,6 +116,7 @@ func strat1(
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
+	pivotLowsToEnter := 3
 	maxDurationCandles := 600
 	startTrailPerc := 0.3
 	trailingPerc := 0.68
@@ -171,7 +172,7 @@ func strat1(
 			}
 		} else {
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
-			possibleEntryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, 3, 0)
+			possibleEntryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, pivotLowsToEnter, 0)
 
 			if len(possibleEntryIndexes) > 0 {
 				//check if latest possible entry eligible
