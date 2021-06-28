@@ -389,7 +389,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, accRisk float64, lev, cIndex i
 
 		// calculate pos size (20% of account size)
 		bal, _ := strconv.ParseFloat(balance, 64)
-		currentBalance := bal * 0.2
+		currentBalance := bal * float64(lev) * 0.2
 
 		// submit 3 orders:
 		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
