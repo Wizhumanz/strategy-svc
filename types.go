@@ -443,10 +443,7 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex i
 		go Log(fmt.Sprintf("Closing pos %v/100 at %v | action = %v\n", posPercToClose, price, action),
 			fmt.Sprintf("<%v> %v", line, file))
 
-		// get acc balance <
-		getFuturesAccountBalance()
-		// calculate pos size
-		// submit limit order
+		//NOTE: current strategies don't need active order closing
 
 		// args := map[string]interface{}{}
 		// args["posPercToClose"] = posPercToClose
