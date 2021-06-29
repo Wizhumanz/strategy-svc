@@ -328,13 +328,15 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 	return strat.posLongSize
 }
 
-func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, accRisk float64, lev, cIndex int, candle Candlestick, directionIsLong bool, botStreamName Bot) {
+// Buy returns a []MultiTPPoint with actual position sizes for each TP point based on actual entry data
+func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, accRisk float64, lev, cIndex int, multiTPs []MultiTPPoint, candle Candlestick, directionIsLong bool, botStreamName Bot) []MultiTPPoint {
+	retMultiTPs := []MultiTPPoint{}
 	if !strat.liveTrade {
 		actualPrice := (1 + (strat.OrderSlippagePerc / 100)) * price //TODO: modify to - for shorting
 		desiredPosCap, _ := calcEntry(actualPrice, sl, accRisk, strat.availableEquity, lev)
 		//binance min order size = 10 USDT
 		if desiredPosCap <= 10 {
-			return
+			return retMultiTPs
 		}
 		actualCap := (1 - (strat.ExchangeTradeFeePerc / 100)) * desiredPosCap
 		exchangeFee := (strat.ExchangeTradeFeePerc / 100) * desiredPosCap
@@ -349,6 +351,24 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 			strat.posLongSize = actualPosSize
 		} else {
 			strat.posShortSize = actualPosSize
+		}
+
+		//complete multi-tp map with actual pos sizes
+		if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
+			calcRemainingPosSize := actualPosSize
+			for i, tpPoint := range multiTPs {
+				fmt.Printf(colorCyan+"<%v, %v> actualPosSz= %v / remainingSz = %v / tpPoint = %+v / multiTPs= %+v\n", cIndex, i, actualPosSize, calcRemainingPosSize, tpPoint, multiTPs)
+
+				newPoint := tpPoint
+				if i == len(multiTPs)-1 {
+					//make sure to close entire position (account for ultra-low leftover size from calculations)
+					newPoint.CloseSize = calcRemainingPosSize
+				} else {
+					newPoint.CloseSize = (tpPoint.ClosePerc / 100) * actualPosSize
+					calcRemainingPosSize -= newPoint.CloseSize
+				}
+				retMultiTPs = append(retMultiTPs, newPoint)
+			}
 		}
 
 		strat.Actions[cIndex] = StrategyExecutorAction{
@@ -394,6 +414,8 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		bal, _ := strconv.ParseFloat(balance, 64)
 		currentBalance := bal * float64(lev) * 0.2
 
+		//TODO: use TP map to submit multi TP stop limit orders
+
 		// submit 3 orders:
 		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
 		newOrder(symbol, "SELL", "STOP", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 0.79*price), "true", fmt.Sprintf("%.2f", 0.8*price))
@@ -412,20 +434,25 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		// continueStreamListening(botStreamName)
 	}
 
-	startTrailPrice := price * (1 + (startTrailPerc / 100))
-	fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v / trailStart= %v \n len(strat.Actions)= %v\n\n"+colorReset, cIndex, price, sl, startTrailPrice, len(strat.Actions))
+	// startTrailPrice := price * (1 + (startTrailPerc / 100))
+	fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v / \n len(strat.Actions)= %v\n\n"+colorReset, cIndex, price, sl, len(strat.Actions))
 	// for _, action := range strat.Actions {
 	// 	fmt.Printf("%+v\n", action)
 	// }
+
+	return retMultiTPs
 }
 
-func (strat *StrategyExecutor) CloseLong(price, posPercToClose float64, cIndex int, action string, candle Candlestick, bot Bot) {
-	// if cIndex < 400 {
-	// 	fmt.Printf(colorRed+"<%v> $=%v / action=%v / posPercClose=%v \n"+colorReset, cIndex, price, action, posPercToClose)
-	// }
+func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64, cIndex int, action string, candle Candlestick, bot Bot) {
+	fmt.Printf(colorGreen+"<%v> $= %v / action= %v / posPercClose= %v / closeSz= %v \n"+colorReset, cIndex, price, action, posPercToClose, closeSz)
 
 	if !strat.liveTrade {
-		orderSize := (posPercToClose / 100) * strat.posLongSize
+		orderSize := 0.0
+		if closeSz > 0.0 {
+			orderSize = closeSz
+		} else {
+			orderSize = (posPercToClose / 100) * strat.posLongSize
+		}
 		actualClosePrice := (1 - (strat.OrderSlippagePerc / 100)) * price //TODO: modify to + for shorting
 		actualCloseCap := (1 - (strat.ExchangeTradeFeePerc / 100)) * (actualClosePrice * orderSize)
 		exchangeFee := (strat.ExchangeTradeFeePerc / 100) * (actualClosePrice * orderSize)
