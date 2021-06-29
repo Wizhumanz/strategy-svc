@@ -333,7 +333,7 @@ func calcMultiTPs(multiTPs []MultiTPPoint, actualPosSize float64, index int) []M
 	if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 		calcRemainingPosSize := actualPosSize
 		for i, tpPoint := range multiTPs {
-			fmt.Printf(colorCyan+"<%v, %v> actualPosSz= %v / remainingSz = %v / tpPoint = %+v / multiTPs= %+v\n", index, i, actualPosSize, calcRemainingPosSize, tpPoint, multiTPs)
+			// fmt.Printf(colorCyan+"<%v, %v> actualPosSz= %v / remainingSz = %v / tpPoint = %+v / multiTPs= %+v\n", index, i, actualPosSize, calcRemainingPosSize, tpPoint, multiTPs)
 
 			newPoint := tpPoint
 			if i == len(multiTPs)-1 {
@@ -444,7 +444,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 	}
 
 	// startTrailPrice := price * (1 + (startTrailPerc / 100))
-	fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v / \n len(strat.Actions)= %v\n\n"+colorReset, cIndex, price, sl, len(strat.Actions))
+	fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v / tpMap= %+v \n len(strat.Actions)= %v\n\n"+colorReset, cIndex, price, sl, retMultiTPs, len(strat.Actions))
 	// for _, action := range strat.Actions {
 	// 	fmt.Printf("%+v\n", action)
 	// }
@@ -453,7 +453,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 }
 
 func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64, cIndex int, action string, candle Candlestick, bot Bot) {
-	fmt.Printf(colorGreen+"<%v> $= %v / action= %v / posPercClose= %v / closeSz= %v \n"+colorReset, cIndex, price, action, posPercToClose, closeSz)
+	fmt.Printf(colorRed+"<%v> CLOSING TRADE(%v) $= %v / posPercClose= %v / closeSz= %v \n"+colorReset, cIndex, action, price, posPercToClose, closeSz)
 
 	if !strat.liveTrade {
 		orderSize := 0.0
