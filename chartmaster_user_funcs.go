@@ -170,10 +170,11 @@ func strat1(
 	// if relCandleIndex <= (stored.TPIndex + tpTradeCooldownCandles) {
 	// 	newLabels["middle"][0] = "й"
 	// }
+
 	//SL cooldown labels
 	if len(stored.Trades) > 0 && relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex+slCooldownCandles) {
 		newLabels["middle"][0] = "ч"
-	} else if len(stored.PivotLows) >= 3 {
+	} else if len(stored.PivotLows) >= 4 {
 		if strategy.GetPosLongSize() > 0 {
 			//manage pos
 			// fmt.Printf(colorYellow+"checking existing trend %v %v\n"+colorReset, relCandleIndex, candles[len(candles)-1].DateTime)
@@ -206,7 +207,7 @@ func strat1(
 				if len(stored.Trades) == 0 {
 					lastTradeExitIndex = 0
 				} else {
-					lastTradeExitIndex = stored.Trades[len(stored.Trades)-1].ActualEntryIndex
+					lastTradeExitIndex = stored.Trades[len(stored.Trades)-1].BreakIndex
 				}
 
 				//latest entry PL must be 1) after last trade end, and 2) be the latest PL
@@ -353,32 +354,43 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 		}
 
 		//multi-tp (map)
+		updatedTPs := []MultiTPPoint{}
 		if entryData.MultiTPs != nil {
-			if relCandleIndex < 180 {
+			if relCandleIndex < 170 {
 				fmt.Printf(colorRed+"<%v> %+v\n"+colorReset, relCandleIndex, entryData.MultiTPs)
 			}
 
 			retTPPoints := []MultiTPPoint{}
 			for _, tpPoint := range entryData.MultiTPs {
+				p := MultiTPPoint{}
+
 				if tpPoint.IsDone {
 					continue
 				}
 
-				if relCandleIndex < 180 {
+				if relCandleIndex < 170 {
 					fmt.Printf("%+v \n > %v\n", tpPoint, candles[i].High)
 				}
 
-				if candles[i].High >= tpPoint.Price {
-					fmt.Printf(colorYellow+"TRIGGERED multi TP / high= %v / tpPoint= %+v\n", candles[i].High, tpPoint)
-					tpPoint.IsDone = true
+				if candles[i].High >= tpPoint.Price && !tpPoint.IsDone {
+					if relCandleIndex < 170 {
+						fmt.Printf(colorYellow+"TRIGGERED multi TP / high= %v / tpPoint= %+v\n", candles[i].High, tpPoint)
+					}
+
+					p = tpPoint
+					p.IsDone = true
 					//add price to exit price slice (in case multiple TPs)
-					retTPPoints = append(retTPPoints, tpPoint)
+					retTPPoints = append(retTPPoints, p)
 				}
-				if len(retTPPoints) > 0 {
-					fmt.Printf(colorCyan+"%+v\n", retTPPoints)
-				}
+
+				updatedTPs = append(updatedTPs, p)
+				// if len(retTPPoints) > 0 {
+				// 	fmt.Printf(colorCyan+"%+v\n", retTPPoints)
+				// }
 			}
-			return i, -1, "MULTI-TP", retTPPoints
+
+			(*entryData).MultiTPs = updatedTPs
+			return i, retTPPoints[len(retTPPoints)-1].Price, "MULTI-TP", retTPPoints
 		}
 
 		//trailingTP

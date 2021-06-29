@@ -401,7 +401,6 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	// 		fmt.Sprintf("<%v> %v", line, file))
 	// 	return
 	// }
-	fmt.Println("DONE")
 	*chunkSlice = sortedChunkCandles
 }
 
