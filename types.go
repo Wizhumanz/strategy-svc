@@ -350,7 +350,7 @@ func calcMultiTPs(multiTPs []MultiTPPoint, actualPosSize float64, index int) []M
 }
 
 // Buy returns a []MultiTPPoint with actual position sizes for each TP point based on actual entry data
-func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, accRisk float64, lev, cIndex int, multiTPs []MultiTPPoint, candle Candlestick, directionIsLong bool, botStreamName Bot) []MultiTPPoint {
+func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, accRisk float64, lev, cIndex int, multiTPs []MultiTPPoint, candle Candlestick, directionIsLong bool, bot Bot) []MultiTPPoint {
 	retMultiTPs := []MultiTPPoint{}
 
 	if !strat.liveTrade {
@@ -388,14 +388,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 			DateTime:     candle.DateTime(),
 		}
 	} else {
-		//TODO: call calcMultiTPs and use result as multi tp prices and order sizes
-
-		// get acc balance
-		var objmap []map[string]interface{}
-		if err := json.Unmarshal(getFuturesAccountBalance(), &objmap); err != nil {
-			log.Fatal(err)
-		}
-
+		//setup
 		var binanceSymbolsFile []map[string]interface{}
 		file, _ := ioutil.ReadFile("./json-data/symbols-binance-fut-perp.json")
 		if err := json.Unmarshal(file, &binanceSymbolsFile); err != nil {
@@ -404,13 +397,18 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 
 		var symbol string
 		for _, s := range binanceSymbolsFile {
-			if s["symbol_id"] == botStreamName.Ticker {
+			if s["symbol_id"] == bot.Ticker {
 				symbol = s["symbol_id_exchange"].(string)
 			}
 		}
-
 		changeMarginType(symbol)
 		changeInitialLeverage(symbol, lev)
+
+		// get acc balance
+		var objmap []map[string]interface{}
+		if err := json.Unmarshal(getFuturesAccountBalance(), &objmap); err != nil {
+			log.Fatal(err)
+		}
 
 		var balance string
 		for _, b := range objmap {
@@ -419,19 +417,28 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 			}
 		}
 
-		// calculate pos size (20% of account size)
+		// calculate pos size
+		limitOrderMultiply := 0.6
+		entryLimitOrderSubmitPrice := (1 + (limitOrderMultiply / 100)) * price
+		slLimitOrderPrice := 0.994 * sl
+
 		bal, _ := strconv.ParseFloat(balance, 64)
-		currentBalance := bal * float64(lev) * 0.2
+		accPercToUse, _ := strconv.ParseFloat(bot.AccountSizePercToTrade, 64)
+		riskPerTrade, _ := strconv.ParseFloat(bot.AccountRiskPercPerTrade, 64)
 
-		//TODO: use TP map to submit multi TP stop limit orders
+		_, posSz := calcEntry(entryLimitOrderSubmitPrice, sl, riskPerTrade, accPercToUse*bal, lev)
+		//calc TP map
+		tps := calcMultiTPs(multiTPs, posSz, cIndex)
 
-		// submit 3 orders:
-		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
-		newOrder(symbol, "SELL", "STOP", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 0.79*price), "true", fmt.Sprintf("%.2f", 0.8*price))
-		// 2. stop limit order TP (stop=1.5*price, limit=1.49*price, reduceOnly=true)
-		newOrder(symbol, "SELL", "TAKE_PROFIT", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 1.49*price), "true", fmt.Sprintf("%.2f", 1.5*price))
-		// 3. limit order entry (limit=0.8*price)
-		newOrder(symbol, "BUY", "LIMIT", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 0.8*price), "no", "0")
+		//submit entry order
+		newOrder(symbol, "BUY", "LIMIT", fmt.Sprintf("%.2f", posSz), fmt.Sprintf("%.2f", entryLimitOrderSubmitPrice), "no", "0")
+		// submit SL order
+		newOrder(symbol, "SELL", "STOP", fmt.Sprintf("%.2f", posSz), fmt.Sprintf("%.2f", slLimitOrderPrice), "true", fmt.Sprintf("%.2f", sl))
+
+		//for each TP point, submit a stop limit order
+		for _, tp := range tps {
+			newOrder(symbol, "SELL", "TAKE_PROFIT", fmt.Sprintf("%.2f", tp.CloseSize), fmt.Sprintf("%.2f", tp.Price*(1-(limitOrderMultiply/100))), "true", fmt.Sprintf("%.2f", tp.Price))
+		}
 
 		// args := map[string]interface{}{}
 		// args["slPrice"] = float64(sl)
