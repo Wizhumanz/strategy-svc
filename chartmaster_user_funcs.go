@@ -370,7 +370,7 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 		//multi-tp (map)
 		updatedTPs := []MultiTPPoint{}
 		if entryData.MultiTPs != nil {
-			if relCandleIndex == 127 || relCandleIndex == 128 {
+			if relCandleIndex > 570 && relCandleIndex < 600 {
 				fmt.Printf("%+v\n", entryData.MultiTPs)
 			}
 
@@ -397,15 +397,17 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 				// }
 			}
 
-			if relCandleIndex > 100 && relCandleIndex < 300 {
-				fmt.Printf(colorPurple+"updated TPs= %+v\n"+colorReset, updatedTPs)
+			// if relCandleIndex > 570 && relCandleIndex < 600 {
+			// 	fmt.Printf(colorPurple+"updated TPs= %+v\n"+colorReset, updatedTPs)
+			// }
+
+			if len(updatedTPs) > 0 && updatedTPs[0].Price > 0 {
+				(*entryData).MultiTPs = updatedTPs
 			}
 
-			(*entryData).MultiTPs = updatedTPs
-
-			if relCandleIndex > 100 && relCandleIndex < 300 {
-				fmt.Printf(colorYellow+"(*entryData).MultiTPs= %+v\n"+colorReset, (*entryData).MultiTPs)
-			}
+			// if relCandleIndex > 570 && relCandleIndex < 600 {
+			// 	fmt.Printf(colorYellow+"(*entryData).MultiTPs= %+v\n"+colorReset, (*entryData).MultiTPs)
+			// }
 
 			if len(retTPPoints) <= 0 {
 				return i, -1, "MULTI-TP", retTPPoints, (*entryData)
