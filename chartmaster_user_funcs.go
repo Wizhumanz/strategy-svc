@@ -402,7 +402,25 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 			// }
 
 			if len(updatedTPs) > 0 && updatedTPs[0].Price > 0 {
-				(*entryData).MultiTPs = updatedTPs
+				fmt.Printf(colorPurple+"updated TPs= %+v\n"+colorReset, updatedTPs)
+				newTPPoints := []MultiTPPoint{}
+				for _, exTP := range entryData.MultiTPs {
+					//look for updated version oif tp point
+					toAdd := MultiTPPoint{}
+					for _, up := range updatedTPs {
+						if up.Order == exTP.Order {
+							toAdd = up
+							break
+						}
+					}
+					if toAdd.Price > 0.0 {
+						newTPPoints = append(newTPPoints, toAdd)
+					} else {
+						newTPPoints = append(newTPPoints, exTP)
+					}
+				}
+				(*entryData).MultiTPs = newTPPoints
+				fmt.Printf(colorYellow+"(*entryData).MultiTPs= %+v\n"+colorReset, (*entryData).MultiTPs)
 			}
 
 			// if relCandleIndex > 570 && relCandleIndex < 600 {
