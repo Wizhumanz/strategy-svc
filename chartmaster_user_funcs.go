@@ -8,11 +8,12 @@ import (
 )
 
 type MultiTPPoint struct {
-	Order     int
-	IsDone    bool
-	Price     float64
-	ClosePerc float64
-	CloseSize float64
+	Order            int
+	IsDone           bool
+	Price            float64
+	ClosePerc        float64
+	CloseSize        float64
+	TotalPointsInSet int
 }
 
 type StrategyDataPoint struct {
@@ -184,8 +185,8 @@ func strat1(
 			breakIndex, breakPrice, action, multiTPs := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles)
 			if breakIndex > 0 && breakPrice > 0 {
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
-					for i, tpPoint := range multiTPs {
-						if i == len(multiTPs)-1 {
+					for _, tpPoint := range multiTPs {
+						if tpPoint.Order == tpPoint.TotalPointsInSet {
 							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
 							stored.Trades = append(stored.Trades, latestEntryData) //TODO: how to append trade when not all TPs hit?
 						}
@@ -306,10 +307,11 @@ func logEntry(relCandleIndex, entryIndex int, candles []Candlestick, pivotLows [
 			for profitPerc, closePerc := range tpMap {
 				tpPrice := retData.EntryTradeOpenCandle.Close * (1 + (profitPerc / 100))
 				retData.MultiTPs = append(retData.MultiTPs, MultiTPPoint{
-					Order:     i,
-					IsDone:    false,
-					Price:     tpPrice,
-					ClosePerc: closePerc,
+					Order:            i,
+					IsDone:           false,
+					Price:            tpPrice,
+					ClosePerc:        closePerc,
+					TotalPointsInSet: len(tpMap),
 				})
 				i++
 			}
@@ -368,14 +370,8 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 					continue
 				}
 
-				if relCandleIndex < 170 {
-					fmt.Printf("%+v \n > %v\n", tpPoint, candles[i].High)
-				}
-
 				if candles[i].High >= tpPoint.Price && !tpPoint.IsDone {
-					if relCandleIndex < 170 {
-						fmt.Printf(colorYellow+"TRIGGERED multi TP / high= %v / tpPoint= %+v\n", candles[i].High, tpPoint)
-					}
+					fmt.Printf(colorYellow+"<%v> TRIGGERED multi TP / high= %v / tpPoint= %+v\n", i, candles[i].High, tpPoint)
 
 					p = tpPoint
 					p.IsDone = true
@@ -390,7 +386,11 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 			}
 
 			(*entryData).MultiTPs = updatedTPs
-			return i, retTPPoints[len(retTPPoints)-1].Price, "MULTI-TP", retTPPoints
+			if len(retTPPoints) <= 0 {
+				return i, -1, "MULTI-TP", retTPPoints
+			} else {
+				return i, retTPPoints[len(retTPPoints)-1].Price, "MULTI-TP", retTPPoints
+			}
 		}
 
 		//trailingTP
