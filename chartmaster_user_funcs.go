@@ -134,7 +134,7 @@ func strat1(
 
 	pivotLowsToEnter := 4
 	maxDurationCandles := 200
-	slPerc := 0.7
+	slPerc := 0.5
 	// startTrailPerc := 1.3
 	// trailingPerc := 0.4
 	slCooldownCandles := 20 //TODO: change to pivots
