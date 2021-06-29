@@ -183,7 +183,14 @@ func strat1(
 
 			//check sl + tp + max duration
 			breakIndex, breakPrice, action, multiTPs, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles)
-			latestEntryData = updatedEntryData
+			if updatedEntryData.MultiTPs[0].Price > 0.0 {
+				latestEntryData = updatedEntryData
+			}
+
+			if relCandleIndex > 100 && relCandleIndex < 300 {
+				fmt.Printf(colorCyan+"<%v> strat1 latestEntryData= %+v\n", relCandleIndex, latestEntryData.MultiTPs)
+			}
+
 			if breakIndex > 0 && breakPrice > 0 {
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 					for _, tpPoint := range multiTPs {
@@ -198,6 +205,10 @@ func strat1(
 					stored.Trades = append(stored.Trades, latestEntryData)
 					(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot)
 				}
+			}
+
+			if updatedEntryData.MultiTPs[0].Price > 0.0 {
+				stored.Trades[len(stored.Trades)-1] = latestEntryData //entry data will be updated if multi TP
 			}
 		} else {
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
@@ -386,14 +397,14 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 				// }
 			}
 
-			if relCandleIndex == 127 || relCandleIndex == 128 {
-				fmt.Printf(colorPurple+"%+v\n"+colorReset, updatedTPs)
+			if relCandleIndex > 100 && relCandleIndex < 300 {
+				fmt.Printf(colorPurple+"updated TPs= %+v\n"+colorReset, updatedTPs)
 			}
 
 			(*entryData).MultiTPs = updatedTPs
 
-			if relCandleIndex == 127 || relCandleIndex == 128 {
-				fmt.Printf(colorYellow+"%+v\n"+colorReset, (*entryData).MultiTPs)
+			if relCandleIndex > 100 && relCandleIndex < 300 {
+				fmt.Printf(colorYellow+"(*entryData).MultiTPs= %+v\n"+colorReset, (*entryData).MultiTPs)
 			}
 
 			if len(retTPPoints) <= 0 {
