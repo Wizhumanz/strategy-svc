@@ -322,7 +322,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 
 	// // Fetching candles from Redis cache
 	chunkCandles = append(chunkCandles, candlesInCache...)
-
+	// fmt.Printf("\nchunkCandles: %v\n", chunkCandles)
 	// candles, _ := json.Marshal(chunkCandles)
 	// _, file, line, _ := runtime.Caller(0)
 	// go Log(string(candles),
@@ -339,7 +339,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		for i := 0; i < chunkSize; i += 1 {
 			c <- eachTime
 			eachTime = eachTime.Add(time.Minute * 1)
-			// fmt.Printf("\nchannelA: %v\n", eachTime)
+			fmt.Printf("\nchannelB: %v\n", eachTime)
 		}
 	}
 	for i, t := range tempTimeArray {
@@ -347,7 +347,6 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 			if candle.PeriodStart == t {
 				sortedChunkCandles = append(sortedChunkCandles, candle)
 			}
-
 			// Only run once
 			if i == 0 {
 				// fmt.Printf("\nTIME: %v, %v\n", candle.PeriodStart, eachTime.Format(httpTimeFormat)+".0000000Z")
@@ -360,17 +359,36 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 
 					for {
 						eachTime = eachTime.Add(time.Minute * 1)
+						fmt.Printf("\neachTime: %v\n", eachTime)
 
 						if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
 							c <- eachTime
 							// fmt.Printf("\nchannelC: %v\n", eachTime)
 
+						} else if fetchCandlesEnd == eachTime {
+							fmt.Println("IT BROKE")
+							eachTime = eachTime.Add(time.Minute * -1)
+							break
 						} else {
 							eachTime = eachTime.Add(time.Minute * -1)
 							break
 						}
 					}
 				}
+
+				if candle == chunkCandles[len(chunkCandles)-1] && candle.PeriodEnd != fetchCandlesEnd.Format(httpTimeFormat)+".0000000Z" {
+					fmt.Println("Hello BITCH")
+					for {
+						eachTime = eachTime.Add(time.Minute * 1)
+						c <- eachTime
+						fmt.Printf("\nchannelA: %v\n", eachTime)
+
+						if eachTime == fetchCandlesEnd {
+							break
+						}
+					}
+				}
+
 				eachTime = eachTime.Add(time.Minute * 1)
 			}
 		}
@@ -383,6 +401,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	// 		fmt.Sprintf("<%v> %v", line, file))
 	// 	return
 	// }
+	fmt.Println("DONE")
 	*chunkSlice = sortedChunkCandles
 }
 
@@ -481,7 +500,6 @@ func computeBacktest(
 
 			// Check if it's the right time. If it's not there, check in the allEmptyCandles to see if it's empty
 			if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
-				// fmt.Printf("\nrequiredTime: %v\n", requiredTime)
 				allOpens = append(allOpens, candle.Open)
 				allHighs = append(allHighs, candle.High)
 				allLows = append(allLows, candle.Low)
@@ -535,31 +553,43 @@ func computeBacktest(
 				//absolute index from absolute start of computation period
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
-			} else if containsEmptyCandles(allEmptyCandles, requiredTime) && requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
-				// fmt.Printf("\ndoesnt exist: %v\n", requiredTime)
-				// fmt.Printf("\ncandle.PeriodStart: %v\n", candle.PeriodStart)
-				restartLoop := false
-				for {
-					// fmt.Printf("\nkms: %v\n", requiredTime)
-					requiredTime = requiredTime.Add(time.Minute * 1)
+				// fmt.Printf("\nrequiredTime: %v\n", requiredTime)
 
-					// Break for loop if the empty candle timestamp reaches the requiredTime
-					if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+			} else if containsEmptyCandles(allEmptyCandles, requiredTime) {
+				if requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
+
+					fmt.Printf("\ndoesnt exist: %v\n", requiredTime)
+					// fmt.Printf("\ncandle.PeriodStart: %v\n", candle.PeriodStart)
+					restartLoop := false
+					for {
+						// fmt.Printf("\nkms: %v\n", requiredTime)
 						requiredTime = requiredTime.Add(time.Minute * 1)
+
+						// Break for loop if the empty candle timestamp reaches the requiredTime
+						if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+							requiredTime = requiredTime.Add(time.Minute * 1)
+							break
+						}
+
+						// See if it's actually empty or just didn't arrive yet
+						if !containsEmptyCandles(allEmptyCandles, requiredTime) {
+							restartLoop = true
+							requiredTime = requiredTime.Add(time.Minute * -1)
+							break
+						}
+					}
+					if restartLoop {
+						fmt.Println("break restartloop")
 						break
 					}
+				} else if candle == allCandlesArr[len(allCandlesArr)-1] && candle.PeriodEnd != endTime.Format(httpTimeFormat)+".0000000Z" {
+					for {
+						requiredTime = requiredTime.Add(time.Minute * 1)
 
-					// See if it's actually empty or just didn't arrive yet
-					if !containsEmptyCandles(allEmptyCandles, requiredTime) {
-						restartLoop = true
-						requiredTime = requiredTime.Add(time.Minute * -1)
-						break
+						if requiredTime == endTime {
+							break
+						}
 					}
-				}
-
-				if restartLoop {
-					fmt.Println("break restartloop")
-					break
 				}
 			}
 		}
