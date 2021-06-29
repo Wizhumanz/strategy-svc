@@ -328,9 +328,31 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 	return strat.posLongSize
 }
 
+func calcMultiTPs(multiTPs []MultiTPPoint, actualPosSize float64, index int) []MultiTPPoint {
+	retMultiTPs := []MultiTPPoint{}
+	if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
+		calcRemainingPosSize := actualPosSize
+		for i, tpPoint := range multiTPs {
+			fmt.Printf(colorCyan+"<%v, %v> actualPosSz= %v / remainingSz = %v / tpPoint = %+v / multiTPs= %+v\n", index, i, actualPosSize, calcRemainingPosSize, tpPoint, multiTPs)
+
+			newPoint := tpPoint
+			if i == len(multiTPs)-1 {
+				//make sure to close entire position (account for ultra-low leftover size from calculations)
+				newPoint.CloseSize = calcRemainingPosSize
+			} else {
+				newPoint.CloseSize = (tpPoint.ClosePerc / 100) * actualPosSize
+				calcRemainingPosSize -= newPoint.CloseSize
+			}
+			retMultiTPs = append(retMultiTPs, newPoint)
+		}
+	}
+	return retMultiTPs
+}
+
 // Buy returns a []MultiTPPoint with actual position sizes for each TP point based on actual entry data
 func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, accRisk float64, lev, cIndex int, multiTPs []MultiTPPoint, candle Candlestick, directionIsLong bool, botStreamName Bot) []MultiTPPoint {
 	retMultiTPs := []MultiTPPoint{}
+
 	if !strat.liveTrade {
 		actualPrice := (1 + (strat.OrderSlippagePerc / 100)) * price //TODO: modify to - for shorting
 		desiredPosCap, _ := calcEntry(actualPrice, sl, accRisk, strat.availableEquity, lev)
@@ -354,22 +376,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		}
 
 		//complete multi-tp map with actual pos sizes
-		if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
-			calcRemainingPosSize := actualPosSize
-			for i, tpPoint := range multiTPs {
-				fmt.Printf(colorCyan+"<%v, %v> actualPosSz= %v / remainingSz = %v / tpPoint = %+v / multiTPs= %+v\n", cIndex, i, actualPosSize, calcRemainingPosSize, tpPoint, multiTPs)
-
-				newPoint := tpPoint
-				if i == len(multiTPs)-1 {
-					//make sure to close entire position (account for ultra-low leftover size from calculations)
-					newPoint.CloseSize = calcRemainingPosSize
-				} else {
-					newPoint.CloseSize = (tpPoint.ClosePerc / 100) * actualPosSize
-					calcRemainingPosSize -= newPoint.CloseSize
-				}
-				retMultiTPs = append(retMultiTPs, newPoint)
-			}
-		}
+		retMultiTPs = calcMultiTPs(multiTPs, actualPosSize, cIndex)
 
 		strat.Actions[cIndex] = StrategyExecutorAction{
 			Action:       "ENTER",
@@ -381,6 +388,8 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 			DateTime:     candle.DateTime(),
 		}
 	} else {
+		//TODO: call calcMultiTPs and use result as multi tp prices and order sizes
+
 		// get acc balance
 		var objmap []map[string]interface{}
 		if err := json.Unmarshal(getFuturesAccountBalance(), &objmap); err != nil {
