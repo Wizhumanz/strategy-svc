@@ -165,6 +165,11 @@ func strat1(
 	//calculate pivots
 	newLabels, _ = findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows), newLabels)
 
+	//TESTs
+	// (*strategy).Buy(close[relCandleIndex], 0.9*close[relCandleIndex], -1, 0.9*close[relCandleIndex], 0.9*close[relCandleIndex], risk, int(lev), relCandleIndex, nil, candles[len(candles)-1], true, bot)
+
+	// completedMultiTPs := (*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, newEntryData.MultiTPs, candles[len(candles)-1], true, bot)
+
 	// newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
 
 	// //TP cooldown labels
