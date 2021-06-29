@@ -205,10 +205,45 @@ func accountTradeList() {
 }
 
 func cancelAllOpenOrders(symbol string) []byte {
+	timeStamp := makeTimestamp()
+
+	secret := "BfqSCwpNCslkepaOO7dTejFRz5thaGiTUBX1p4fZp6sDPDuJrtmNt6Wse9hMpTOF"
+	data := fmt.Sprintf("symbol=%s&timestamp=%d", symbol, timeStamp)
+
+	// Create a new HMAC by defining the hash type and the key (as byte array)
+	h := hmac.New(sha256.New, []byte(secret))
+
+	// Write Data to it
+	h.Write([]byte(data))
+
+	// Get result and encode as hexadecimal string
+	signature := hex.EncodeToString(h.Sum(nil))
+
+	req, _ := http.NewRequest("DELETE", fmt.Sprintf("https://fapi.binance.com/fapi/v1/allOpenOrders?%s&signature=%s", data, signature), nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("X-MBX-APIKEY", "klGMQA5VZzL5dhi2DuR4agiYgVZaF8gxmQ0ZEuYkyfURRymazrIYtIBd2TtEheRp")
+	client := &http.Client{}
+
+	response, err := client.Do(req)
+
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+		return nil
+	} else {
+		body, _ := ioutil.ReadAll(response.Body)
+		log.Println(string(body))
+		return body
+	}
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log("cancelAllOpenOrders", fmt.Sprintf("<%v> %v", line, file))
+	// return nil
+}
+
+func cancelOrders(symbol, orderID string) []byte {
 	// timeStamp := makeTimestamp()
 
 	// secret := "BfqSCwpNCslkepaOO7dTejFRz5thaGiTUBX1p4fZp6sDPDuJrtmNt6Wse9hMpTOF"
-	// data := fmt.Sprintf("symbol=%s&timestamp=%d", symbol, timeStamp)
+	// data := fmt.Sprintf("symbol=%s&orderId=%s&timestamp=%d", symbol, orderID, timeStamp)
 
 	// // Create a new HMAC by defining the hash type and the key (as byte array)
 	// h := hmac.New(sha256.New, []byte(secret))
@@ -219,7 +254,7 @@ func cancelAllOpenOrders(symbol string) []byte {
 	// // Get result and encode as hexadecimal string
 	// signature := hex.EncodeToString(h.Sum(nil))
 
-	// req, _ := http.NewRequest("DELETE", fmt.Sprintf("https://fapi.binance.com/fapi/v1/allOpenOrders?%s&signature=%s", data, signature), nil)
+	// req, _ := http.NewRequest("DELETE", fmt.Sprintf("https://fapi.binance.com/fapi/v1/order?%s&signature=%s", data, signature), nil)
 	// req.Header.Set("Content-Type", "application/json")
 	// req.Header.Add("X-MBX-APIKEY", "klGMQA5VZzL5dhi2DuR4agiYgVZaF8gxmQ0ZEuYkyfURRymazrIYtIBd2TtEheRp")
 	// client := &http.Client{}
@@ -235,7 +270,7 @@ func cancelAllOpenOrders(symbol string) []byte {
 	// 	return body
 	// }
 	_, file, line, _ := runtime.Caller(0)
-	go Log("cancelAllOpenOrders", fmt.Sprintf("<%v> %v", line, file))
+	go Log("cancelOrders", fmt.Sprintf("<%v> %v", line, file))
 	return nil
 }
 
