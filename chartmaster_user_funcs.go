@@ -192,23 +192,24 @@ func strat1(
 				latestEntryData = updatedEntryData
 			}
 
-			if relCandleIndex > 100 && relCandleIndex < 300 {
-				fmt.Printf(colorCyan+"<%v> strat1 latestEntryData= %+v\n", relCandleIndex, latestEntryData.MultiTPs)
-			}
+			// if relCandleIndex > 100 && relCandleIndex < 300 {
+			// 	fmt.Printf(colorCyan+"<%v> strat1 latestEntryData= %+v\n", relCandleIndex, latestEntryData.MultiTPs)
+			// }
 
-			if breakIndex > 0 && breakPrice > 0 {
+			if breakIndex > 0 && breakPrice > 0 && action != "MULTI-TP" {
+				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
+				stored.Trades = append(stored.Trades, latestEntryData)
+				(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot)
+			} else if breakIndex > 0 && action == "MULTI-TP" {
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 					for _, tpPoint := range multiTPs {
 						if tpPoint.Order == tpPoint.TotalPointsInSet {
+							fmt.Printf(colorGreen+"<%v> BREAK TREND point= %+v\n", relCandleIndex, tpPoint)
 							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
 							stored.Trades = append(stored.Trades, latestEntryData) //TODO: how to append trade when not all TPs hit?
 						}
 						(*strategy).CloseLong(breakPrice, -1, tpPoint.CloseSize, relCandleIndex, action, candles[len(candles)-1], bot)
 					}
-				} else {
-					breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
-					stored.Trades = append(stored.Trades, latestEntryData)
-					(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot)
 				}
 			}
 
@@ -242,7 +243,7 @@ func strat1(
 					//enter long
 					completedMultiTPs := (*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, newEntryData.MultiTPs, candles[len(candles)-1], true, bot)
 					newEntryData.MultiTPs = completedMultiTPs
-					fmt.Printf("<%v> %+v\n", relCandleIndex, newEntryData.MultiTPs)
+					// fmt.Printf("<%v> %+v\n", relCandleIndex, newEntryData.MultiTPs)
 
 					stored.Trades = append(stored.Trades, newEntryData)
 				}
@@ -375,9 +376,9 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 		//multi-tp (map)
 		updatedTPs := []MultiTPPoint{}
 		if entryData.MultiTPs != nil {
-			if relCandleIndex > 570 && relCandleIndex < 600 {
-				fmt.Printf("%+v\n", entryData.MultiTPs)
-			}
+			// if relCandleIndex > 570 && relCandleIndex < 600 {
+			// 	fmt.Printf("%+v\n", entryData.MultiTPs)
+			// }
 
 			retTPPoints := []MultiTPPoint{}
 			for _, tpPoint := range entryData.MultiTPs {
@@ -407,7 +408,7 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 			// }
 
 			if len(updatedTPs) > 0 && updatedTPs[0].Price > 0 {
-				fmt.Printf(colorPurple+"updated TPs= %+v\n"+colorReset, updatedTPs)
+				// fmt.Printf(colorPurple+"updated TPs= %+v\n"+colorReset, updatedTPs)
 				newTPPoints := []MultiTPPoint{}
 				for _, exTP := range entryData.MultiTPs {
 					//look for updated version oif tp point
@@ -425,7 +426,7 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 					}
 				}
 				(*entryData).MultiTPs = newTPPoints
-				fmt.Printf(colorYellow+"(*entryData).MultiTPs= %+v\n"+colorReset, (*entryData).MultiTPs)
+				// fmt.Printf(colorYellow+"(*entryData).MultiTPs= %+v\n"+colorReset, (*entryData).MultiTPs)
 			}
 
 			// if relCandleIndex > 570 && relCandleIndex < 600 {
@@ -443,6 +444,7 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 		// if relCandleIndex < 150 && relCandleIndex > 100 {
 		// 	fmt.Printf(colorRed+"<%v> %+v\n"+colorReset, relCandleIndex, entryData)
 		// }
+
 		if entryData.StartTrailPerc > 0 && entryData.TrailingPerc > 0 {
 			if entryData.TrailingStarted {
 				//adjust trailing min + max
@@ -590,10 +592,10 @@ func scanPivotTrends(
 			retData = stored.ScanPoints[len(stored.ScanPoints)-1]
 
 			//check sl
-			breakIndex, _, _, _, _ := checkTrendBreak(&retData, relCandleIndex, relCandleIndex-2, candles)
+			breakIndex, _, action, _, _ := checkTrendBreak(&retData, relCandleIndex, relCandleIndex-2, candles)
 			//check trend break, always update stored trade data
 			stored.ScanPoints[len(stored.ScanPoints)-1] = retData
-			if breakIndex > 0 {
+			if breakIndex > 0 && action != "MULTI-TP" {
 				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &retData)
 				//reset
 				stored.WatchingTrend = false
@@ -623,9 +625,9 @@ func scanPivotTrends(
 				stored.WatchingTrend = true
 
 				//check trend break, always update stored trade data
-				breakIndex, _, _, _, _ := checkTrendBreak(&newEntryData, relCandleIndex, newEntryData.ActualEntryIndex+1, candles)
+				breakIndex, _, action, _, _ := checkTrendBreak(&newEntryData, relCandleIndex, newEntryData.ActualEntryIndex+1, candles)
 				stored.ScanPoints[len(stored.ScanPoints)-1] = retData
-				if breakIndex > 0 {
+				if breakIndex > 0 && action != "MULTI-TP" {
 					breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &retData)
 					//reset
 					stored.WatchingTrend = false
