@@ -358,8 +358,8 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 		//multi-tp (map)
 		updatedTPs := []MultiTPPoint{}
 		if entryData.MultiTPs != nil {
-			if relCandleIndex < 170 {
-				fmt.Printf(colorRed+"<%v> %+v\n"+colorReset, relCandleIndex, entryData.MultiTPs)
+			if relCandleIndex == 127 || relCandleIndex == 128 {
+				fmt.Printf("%+v\n", entryData.MultiTPs)
 			}
 
 			retTPPoints := []MultiTPPoint{}
@@ -385,7 +385,16 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 				// }
 			}
 
+			if relCandleIndex == 127 || relCandleIndex == 128 {
+				fmt.Printf(colorPurple+"%+v\n"+colorReset, updatedTPs)
+			}
+
 			(*entryData).MultiTPs = updatedTPs
+
+			if relCandleIndex == 127 || relCandleIndex == 128 {
+				fmt.Printf(colorYellow+"%+v\n"+colorReset, (*entryData).MultiTPs)
+			}
+
 			if len(retTPPoints) <= 0 {
 				return i, -1, "MULTI-TP", retTPPoints
 			} else {
@@ -545,6 +554,8 @@ func scanPivotTrends(
 
 			//check sl
 			breakIndex, _, _, _ := checkTrendBreak(&retData, relCandleIndex, relCandleIndex-2, candles)
+			//check trend break, always update stored trade data
+			stored.ScanPoints[len(stored.ScanPoints)-1] = retData
 			if breakIndex > 0 {
 				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &retData)
 				//reset
@@ -574,7 +585,9 @@ func scanPivotTrends(
 				stored.ScanPoints = append(stored.ScanPoints, retData)
 				stored.WatchingTrend = true
 
+				//check trend break, always update stored trade data
 				breakIndex, _, _, _ := checkTrendBreak(&newEntryData, relCandleIndex, newEntryData.ActualEntryIndex+1, candles)
+				stored.ScanPoints[len(stored.ScanPoints)-1] = retData
 				if breakIndex > 0 {
 					breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &retData)
 					//reset
