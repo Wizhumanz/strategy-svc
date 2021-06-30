@@ -444,6 +444,44 @@ func containsEmptyCandles(s []time.Time, e time.Time) bool {
 	return false
 }
 
+func sendPacketBacktest(packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
+	userID, rid string,
+	candleChartData []CandlestickChartData,
+	profitCurveData []ProfitCurveDataPoint,
+	simTradesData []SimulatedTradeDataPoint) {
+	if candleChartData != nil {
+		packetSender(userID, rid,
+			candleChartData,
+			[]ProfitCurveData{
+				{
+					Label: "strat1", //TODO: prep for dynamic strategy param values
+					Data:  profitCurveData,
+				},
+			},
+			[]SimulatedTradeData{
+				{
+					Label: "strat1",
+					Data:  simTradesData,
+				},
+			})
+
+		// stratComputeStartIndex = stratComputeEndIndex
+	} else {
+		fmt.Println("BIG ERROR SECOND")
+	}
+}
+
+func sendPacketScan(packetSender func(string, string, []CandlestickChartData, []StrategyDataPoint),
+	userID, rid string,
+	candleChartData []CandlestickChartData,
+	scanData []StrategyDataPoint) {
+	if candleChartData != nil {
+		packetSender(userID, rid, candleChartData, scanData)
+	} else {
+		fmt.Println("BIG ERROR SECOND")
+	}
+}
+
 func computeBacktest(
 	risk, lev, accSz float64,
 	packetSize int,
@@ -527,27 +565,8 @@ func computeBacktest(
 				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
 				//stream data back to client in every chunk
-				if chunkAddedCandles != nil {
-					packetSender(userID, rid,
-						chunkAddedCandles,
-						[]ProfitCurveData{
-							{
-								Label: "strat1", //TODO: prep for dynamic strategy param values
-								Data:  chunkAddedPCData,
-							},
-						},
-						[]SimulatedTradeData{
-							{
-								Label: "strat1",
-								Data:  chunkAddedSTData,
-							},
-						})
 
-					// stratComputeStartIndex = stratComputeEndIndex
-				} else {
-					fmt.Println("BIG ERROR")
-					break
-				}
+				sendPacketBacktest(packetSender, userID, rid, chunkAddedCandles, chunkAddedPCData, chunkAddedSTData)
 
 				//absolute index from absolute start of computation period
 				relIndex++
@@ -670,11 +689,9 @@ func computeScan(
 
 				m.Lock()
 				//stream data back to client in every chunk
-				if chunkAddedCandles != nil {
-					packetSender(userID, rid, chunkAddedCandles, chunkAddedScanData)
-				} else {
-					break
-				}
+
+				sendPacketScan(packetSender, userID, rid, chunkAddedCandles, chunkAddedScanData)
+
 				m.Unlock()
 
 				//absolute index from absolute start of computation period
