@@ -425,6 +425,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		currentBalance := bal * float64(lev) * 0.2
 
 		//TODO: use TP map to submit multi TP stop limit orders
+		// retMultiTPs = calcMultiTPs(multiTPs, actualPosSize, cIndex)
 
 		// submit 3 orders:
 		// 1. stop limit order SL (stop=0.8*price, limit=0.79*price, reduceOnly=true)
