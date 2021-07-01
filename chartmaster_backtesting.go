@@ -31,26 +31,8 @@ func runBacktest(
 	go Log(fmt.Sprintf("Backtest complete %v -> %v | %v | %v | user=%v", startTime.UTC().Format(httpTimeFormat), endTime.UTC().Format(httpTimeFormat), ticker, period, userID),
 		fmt.Sprintf("<%v> %v", line, file))
 
-	if totalCandles != nil {
-		packetSender(userID, fmt.Sprintf("%v", time.Now().UnixNano()),
-			totalCandles,
-			[]ProfitCurveData{
-				{
-					Label: "strat1", //TODO: prep for dynamic strategy param values
-					Data:  retProfitCurve[0].Data,
-				},
-			},
-			[]SimulatedTradeData{
-				{
-					Label: "strat1",
-					Data:  retSimTrades[0].Data,
-				},
-			})
+	sendPacketBacktest(packetSender, userID, fmt.Sprintf("%v", time.Now().UnixNano()), totalCandles, retProfitCurve[0].Data, retSimTrades[0].Data)
 
-		// stratComputeStartIndex = stratComputeEndIndex
-	} else {
-		fmt.Println("BIG ERROR SECOND")
-	}
 	// Show progress bar as finish
 	progressBar(userID, rid, len(retCandles), startTime, endTime, true)
 
@@ -72,23 +54,14 @@ func runScan(
 	c := make(chan time.Time)
 	//fetch all candle data concurrently
 	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c)
-	fmt.Println("scanning")
 
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retScanRes := computeScan(packetSize, userID, rid, startTime, endTime, scannerFunc, packetSender, &chunksArr, c)
 
-	// for i, data := range retScanRes {
-	// 	fmt.Printf("%v / %+v\n", i, data)
-	// }
-
 	_, file, line, _ := runtime.Caller(0)
 	go Log(fmt.Sprintf(colorGreen+"\n!!! Scan complete!"+colorReset), fmt.Sprintf("<%v> %v", line, file))
 
-	if totalCandles != nil {
-		packetSender(userID, fmt.Sprintf("%v", time.Now().UnixNano()), totalCandles, retScanRes)
-	} else {
-		fmt.Println("BIG ERROR SECOND")
-	}
+	sendPacketScan(packetSender, userID, fmt.Sprintf("%v", time.Now().UnixNano()), totalCandles, retScanRes)
 
 	// Show progress bar as finish
 	progressBar(userID, rid, len(retCandles), startTime, endTime, true)

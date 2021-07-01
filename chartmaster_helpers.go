@@ -443,6 +443,44 @@ func containsEmptyCandles(s []time.Time, e time.Time) bool {
 	return false
 }
 
+func sendPacketBacktest(packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
+	userID, rid string,
+	candleChartData []CandlestickChartData,
+	profitCurveData []ProfitCurveDataPoint,
+	simTradesData []SimulatedTradeDataPoint) {
+	if candleChartData != nil {
+		packetSender(userID, rid,
+			candleChartData,
+			[]ProfitCurveData{
+				{
+					Label: "strat1", //TODO: prep for dynamic strategy param values
+					Data:  profitCurveData,
+				},
+			},
+			[]SimulatedTradeData{
+				{
+					Label: "strat1",
+					Data:  simTradesData,
+				},
+			})
+
+		// stratComputeStartIndex = stratComputeEndIndex
+	} else {
+		fmt.Println("BIG ERROR SECOND")
+	}
+}
+
+func sendPacketScan(packetSender func(string, string, []CandlestickChartData, []StrategyDataPoint),
+	userID, rid string,
+	candleChartData []CandlestickChartData,
+	scanData []StrategyDataPoint) {
+	if candleChartData != nil {
+		packetSender(userID, rid, candleChartData, scanData)
+	} else {
+		fmt.Println("BIG ERROR SECOND")
+	}
+}
+
 func computeBacktest(
 	risk, lev, accSz float64,
 	packetSize int,
@@ -526,27 +564,8 @@ func computeBacktest(
 				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
 				//stream data back to client in every chunk
-				if chunkAddedCandles != nil {
-					packetSender(userID, rid,
-						chunkAddedCandles,
-						[]ProfitCurveData{
-							{
-								Label: "strat1", //TODO: prep for dynamic strategy param values
-								Data:  chunkAddedPCData,
-							},
-						},
-						[]SimulatedTradeData{
-							{
-								Label: "strat1",
-								Data:  chunkAddedSTData,
-							},
-						})
 
-					// stratComputeStartIndex = stratComputeEndIndex
-				} else {
-					fmt.Println("BIG ERROR")
-					break
-				}
+				sendPacketBacktest(packetSender, userID, rid, chunkAddedCandles, chunkAddedPCData, chunkAddedSTData)
 
 				//absolute index from absolute start of computation period
 				relIndex++
@@ -669,41 +688,49 @@ func computeScan(
 
 				m.Lock()
 				//stream data back to client in every chunk
-				if chunkAddedCandles != nil {
-					packetSender(userID, rid, chunkAddedCandles, chunkAddedScanData)
-				} else {
-					break
-				}
+
+				sendPacketScan(packetSender, userID, rid, chunkAddedCandles, chunkAddedScanData)
+
 				m.Unlock()
 
 				//absolute index from absolute start of computation period
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
-			} else if containsEmptyCandles(allEmptyCandles, requiredTime) && requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
-				// fmt.Printf("\ndoesnt exist: %v,%v\n", requiredTime, i)
-				// fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, i)
-				restartLoop := false
-				for {
-					// fmt.Printf("\nkms: %v,%v\n", requiredTime, i)
-					requiredTime = requiredTime.Add(time.Minute * 1)
+			} else if containsEmptyCandles(allEmptyCandles, requiredTime) {
+				if requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
 
-					// Break for loop if the empty candle timestamp reaches the requiredTime
-					if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+					fmt.Printf("\ndoesnt exist: %v\n", requiredTime)
+					// fmt.Printf("\ncandle.PeriodStart: %v\n", candle.PeriodStart)
+					restartLoop := false
+					for {
+						// fmt.Printf("\nkms: %v\n", requiredTime)
 						requiredTime = requiredTime.Add(time.Minute * 1)
+
+						// Break for loop if the empty candle timestamp reaches the requiredTime
+						if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+							requiredTime = requiredTime.Add(time.Minute * 1)
+							break
+						}
+
+						// See if it's actually empty or just didn't arrive yet
+						if !containsEmptyCandles(allEmptyCandles, requiredTime) {
+							restartLoop = true
+							requiredTime = requiredTime.Add(time.Minute * -1)
+							break
+						}
+					}
+					if restartLoop {
+						fmt.Println("break restartloop")
 						break
 					}
+				} else if candle == allCandlesArr[len(allCandlesArr)-1] && candle.PeriodEnd != endTime.Format(httpTimeFormat)+".0000000Z" {
+					for {
+						requiredTime = requiredTime.Add(time.Minute * 1)
 
-					// See if it's actually empty or just didn't arrive yet
-					if !containsEmptyCandles(allEmptyCandles, requiredTime) {
-						restartLoop = true
-						requiredTime = requiredTime.Add(time.Minute * -1)
-						break
+						if requiredTime == endTime {
+							break
+						}
 					}
-				}
-
-				if restartLoop {
-					fmt.Println("break restartloop")
-					break
 				}
 			}
 		}
