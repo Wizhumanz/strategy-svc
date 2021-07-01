@@ -211,11 +211,11 @@ func strat1(
 				stored.Trades = append(stored.Trades, latestEntryData)
 				(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot)
 			} else if breakIndex > 0 && action == "MULTI-TP" {
-				if relCandleIndex < 3000 {
-					for _, p := range multiTPs {
-						fmt.Printf(colorYellow+"<%v> %+v\n"+colorReset, relCandleIndex, p)
-					}
-				}
+				// if relCandleIndex < 3000 {
+				// 	for _, p := range multiTPs {
+				// 		fmt.Printf(colorYellow+"<%v> %+v\n"+colorReset, relCandleIndex, p)
+				// 	}
+				// }
 
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 					for _, tpPoint := range multiTPs {
@@ -568,7 +568,7 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 	// 		relCandleIndex, startTrailPrice, retData.TrailingMax, retData.TrailingMin, trailingMaxDrawdownPerc, retData.TrailingMaxDrawdownPercTillExtent, retData.EntryTradeOpenCandle.Close, retData.ActualEntryIndex, fmt.Sprintf("%.2f", retData.Growth), entryTime, trendExtentTime, trendExtentIndex, retData.Duration)
 	// }
 
-	fmt.Printf(colorRed+"<%v> retData= %+v\n"+colorReset, retData.BreakTime, retData)
+	// fmt.Printf(colorRed+"<%v> retData= %+v\n"+colorReset, retData.BreakTime, retData)
 }
 
 func contains(sli []int, find int) bool {

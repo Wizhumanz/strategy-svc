@@ -353,9 +353,9 @@ func calcMultiTPs(multiTPs []MultiTPPoint, actualPosSize float64, index int) []M
 		}
 	}
 
-	for _, p := range retMultiTPs {
-		fmt.Printf(colorCyan+"%+v\n"+colorReset, p)
-	}
+	// for _, p := range retMultiTPs {
+	// 	fmt.Printf(colorCyan+"%+v\n"+colorReset, p)
+	// }
 	return retMultiTPs
 }
 
