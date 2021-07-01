@@ -407,11 +407,11 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 	*chunkSlice = sortedChunkCandles
 }
 
-func concFetchCandleData(startTime, endTime time.Time, period, ticker string, packetSize int, chunksArr *[]*[]Candlestick, c chan time.Time) {
+func concFetchCandleData(startTime, endTime time.Time, period, ticker string, packetSize int, chunksArr *[]*[]Candlestick, c chan time.Time, processOption string) {
 	fetchCandlesStart := startTime
 	var wg sync.WaitGroup
 	m := sync.Mutex{}
-
+	fmt.Println(processOption)
 	for {
 		if fetchCandlesStart.Equal(endTime) || fetchCandlesStart.After(endTime) {
 			break

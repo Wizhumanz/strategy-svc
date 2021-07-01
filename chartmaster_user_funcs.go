@@ -188,11 +188,6 @@ func strat1(
 
 			//check sl + tp + max duration
 			breakIndex, breakPrice, action, multiTPs, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles)
-			fmt.Printf("\nbreakIndex: %v\n", breakIndex)
-			fmt.Printf("\nbreakPrice: %v\n", breakPrice)
-			fmt.Printf("\naction: %v\n", action)
-			fmt.Printf("\nmultiTPs: %v\n", multiTPs)
-			fmt.Printf("\nupdatedEntryData: %v\n", updatedEntryData)
 
 			if updatedEntryData.MultiTPs[0].Price > 0.0 {
 				latestEntryData = updatedEntryData

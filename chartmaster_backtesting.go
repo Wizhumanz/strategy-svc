@@ -13,6 +13,7 @@ func runBacktest(
 	packetSize int,
 	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) (map[string]map[int]string, int),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
+	processOption string,
 ) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
 	var chunksArr []*[]Candlestick
 
@@ -22,7 +23,7 @@ func runBacktest(
 	c := make(chan time.Time)
 
 	//fetch all candle data concurrently
-	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c)
+	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c, processOption)
 
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retProfitCurve, retSimTrades := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c)
@@ -45,6 +46,7 @@ func runScan(
 	packetSize int,
 	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, StrategyDataPoint),
 	packetSender func(string, string, []CandlestickChartData, []StrategyDataPoint),
+	processOption string,
 ) ([]CandlestickChartData, []StrategyDataPoint) {
 	var chunksArr []*[]Candlestick
 
@@ -53,7 +55,7 @@ func runScan(
 	// Channel to get timestamps for empty candles
 	c := make(chan time.Time)
 	//fetch all candle data concurrently
-	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c)
+	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c, processOption)
 
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retScanRes := computeScan(packetSize, userID, rid, startTime, endTime, scannerFunc, packetSender, &chunksArr, c)
