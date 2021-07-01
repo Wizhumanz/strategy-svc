@@ -137,7 +137,7 @@ func strat1(
 	slPerc := 0.5
 	// startTrailPerc := 1.3
 	// trailingPerc := 0.4
-	slCooldownCandles := 20 //TODO: change to pivots
+	slCooldownCandles := 25 //TODO: change to pivots
 
 	newLabels := map[string]map[int]string{
 		"top":    map[int]string{},
@@ -210,7 +210,7 @@ func strat1(
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 					for _, tpPoint := range multiTPs {
 						if tpPoint.Order == tpPoint.TotalPointsInSet {
-							fmt.Printf(colorGreen+"<%v> BREAK TREND point= %+v\n", relCandleIndex, tpPoint)
+							// fmt.Printf(colorGreen+"<%v> BREAK TREND point= %+v\n", relCandleIndex, tpPoint)
 							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
 							stored.Trades = append(stored.Trades, latestEntryData) //TODO: how to append trade when not all TPs hit?
 						}
@@ -395,7 +395,7 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 				}
 
 				if tpPoint.Price > 0.0 && candles[i].High >= tpPoint.Price && !tpPoint.IsDone {
-					fmt.Printf(colorYellow+"<%v> TRIGGERED multi TP / high= %v / tpPoint= %+v\n", i, candles[i].High, tpPoint)
+					// fmt.Printf(colorYellow+"<%v> TRIGGERED multi TP / high= %v / tpPoint= %+v\n", i, candles[i].High, tpPoint)
 
 					p = tpPoint
 					p.IsDone = true

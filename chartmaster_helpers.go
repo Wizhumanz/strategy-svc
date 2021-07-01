@@ -256,15 +256,16 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 	sd := SimulatedTradeDataPoint{}
 	if len(strat.Actions) > 0 {
 		if strat.Actions[relIndex].Action != "ENTER" && strat.Actions[relIndex].Action != "" {
+			//any action but ENTER
 			//find entry conditions
 			var entryPrice, riskedEquity, entryExchangeFee float64
-			var size float64
+			var originalPosSize float64
 			var entryDateTime string
 			for i := 1; i < relIndex; i++ {
 				checkAction := strat.Actions[relIndex-i]
 				if checkAction.Action == "ENTER" {
 					entryPrice = checkAction.Price
-					size = checkAction.PosSize
+					originalPosSize = checkAction.PosSize
 					riskedEquity = checkAction.RiskedEquity
 					entryExchangeFee = checkAction.ExchangeFee
 					entryDateTime = checkAction.DateTime
@@ -275,14 +276,18 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 			sd.EntryDateTime = entryDateTime
 			sd.ExitDateTime = strat.Actions[relIndex].DateTime
 			sd.Direction = "LONG" //TODO: fix later when strategy changes
+
 			sd.EntryPrice = entryPrice
 			sd.ExitPrice = strat.Actions[relIndex].Price
-			sd.PosSize = size
+			sd.PosSize = originalPosSize
 			sd.RiskedEquity = riskedEquity
 			sd.RawProfitPerc = ((sd.ExitPrice - sd.EntryPrice) / sd.EntryPrice) * 100
 			sd.TotalFees = strat.Actions[relIndex].ExchangeFee + entryExchangeFee
 			sd.Profit = strat.Actions[relIndex].ProfitCap
 			// fmt.Printf(colorWhite+"> $%v\n"+colorReset, strat.Actions[relIndex].ProfitCap)
+		} else if strat.Actions[relIndex].Action != "" {
+			//only ENTER action
+
 		}
 	}
 
