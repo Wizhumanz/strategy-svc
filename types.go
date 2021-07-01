@@ -7,6 +7,7 @@ import (
 	"log"
 	"reflect"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -330,6 +331,11 @@ func (strat *StrategyExecutor) GetPosLongSize() float64 {
 
 func calcMultiTPs(multiTPs []MultiTPPoint, actualPosSize float64, index int) []MultiTPPoint {
 	retMultiTPs := []MultiTPPoint{}
+	//sort because multiTPs not necessarily always in order
+	sort.Slice(multiTPs, func(i, j int) bool {
+		return multiTPs[i].Price < multiTPs[j].Price
+	})
+
 	if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 		calcRemainingPosSize := actualPosSize
 		for i, tpPoint := range multiTPs {
@@ -345,6 +351,10 @@ func calcMultiTPs(multiTPs []MultiTPPoint, actualPosSize float64, index int) []M
 			}
 			retMultiTPs = append(retMultiTPs, newPoint)
 		}
+	}
+
+	for _, p := range retMultiTPs {
+		fmt.Printf(colorCyan+"%+v\n"+colorReset, p)
 	}
 	return retMultiTPs
 }
@@ -453,7 +463,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 
 	// startTrailPrice := price * (1 + (startTrailPerc / 100))
 
-	// fmt.Printf(colorYellow+"<%v> BUYING $=%v / sl=%v / tpMap= %+v \n len(strat.Actions)= %v\n\n"+colorReset, cIndex, price, sl, retMultiTPs, len(strat.Actions))
+	// fmt.Printf(colorGreen+"<%v> BUYING $=%v / sl=%v /\n tpMap= %+v\n"+colorReset, cIndex, price, sl, retMultiTPs)
 
 	// for _, action := range strat.Actions {
 	// 	fmt.Printf("%+v\n", action)

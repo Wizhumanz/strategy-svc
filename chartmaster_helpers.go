@@ -258,36 +258,30 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 		if strat.Actions[relIndex].Action != "ENTER" && strat.Actions[relIndex].Action != "" {
 			//any action but ENTER
 			//find entry conditions
-			var entryPrice, riskedEquity, entryExchangeFee float64
-			var originalPosSize float64
-			var entryDateTime string
+			var entryPrice float64
 			for i := 1; i < relIndex; i++ {
 				checkAction := strat.Actions[relIndex-i]
 				if checkAction.Action == "ENTER" {
 					entryPrice = checkAction.Price
-					originalPosSize = checkAction.PosSize
-					riskedEquity = checkAction.RiskedEquity
-					entryExchangeFee = checkAction.ExchangeFee
-					entryDateTime = checkAction.DateTime
 					break
 				}
 			}
 
-			sd.EntryDateTime = entryDateTime
 			sd.ExitDateTime = strat.Actions[relIndex].DateTime
-			sd.Direction = "LONG" //TODO: fix later when strategy changes
-
-			sd.EntryPrice = entryPrice
 			sd.ExitPrice = strat.Actions[relIndex].Price
-			sd.PosSize = originalPosSize
-			sd.RiskedEquity = riskedEquity
-			sd.RawProfitPerc = ((sd.ExitPrice - sd.EntryPrice) / sd.EntryPrice) * 100
-			sd.TotalFees = strat.Actions[relIndex].ExchangeFee + entryExchangeFee
-			sd.Profit = strat.Actions[relIndex].ProfitCap
+			sd.PosSize = strat.Actions[relIndex].PosSize
+			sd.RawProfitPerc = ((strat.Actions[relIndex].Price - entryPrice) / entryPrice) * 100
+			sd.TotalFees = strat.Actions[relIndex].ExchangeFee
+			sd.Profit = (strat.Actions[relIndex].PosSize * strat.Actions[relIndex].Price) - (strat.Actions[relIndex].PosSize * entryPrice)
 			// fmt.Printf(colorWhite+"> $%v\n"+colorReset, strat.Actions[relIndex].ProfitCap)
-		} else if strat.Actions[relIndex].Action != "" {
+		} else if strat.Actions[relIndex].Action == "ENTER" {
 			//only ENTER action
-
+			sd.EntryPrice = strat.Actions[relIndex].Price
+			sd.PosSize = strat.Actions[relIndex].PosSize
+			sd.RiskedEquity = strat.Actions[relIndex].RiskedEquity
+			sd.TotalFees = strat.Actions[relIndex].ExchangeFee
+			sd.EntryDateTime = strat.Actions[relIndex].DateTime
+			sd.Direction = "LONG" //TODO: fix later when strategy changes
 		}
 	}
 
@@ -520,7 +514,7 @@ func computeBacktest(
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
 				}
-				if simTradeData.EntryDateTime != "" {
+				if simTradeData.EntryPrice > 0.0 || simTradeData.ExitPrice > 0.0 {
 					chunkAddedSTData = append(chunkAddedSTData, simTradeData)
 				}
 
