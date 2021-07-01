@@ -344,7 +344,7 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 		for i := 0; i < chunkSize; i += 1 {
 			c <- eachTime
 			eachTime = eachTime.Add(time.Minute * 1)
-			fmt.Printf("\nchannelB: %v\n", eachTime)
+			// fmt.Printf("\nchannelB: %v\n", eachTime)
 		}
 	}
 	for i, t := range tempTimeArray {
@@ -364,14 +364,13 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 
 					for {
 						eachTime = eachTime.Add(time.Minute * 1)
-						fmt.Printf("\neachTime: %v\n", eachTime)
+						// fmt.Printf("\neachTime: %v\n", eachTime)
 
 						if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
 							c <- eachTime
 							// fmt.Printf("\nchannelC: %v\n", eachTime)
 
 						} else if fetchCandlesEnd == eachTime {
-							fmt.Println("IT BROKE")
 							eachTime = eachTime.Add(time.Minute * -1)
 							break
 						} else {
@@ -382,11 +381,10 @@ func getChunkCandleData(chunkSlice *[]Candlestick, packetSize int, ticker, perio
 				}
 
 				if candle == chunkCandles[len(chunkCandles)-1] && candle.PeriodEnd != fetchCandlesEnd.Format(httpTimeFormat)+".0000000Z" {
-					fmt.Println("Hello BITCH")
 					for {
 						eachTime = eachTime.Add(time.Minute * 1)
 						c <- eachTime
-						fmt.Printf("\nchannelA: %v\n", eachTime)
+						// fmt.Printf("\nchannelA: %v\n", eachTime)
 
 						if eachTime == fetchCandlesEnd {
 							break
@@ -581,7 +579,7 @@ func computeBacktest(
 			} else if containsEmptyCandles(allEmptyCandles, requiredTime) {
 				if requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
 
-					fmt.Printf("\ndoesnt exist: %v\n", requiredTime)
+					// fmt.Printf("\ndoesnt exist: %v\n", requiredTime)
 					// fmt.Printf("\ncandle.PeriodStart: %v\n", candle.PeriodStart)
 					restartLoop := false
 					for {
@@ -705,7 +703,7 @@ func computeScan(
 			} else if containsEmptyCandles(allEmptyCandles, requiredTime) {
 				if requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
 
-					fmt.Printf("\ndoesnt exist: %v\n", requiredTime)
+					// fmt.Printf("\ndoesnt exist: %v\n", requiredTime)
 					// fmt.Printf("\ncandle.PeriodStart: %v\n", candle.PeriodStart)
 					restartLoop := false
 					for {
