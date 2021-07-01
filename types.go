@@ -419,7 +419,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		}
 
 		// calculate pos size
-		limitOrderMultiply := 0.6
+		limitOrderMultiply := -30.00 //CHANGE THIS TO MAKE SURE NO ENTRY
 		entryLimitOrderSubmitPrice := (1 + (limitOrderMultiply / 100)) * price
 		slLimitOrderPrice := 0.994 * sl
 
@@ -491,7 +491,6 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64,
 			Price:       actualClosePrice,
 			PosSize:     orderSize,
 			ExchangeFee: exchangeFee,
-			ProfitCap:   actualCloseCap - strat.lastEntryEquity,
 			DateTime:    candle.DateTime(),
 		}
 	} else {
