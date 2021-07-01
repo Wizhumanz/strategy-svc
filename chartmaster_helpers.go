@@ -697,31 +697,41 @@ func computeScan(
 				//absolute index from absolute start of computation period
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
-			} else if containsEmptyCandles(allEmptyCandles, requiredTime) && requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
-				// fmt.Printf("\ndoesnt exist: %v,%v\n", requiredTime, i)
-				// fmt.Printf("\ncandle.PeriodStart: %v,%v\n", candle.PeriodStart, i)
-				restartLoop := false
-				for {
-					// fmt.Printf("\nkms: %v,%v\n", requiredTime, i)
-					requiredTime = requiredTime.Add(time.Minute * 1)
+			} else if containsEmptyCandles(allEmptyCandles, requiredTime) {
+				if requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
 
-					// Break for loop if the empty candle timestamp reaches the requiredTime
-					if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+					fmt.Printf("\ndoesnt exist: %v\n", requiredTime)
+					// fmt.Printf("\ncandle.PeriodStart: %v\n", candle.PeriodStart)
+					restartLoop := false
+					for {
+						// fmt.Printf("\nkms: %v\n", requiredTime)
 						requiredTime = requiredTime.Add(time.Minute * 1)
+
+						// Break for loop if the empty candle timestamp reaches the requiredTime
+						if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+							requiredTime = requiredTime.Add(time.Minute * 1)
+							break
+						}
+
+						// See if it's actually empty or just didn't arrive yet
+						if !containsEmptyCandles(allEmptyCandles, requiredTime) {
+							restartLoop = true
+							requiredTime = requiredTime.Add(time.Minute * -1)
+							break
+						}
+					}
+					if restartLoop {
+						fmt.Println("break restartloop")
 						break
 					}
+				} else if candle == allCandlesArr[len(allCandlesArr)-1] && candle.PeriodEnd != endTime.Format(httpTimeFormat)+".0000000Z" {
+					for {
+						requiredTime = requiredTime.Add(time.Minute * 1)
 
-					// See if it's actually empty or just didn't arrive yet
-					if !containsEmptyCandles(allEmptyCandles, requiredTime) {
-						restartLoop = true
-						requiredTime = requiredTime.Add(time.Minute * -1)
-						break
+						if requiredTime == endTime {
+							break
+						}
 					}
-				}
-
-				if restartLoop {
-					fmt.Println("break restartloop")
-					break
 				}
 			}
 		}
