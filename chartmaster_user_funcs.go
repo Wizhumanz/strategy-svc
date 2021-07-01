@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"sort"
 	"time"
 )
 
@@ -191,11 +192,11 @@ func strat1(
 
 			//check sl + tp + max duration
 			breakIndex, breakPrice, action, multiTPs, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles)
-			fmt.Printf("\nbreakIndex: %v\n", breakIndex)
-			fmt.Printf("\nbreakPrice: %v\n", breakPrice)
-			fmt.Printf("\naction: %v\n", action)
-			fmt.Printf("\nmultiTPs: %v\n", multiTPs)
-			fmt.Printf("\nupdatedEntryData: %v\n", updatedEntryData)
+			// fmt.Printf("\nbreakIndex: %v\n", breakIndex)
+			// fmt.Printf("\nbreakPrice: %v\n", breakPrice)
+			// fmt.Printf("\naction: %v\n", action)
+			// fmt.Printf("\nmultiTPs: %v\n", multiTPs)
+			// fmt.Printf("\nupdatedEntryData: %v\n", updatedEntryData)
 
 			if updatedEntryData.MultiTPs[0].Price > 0.0 {
 				latestEntryData = updatedEntryData
@@ -341,20 +342,28 @@ func logEntry(relCandleIndex, entryIndex int, candles []Candlestick, pivotLows [
 		retData.SLPrice = slPerc * candles[relCandleIndex].Close
 		if tpMap != nil {
 			retData.MultiTPs = []MultiTPPoint{}
-			i := 1
-			//calc from percentages to actual prices and sizes
-			for profitPerc, closePerc := range tpMap {
+
+			//sort map in ascending order of price
+			keys := make([]float64, 0, len(tpMap))
+			for k := range tpMap {
+				keys = append(keys, k)
+			}
+			sort.Slice(keys, func(i, j int) bool {
+				return keys[i] < keys[j]
+			})
+			//convert to struct
+			for i, profitPerc := range keys {
 				tpPrice := retData.EntryTradeOpenCandle.Close * (1 + (profitPerc / 100))
 				retData.MultiTPs = append(retData.MultiTPs, MultiTPPoint{
-					Order:            i,
+					Order:            i + 1,
 					IsDone:           false,
 					Price:            tpPrice,
-					ClosePerc:        closePerc,
+					ClosePerc:        tpMap[profitPerc],
 					TotalPointsInSet: len(tpMap),
 				})
-				i++
 			}
 		}
+
 		if tpPerc > 0 {
 			retData.TPPrice = tpPerc * candles[relCandleIndex].Close
 		}
