@@ -168,7 +168,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 	if len(strat.Actions[relIndex]) > 0 && strat.Actions[relIndex][0].Action == "ENTER" {
 		newCandleD.StratEnterPrice = strat.Actions[relIndex][0].Price
 	} else if len(strat.Actions[relIndex]) > 0 && strat.Actions[relIndex][len(strat.Actions[relIndex])-1].Action != "" {
-		newCandleD.StratExitPrice = strat.Actions[relIndex][len(strat.Actions[relIndex])-1].Price //
+		newCandleD.StratExitPrice = strat.Actions[relIndex][len(strat.Actions[relIndex])-1].Price
 	}
 	retCandlesArr = append(retCandlesArr, newCandleD)
 	totalCandles = append(totalCandles, newCandleD)
@@ -283,7 +283,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				sd.RawProfitPerc = ((a.Price - entryPrice) / entryPrice) * 100
 				sd.TotalFees = a.ExchangeFee
 				sd.Profit = (a.PosSize * a.Price) - (a.PosSize * entryPrice)
-				// fmt.Printf(colorWhite+"> $%v\n"+colorReset, a.ProfitCap)
+				fmt.Printf(colorCyan+"<%v> a.PosSize= %v / a.Price= %v / entryPrice= %v\n"+colorReset, relIndex, a.PosSize, a.Price, entryPrice)
 			} else if a.Action == "ENTER" {
 				//only ENTER action
 				sd.EntryPrice = a.Price

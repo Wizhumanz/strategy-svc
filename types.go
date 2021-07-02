@@ -403,7 +403,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		}
 		strat.Actions[cIndex] = append(strat.Actions[cIndex], newA)
 
-		fmt.Printf(colorGreen+"<%v> posSize= %v\n"+colorReset, cIndex, strat.posLongSize)
+		// fmt.Printf(colorGreen+"<%v> posSize= %v\n"+colorReset, cIndex, strat.posLongSize)
 	} else {
 		//setup
 		var binanceSymbolsFile []map[string]interface{}
@@ -480,7 +480,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 }
 
 func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64, cIndex int, action string, candle Candlestick, bot Bot) {
-	// fmt.Printf(colorRed+"<%v> CLOSING TRADE(%v) $= %v / posPercClose= %v / closeSz= %v \n"+colorReset, cIndex, action, price, posPercToClose, closeSz)
+	fmt.Printf(colorYellow+"<%v> CLOSING TRADE(%v) $= %v / posPercClose= %v / closeSz= %v \n"+colorReset, cIndex, action, price, posPercToClose, closeSz)
 
 	if !strat.liveTrade {
 		orderSize := 0.0
@@ -529,5 +529,5 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64,
 		// continueStreamListening(bot.KEY)
 	}
 
-	fmt.Printf(colorYellow+"<%v> posSize= %v\n"+colorReset, cIndex, strat.posLongSize)
+	// fmt.Printf(colorYellow+"<%v> posSize= %v\n"+colorReset, cIndex, strat.posLongSize)
 }

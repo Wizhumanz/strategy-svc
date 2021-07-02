@@ -219,7 +219,7 @@ func strat1(
 							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
 							stored.Trades = append(stored.Trades, latestEntryData) //TODO: how to append trade when not all TPs hit?
 						}
-						(*strategy).CloseLong(breakPrice, -1, tpPoint.CloseSize, relCandleIndex, action, candles[len(candles)-1], bot)
+						(*strategy).CloseLong(tpPoint.Price, -1, tpPoint.CloseSize, relCandleIndex, action, candles[len(candles)-1], bot)
 					}
 				}
 			}
