@@ -152,7 +152,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 
 var totalCandles []CandlestickChartData
 
-func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string) ([]CandlestickChartData, ProfitCurveDataPoint, SimulatedTradeDataPoint) {
+func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
 
 	//candlestick
@@ -165,10 +165,10 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 		Close:    c.Close,
 	}
 	//strategy enter/exit
-	if strat.Actions[relIndex].Action == "ENTER" {
-		newCandleD.StratEnterPrice = strat.Actions[relIndex].Price
-	} else if strat.Actions[relIndex].Action != "" {
-		newCandleD.StratExitPrice = strat.Actions[relIndex].Price
+	if len(strat.Actions[relIndex]) > 0 && strat.Actions[relIndex][0].Action == "ENTER" {
+		newCandleD.StratEnterPrice = strat.Actions[relIndex][0].Price
+	} else if len(strat.Actions[relIndex]) > 0 && strat.Actions[relIndex][len(strat.Actions[relIndex])-1].Action != "" {
+		newCandleD.StratExitPrice = strat.Actions[relIndex][len(strat.Actions[relIndex])-1].Price //
 	}
 	retCandlesArr = append(retCandlesArr, newCandleD)
 	totalCandles = append(totalCandles, newCandleD)
@@ -253,39 +253,52 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 	}
 
 	//sim trades
-	sd := SimulatedTradeDataPoint{}
+	retSimData := []SimulatedTradeDataPoint{}
 	if len(strat.Actions) > 0 {
-		if strat.Actions[relIndex].Action != "ENTER" && strat.Actions[relIndex].Action != "" {
-			//any action but ENTER
-			//find entry conditions
-			var entryPrice float64
-			for i := 1; i < relIndex; i++ {
-				checkAction := strat.Actions[relIndex-i]
-				if checkAction.Action == "ENTER" {
-					entryPrice = checkAction.Price
-					break
+		for _, a := range strat.Actions[relIndex] {
+			sd := SimulatedTradeDataPoint{}
+			if a.Action != "ENTER" && a.Action != "" {
+				//any action but ENTER
+				//find entry conditions
+				var entryPrice float64
+				for i := 1; i < relIndex; i++ {
+					foundEntry := false
+					prevActions := strat.Actions[relIndex-i]
+					for _, pa := range prevActions {
+						if pa.Action == "ENTER" {
+							entryPrice = pa.Price
+							foundEntry = true
+							break
+						}
+
+						if foundEntry {
+							break
+						}
+					}
 				}
+
+				sd.ExitDateTime = a.DateTime
+				sd.ExitPrice = a.Price
+				sd.PosSize = a.PosSize
+				sd.RawProfitPerc = ((a.Price - entryPrice) / entryPrice) * 100
+				sd.TotalFees = a.ExchangeFee
+				sd.Profit = (a.PosSize * a.Price) - (a.PosSize * entryPrice)
+				// fmt.Printf(colorWhite+"> $%v\n"+colorReset, a.ProfitCap)
+			} else if a.Action == "ENTER" {
+				//only ENTER action
+				sd.EntryPrice = a.Price
+				sd.PosSize = a.PosSize
+				sd.RiskedEquity = a.RiskedEquity
+				sd.TotalFees = a.ExchangeFee
+				sd.EntryDateTime = a.DateTime
+				sd.Direction = "LONG" //TODO: fix later when strategy changes
 			}
 
-			sd.ExitDateTime = strat.Actions[relIndex].DateTime
-			sd.ExitPrice = strat.Actions[relIndex].Price
-			sd.PosSize = strat.Actions[relIndex].PosSize
-			sd.RawProfitPerc = ((strat.Actions[relIndex].Price - entryPrice) / entryPrice) * 100
-			sd.TotalFees = strat.Actions[relIndex].ExchangeFee
-			sd.Profit = (strat.Actions[relIndex].PosSize * strat.Actions[relIndex].Price) - (strat.Actions[relIndex].PosSize * entryPrice)
-			// fmt.Printf(colorWhite+"> $%v\n"+colorReset, strat.Actions[relIndex].ProfitCap)
-		} else if strat.Actions[relIndex].Action == "ENTER" {
-			//only ENTER action
-			sd.EntryPrice = strat.Actions[relIndex].Price
-			sd.PosSize = strat.Actions[relIndex].PosSize
-			sd.RiskedEquity = strat.Actions[relIndex].RiskedEquity
-			sd.TotalFees = strat.Actions[relIndex].ExchangeFee
-			sd.EntryDateTime = strat.Actions[relIndex].DateTime
-			sd.Direction = "LONG" //TODO: fix later when strategy changes
+			retSimData = append(retSimData, sd)
 		}
 	}
 
-	return retCandlesArr, pd, sd
+	return retCandlesArr, pd, retSimData
 }
 
 func getChunkCandleDataAll(chunkSlice *[]Candlestick, packetSize int, ticker, period string,
@@ -619,14 +632,16 @@ func computeBacktest(
 				labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
-				var simTradeData SimulatedTradeDataPoint
+				var simTradeData []SimulatedTradeDataPoint
 				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, &chunkAddedPCData, candle, strategySim, relIndex, labels)
 
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
 				}
-				if simTradeData.EntryPrice > 0.0 || simTradeData.ExitPrice > 0.0 {
-					chunkAddedSTData = append(chunkAddedSTData, simTradeData)
+				if len(simTradeData) > 0 {
+					if simTradeData[0].EntryPrice > 0.0 || simTradeData[0].ExitPrice > 0.0 {
+						chunkAddedSTData = append(chunkAddedSTData, simTradeData...)
+					}
 				}
 
 				//update more global vars
