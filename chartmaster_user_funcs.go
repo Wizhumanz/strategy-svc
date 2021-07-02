@@ -182,7 +182,7 @@ func strat1(
 	// }
 
 	//SL cooldown labels
-	if len(stored.Trades) > 0 && relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex+slCooldownCandles) && strategy.Actions[len(strategy.Actions)-1].Action == "SL" {
+	if len(stored.Trades) > 0 && len(strategy.Actions[len(strategy.Actions)-1]) > 0 && relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex+slCooldownCandles) && strategy.Actions[len(strategy.Actions)-1][0].Action == "SL" {
 		newLabels["middle"][0] = "ч"
 	} else if len(stored.PivotLows) >= 4 {
 		if strategy.GetPosLongSize() > 0 {
@@ -243,7 +243,7 @@ func strat1(
 				//latest entry PL must be 1) after last trade end, and 2) be the latest PL
 				latestPossibleEntry := possibleEntryIndexes[len(possibleEntryIndexes)-1]
 				minTradingIndex := 0
-				if strategy.Actions[len(strategy.Actions)-1].Action == "SL" {
+				if len(strategy.Actions[len(strategy.Actions)-1]) > 0 && strategy.Actions[len(strategy.Actions)-1][0].Action == "SL" {
 					minTradingIndex = (lastTradeExitIndex + slCooldownCandles)
 				} else {
 					minTradingIndex = lastTradeExitIndex

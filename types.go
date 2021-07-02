@@ -299,7 +299,7 @@ type StrategyExecutor struct {
 	posShortSize    float64
 	totalEquity     float64
 	availableEquity float64
-	Actions         map[int]StrategyExecutorAction //map bar index to action that occured at that index
+	Actions         map[int][]StrategyExecutorAction //map bar index to action that occured at that index
 	liveTrade       bool
 	lastEntryEquity float64
 
@@ -310,7 +310,7 @@ type StrategyExecutor struct {
 func (strat *StrategyExecutor) Init(e float64, liveTrade bool) {
 	strat.totalEquity = e
 	strat.availableEquity = e
-	strat.Actions = map[int]StrategyExecutorAction{}
+	strat.Actions = map[int][]StrategyExecutorAction{}
 	strat.liveTrade = liveTrade
 }
 
@@ -389,7 +389,10 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		//complete multi-tp map with actual pos sizes
 		retMultiTPs = calcMultiTPs(multiTPs, actualPosSize, cIndex)
 
-		strat.Actions[cIndex] = StrategyExecutorAction{
+		if len(strat.Actions[cIndex]) <= 0 {
+			strat.Actions[cIndex] = []StrategyExecutorAction{}
+		}
+		newA := StrategyExecutorAction{
 			Action:       "ENTER",
 			Price:        actualPrice,
 			SL:           sl,
@@ -398,6 +401,9 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 			ExchangeFee:  exchangeFee,
 			DateTime:     candle.DateTime(),
 		}
+		strat.Actions[cIndex] = append(strat.Actions[cIndex], newA)
+
+		fmt.Printf(colorGreen+"<%v> posSize= %v\n"+colorReset, cIndex, strat.posLongSize)
 	} else {
 		//setup
 		var binanceSymbolsFile []map[string]interface{}
@@ -497,13 +503,17 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64,
 		// Log(fmt.Sprintf("<%v> SIM closed pos %v/100 at %v | action = %v\n ---> $%v", cIndex, posPercToClose, price, action, strat.totalEquity),
 		// 	fmt.Sprintf("<%v> %v", line, file))
 
-		strat.Actions[cIndex] = StrategyExecutorAction{
+		if len(strat.Actions[cIndex]) <= 0 {
+			strat.Actions[cIndex] = []StrategyExecutorAction{}
+		}
+		newA := StrategyExecutorAction{
 			Action:      action,
 			Price:       actualClosePrice,
 			PosSize:     orderSize,
 			ExchangeFee: exchangeFee,
 			DateTime:    candle.DateTime(),
 		}
+		strat.Actions[cIndex] = append(strat.Actions[cIndex], newA)
 	} else {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(fmt.Sprintf("Closing pos %v/100 at %v | action = %v\n", posPercToClose, price, action),
@@ -518,4 +528,6 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64,
 		// ExitTradeSaga.Execute(bot.KEY, svcConsumerGroupName, redisConsumerID, args)
 		// continueStreamListening(bot.KEY)
 	}
+
+	fmt.Printf(colorYellow+"<%v> posSize= %v\n"+colorReset, cIndex, strat.posLongSize)
 }
