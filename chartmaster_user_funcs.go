@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"sort"
 	"time"
 )
 
@@ -62,13 +63,13 @@ func calcEntry(entryPrice, slPrice, accPercRisk, accSz float64, leverage int) (f
 	}
 
 	accRiskedCap := (accPercRisk / 100) * accSz
-	posCap := (accRiskedCap / rawRiskPerc) / float64(leverage)
-	if posCap > accSz {
-		posCap = accSz
+	leveragedPosEquity := accRiskedCap / (rawRiskPerc * float64(leverage))
+	if leveragedPosEquity > accSz*float64(leverage) {
+		leveragedPosEquity = accSz * float64(leverage)
 	}
-	posSize := posCap / entryPrice
+	posSize := leveragedPosEquity / entryPrice
 
-	return posCap, posSize
+	return leveragedPosEquity, posSize
 }
 
 // pivotWatchEntryCheck returns a slice of indexes where entry conditions met starting from startSearchIndex, if any, or empty slice if no entry is found matching the conditions.
@@ -128,16 +129,19 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		0.5:  55.0,
-		0.75: 45.0,
+		0.57: 20.0,
+		0.77: 25.0,
+		0.85: 20.0,
+		0.95: 20.0,
+		1.15: 15.0,
 	}
 
 	pivotLowsToEnter := 4
-	maxDurationCandles := 200
-	slPerc := 0.5
+	maxDurationCandles := 800
+	slPerc := 0.8
 	// startTrailPerc := 1.3
 	// trailingPerc := 0.4
-	slCooldownCandles := 25 //TODO: change to pivots
+	slCooldownCandles := 35 //TODO: change to pivots
 
 	newLabels := map[string]map[int]string{
 		"top":    map[int]string{},
@@ -178,7 +182,7 @@ func strat1(
 	// }
 
 	//SL cooldown labels
-	if len(stored.Trades) > 0 && relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex+slCooldownCandles) {
+	if len(stored.Trades) > 0 && relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex+slCooldownCandles) && strategy.Actions[len(strategy.Actions)-1].Action == "SL" {
 		newLabels["middle"][0] = "ч"
 	} else if len(stored.PivotLows) >= 4 {
 		if strategy.GetPosLongSize() > 0 {
@@ -202,10 +206,16 @@ func strat1(
 				stored.Trades = append(stored.Trades, latestEntryData)
 				(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot)
 			} else if breakIndex > 0 && action == "MULTI-TP" {
+				// if relCandleIndex < 3000 {
+				// 	for _, p := range multiTPs {
+				// 		fmt.Printf(colorYellow+"<%v> %+v\n"+colorReset, relCandleIndex, p)
+				// 	}
+				// }
+
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 					for _, tpPoint := range multiTPs {
 						if tpPoint.Order == tpPoint.TotalPointsInSet {
-							// fmt.Printf(colorGreen+"<%v> BREAK TREND point= %+v\n", relCandleIndex, tpPoint)
+							// fmt.Printf(colorGreen+"<%v> BREAK TREND point= %+v\n latestEntry= %+v\n", relCandleIndex, tpPoint, latestEntryData)
 							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
 							stored.Trades = append(stored.Trades, latestEntryData) //TODO: how to append trade when not all TPs hit?
 						}
@@ -232,7 +242,13 @@ func strat1(
 
 				//latest entry PL must be 1) after last trade end, and 2) be the latest PL
 				latestPossibleEntry := possibleEntryIndexes[len(possibleEntryIndexes)-1]
-				if latestPossibleEntry > lastTradeExitIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] {
+				minTradingIndex := 0
+				if strategy.Actions[len(strategy.Actions)-1].Action == "SL" {
+					minTradingIndex = (lastTradeExitIndex + slCooldownCandles)
+				} else {
+					minTradingIndex = lastTradeExitIndex
+				}
+				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] {
 					newEntryData := StrategyDataPoint{}
 					newEntryData = logEntry(relCandleIndex, latestPossibleEntry, candles, possibleEntryIndexes, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
 					newEntryData.ActualEntryIndex = relCandleIndex
@@ -321,20 +337,28 @@ func logEntry(relCandleIndex, entryIndex int, candles []Candlestick, pivotLows [
 		retData.SLPrice = slPerc * candles[relCandleIndex].Close
 		if tpMap != nil {
 			retData.MultiTPs = []MultiTPPoint{}
-			i := 1
-			//calc from percentages to actual prices and sizes
-			for profitPerc, closePerc := range tpMap {
+
+			//sort map in ascending order of price
+			keys := make([]float64, 0, len(tpMap))
+			for k := range tpMap {
+				keys = append(keys, k)
+			}
+			sort.Slice(keys, func(i, j int) bool {
+				return keys[i] < keys[j]
+			})
+			//convert to struct
+			for i, profitPerc := range keys {
 				tpPrice := retData.EntryTradeOpenCandle.Close * (1 + (profitPerc / 100))
 				retData.MultiTPs = append(retData.MultiTPs, MultiTPPoint{
-					Order:            i,
+					Order:            i + 1,
 					IsDone:           false,
 					Price:            tpPrice,
-					ClosePerc:        closePerc,
+					ClosePerc:        tpMap[profitPerc],
 					TotalPointsInSet: len(tpMap),
 				})
-				i++
 			}
 		}
+
 		if tpPerc > 0 {
 			retData.TPPrice = tpPerc * candles[relCandleIndex].Close
 		}
@@ -539,7 +563,7 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 	// 		relCandleIndex, startTrailPrice, retData.TrailingMax, retData.TrailingMin, trailingMaxDrawdownPerc, retData.TrailingMaxDrawdownPercTillExtent, retData.EntryTradeOpenCandle.Close, retData.ActualEntryIndex, fmt.Sprintf("%.2f", retData.Growth), entryTime, trendExtentTime, trendExtentIndex, retData.Duration)
 	// }
 
-	// fmt.Printf(colorGreen+"<%v> retData= %+v\n"+colorReset, retData.BreakTime, retData)
+	// fmt.Printf(colorRed+"<%v> retData= %+v\n"+colorReset, retData.BreakTime, retData)
 }
 
 func contains(sli []int, find int) bool {
