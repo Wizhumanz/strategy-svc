@@ -780,9 +780,6 @@ func computeScan(
 				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
 				// m.Lock()
-				//stream data back to client in every chunk
-
-				sendPacketScan(packetSender, userID, rid, chunkAddedCandles, chunkAddedScanData)
 
 				// m.Unlock()
 
@@ -833,6 +830,9 @@ func computeScan(
 			break
 		}
 	}
+
+	//stream data back to client in every chunk
+	sendPacketScan(packetSender, userID, rid, retCandles, retScanRes)
 
 	return retCandles, retScanRes
 }
