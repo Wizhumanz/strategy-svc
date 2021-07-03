@@ -129,11 +129,10 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		0.57: 20.0,
-		0.77: 25.0,
-		0.85: 20.0,
-		0.95: 20.0,
-		1.15: 15.0,
+		0.77: 15.0,
+		1.0:  20.0,
+		1.4:  35.0,
+		1.8:  30.0,
 	}
 
 	pivotLowsToEnter := 4
@@ -182,7 +181,24 @@ func strat1(
 	// }
 
 	//SL cooldown labels
-	if len(stored.Trades) > 0 && len(strategy.Actions[len(strategy.Actions)-1]) > 0 && relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex+slCooldownCandles) && strategy.Actions[len(strategy.Actions)-1][0].Action == "SL" {
+	// if relCandleIndex < 120 {
+	// 	fmt.Printf("%+v\n", strategy.Actions)
+	// }
+	latestActions := []StrategyExecutorAction{}
+	for k := 1; k < relCandleIndex; k++ {
+		checkIndex := relCandleIndex - k
+		if len(strategy.Actions[checkIndex]) > 0 {
+			if relCandleIndex < 50 {
+				fmt.Printf(colorYellow+"<%v> checking %+v from <%v>\n", relCandleIndex, strategy.Actions[checkIndex], checkIndex)
+			}
+			latestActions = strategy.Actions[checkIndex]
+			break
+		}
+	}
+	if relCandleIndex < 50 {
+		fmt.Printf(colorCyan+"<%v> latest= %+v\n", relCandleIndex, latestActions)
+	}
+	if len(stored.Trades) > 0 && len(latestActions) > 0 && latestActions[0].Action == "SL" {
 		newLabels["middle"][0] = "ч"
 	} else if len(stored.PivotLows) >= 4 {
 		if strategy.GetPosLongSize() > 0 {

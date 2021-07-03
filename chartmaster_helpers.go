@@ -261,19 +261,23 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				//any action but ENTER
 				//find entry conditions
 				var entryPrice float64
-				for i := 1; i < relIndex; i++ {
+				for i := 0; i < relIndex; i++ {
 					foundEntry := false
 					prevActions := strat.Actions[relIndex-i]
+
+					// if len(strat.Actions[relIndex-i]) > 0 {
+					// 	fmt.Printf(colorRed+"<%v> %+v\n"+colorReset, relIndex, strat.Actions[relIndex-i])
+					// }
+
 					for _, pa := range prevActions {
 						if pa.Action == "ENTER" {
 							entryPrice = pa.Price
 							foundEntry = true
-							break
 						}
+					}
 
-						if foundEntry {
-							break
-						}
+					if foundEntry {
+						break
 					}
 				}
 
@@ -283,7 +287,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 				sd.RawProfitPerc = ((a.Price - entryPrice) / entryPrice) * 100
 				sd.TotalFees = a.ExchangeFee
 				sd.Profit = (a.PosSize * a.Price) - (a.PosSize * entryPrice)
-				fmt.Printf(colorCyan+"<%v> a.PosSize= %v / a.Price= %v / entryPrice= %v\n"+colorReset, relIndex, a.PosSize, a.Price, entryPrice)
+				// fmt.Printf(colorCyan+"<%v> a.PosSize= %v / a.Price= %v / entryPrice= %v\n"+colorReset, relIndex, a.PosSize, a.Price, entryPrice)
 			} else if a.Action == "ENTER" {
 				//only ENTER action
 				sd.EntryPrice = a.Price
