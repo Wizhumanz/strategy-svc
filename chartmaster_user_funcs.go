@@ -64,7 +64,7 @@ func calcEntry(entryPrice, slPrice, accPercRisk, accSz float64, leverage int) (f
 	}
 
 	accRiskedCap := (accPercRisk / 100) * accSz
-	leveragedPosEquity := accRiskedCap / (rawRiskPerc * float64(leverage))
+	leveragedPosEquity := accRiskedCap / (rawRiskPerc)
 	if leveragedPosEquity > accSz*float64(leverage) {
 		leveragedPosEquity = accSz * float64(leverage)
 	}
@@ -142,7 +142,7 @@ func strat1(
 	slCooldownCandles := 35
 	tpCooldownCandles := 35
 
-	tradeWindowStart := "11:00:00"
+	tradeWindowStart := "09:00:00"
 	tradeWindowEnd := "18:00:00"
 
 	newLabels := map[string]map[int]string{
