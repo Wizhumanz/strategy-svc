@@ -312,15 +312,15 @@ func getChunkCandleDataAll(chunkSlice *[]Candlestick, packetSize int, ticker, pe
 
 	retCandles := getCachedCandleData(ticker, period, fetchCandlesStart, fetchCandlesStart)
 	// fmt.Printf("\nretCandles: %v \n", retCandles)
-	m.Lock()
 	if len(retCandles) > 0 {
 		chunkCandles = getCachedCandleData(ticker, period, fetchCandlesStart, fetchCandlesEnd.Add(time.Minute*time.Duration(-1)))
 		// fmt.Printf("\ngetCachedCandleData: %v \n", chunkCandles)
 	} else {
+		m.Lock()
 		chunkCandles = fetchCandleData(ticker, period, fetchCandlesStart, fetchCandlesEnd.Add(time.Minute*time.Duration(-1)))
 		// fmt.Printf("\nfetchCandleData: %v \n", chunkCandles)
+		m.Unlock()
 	}
-	m.Unlock()
 
 	eachTime := fetchCandlesStart
 	if len(chunkCandles) == 0 {
@@ -655,9 +655,9 @@ func computeBacktest(
 
 				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
-				//stream data back to client in every chunk
+				// //stream data back to client in every chunk
 
-				sendPacketBacktest(packetSender, userID, rid, chunkAddedCandles, chunkAddedPCData, chunkAddedSTData)
+				// sendPacketBacktest(packetSender, userID, rid, chunkAddedCandles, chunkAddedPCData, chunkAddedSTData)
 
 				//absolute index from absolute start of computation period
 				relIndex++
@@ -707,6 +707,11 @@ func computeBacktest(
 			break
 		}
 	}
+
+	//stream data back to client in every chunk
+
+	sendPacketBacktest(packetSender, userID, rid, retCandles, retProfitCurve[0].Data, retSimTrades[0].Data)
+
 	return retCandles, retProfitCurve, retSimTrades
 }
 
@@ -723,7 +728,7 @@ func computeScan(
 	var retScanRes []StrategyDataPoint
 	var allEmptyCandles []time.Time
 
-	m := sync.Mutex{}
+	// m := sync.Mutex{}
 
 	allOpens := []float64{}
 	allHighs := []float64{}
@@ -778,12 +783,12 @@ func computeScan(
 
 				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
-				m.Lock()
+				// m.Lock()
 				//stream data back to client in every chunk
 
 				sendPacketScan(packetSender, userID, rid, chunkAddedCandles, chunkAddedScanData)
 
-				m.Unlock()
+				// m.Unlock()
 
 				//absolute index from absolute start of computation period
 				relIndex++
