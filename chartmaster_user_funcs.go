@@ -136,13 +136,28 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		1.0:  10.0,
-		1.83: 90.0,
+		1.0: 5,
+		1.6: 15,
+		2.5: 10,
+		3.2: 20,
+		3.8: 20,
+		4.4: 20,
+		5.2: 10,
 	}
 
+	//0.8% SL
+	// tpMap := map[float64]float64{
+	// 	1.3: 10,
+	// 	1.9: 20,
+	// 	2.5: 20,
+	// 	3.3: 20,
+	// 	3.9: 25,
+	// 	5.7: 5,
+	// }
+
 	pivotLowsToEnter := 6
-	maxDurationCandles := 800
-	slPerc := 0.8
+	maxDurationCandles := 1200
+	slPerc := 1.5
 	// startTrailPerc := 1.3
 	// trailingPerc := 0.4
 	slCooldownCandles := 35
@@ -659,8 +674,26 @@ func scanPivotTrends(
 	// checkTrendBreakFromStartingPivots := false
 	// minEntryPivotsDiffPerc := float64(0)
 	// maxEntryPivotsDiffPerc := 0.5
-	maxDurationCandles := 600
-	startTrailPerc := 0.3
+	//map of profit % TO account size perc to close (multi-tp)
+	tpMap := map[float64]float64{
+		1.3: 10,
+		1.9: 20,
+		2.5: 20,
+		3.3: 20,
+		3.9: 25,
+		5.7: 5,
+	}
+
+	pivotLowsToEnter := 6
+	maxDurationCandles := 1200
+	slPerc := 1.0
+	slCooldownCandles := 35
+	// tpCooldownCandles := 35
+
+	// tradeWindowStart := "09:00:00"
+	tradeWindowStart := ""
+	// tradeWindowEnd := "18:00:00"
+	tradeWindowEnd := ""
 
 	retData := StrategyDataPoint{}
 	stored, ok := (*storage).(PivotTrendScanStore)
@@ -675,73 +708,120 @@ func scanPivotTrends(
 	}
 
 	newLabels := map[string]map[int]string{
-
+		"top":    map[int]string{},
 		"middle": map[int]string{},
 		"bottom": map[int]string{},
 	}
 
+	//calculate pivots
 	newLabels, _ = findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows), newLabels)
 	// newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
 
-	if len(stored.PivotLows) >= 3 {
-		if stored.WatchingTrend {
-			//manage/watch ongoing trend
-			// fmt.Printf(colorYellow+"checking existing trend %v %v\n"+colorReset, relCandleIndex, candles[len(candles)-1].DateTime)
-			retData = stored.ScanPoints[len(stored.ScanPoints)-1]
+	if len(stored.ScanPoints) > 0 && relCandleIndex <= stored.ScanPoints[len(stored.ScanPoints)-1].BreakIndex+slCooldownCandles {
+		newLabels["middle"][0] = "ч"
 
-			//check sl
-			breakIndex, _, action, _, _ := checkTrendBreak(&retData, relCandleIndex, relCandleIndex-2, candles)
-			//check trend break, always update stored trade data
-			stored.ScanPoints[len(stored.ScanPoints)-1] = retData
-			if breakIndex > 0 && action != "MULTI-TP" {
-				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &retData)
-				//reset
+		// if relCandleIndex > 80 && relCandleIndex < 200 {
+		// 	fmt.Printf(colorCyan+"<%v> %+v\n"+colorReset, candles[len(candles)-1].DateTime(), stored.ScanPoints[len(stored.ScanPoints)-1])
+		// }
+	} else if len(stored.PivotLows) >= 4 {
+		if stored.WatchingTrend {
+			//manage pos
+			// fmt.Printf(colorYellow+"checking existing trend %v %v\n"+colorReset, relCandleIndex, candles[len(candles)-1].DateTime)
+			latestEntryData := stored.ScanPoints[len(stored.ScanPoints)-1]
+
+			//check sl + tp + max duration
+			breakIndex, breakPrice, action, _, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles)
+
+			if updatedEntryData.MultiTPs[0].Price > 0.0 {
+				latestEntryData = updatedEntryData
+			}
+
+			// if relCandleIndex > 100 && relCandleIndex < 300 {
+			// 	fmt.Printf(colorCyan+"<%v> strat1 latestEntryData= %+v\n", relCandleIndex, latestEntryData.MultiTPs)
+			// }
+
+			if breakIndex > 0 && breakPrice > 0 && action != "MULTI-TP" {
+				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
+				stored.ScanPoints = append(stored.ScanPoints, latestEntryData)
 				stored.WatchingTrend = false
-				stored.ScanPoints[len(stored.ScanPoints)-1].BreakIndex = breakIndex
-			} else {
-				stored.ScanPoints[len(stored.ScanPoints)-1] = retData
-				retData = StrategyDataPoint{}
+				retData = latestEntryData
+			}
+
+			if updatedEntryData.MultiTPs[0].Price > 0.0 {
+				stored.ScanPoints[len(stored.ScanPoints)-1] = latestEntryData //entry data will be updated if multi TP
 			}
 		} else {
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
-			possibleEntryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, 3, 0)
-			//for each eligible PL after last trend's entry index, run scan to check trend
-			for _, pli := range possibleEntryIndexes {
-				var lastTrendEntryIndex int
+			possibleEntryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, pivotLowsToEnter, 0)
+
+			if len(possibleEntryIndexes) > 0 {
+				//check if latest possible entry eligible
+				var lastTradeExitIndex int
 				if len(stored.ScanPoints) == 0 {
-					lastTrendEntryIndex = 0
+					lastTradeExitIndex = 0
 				} else {
-					lastTrendEntryIndex = stored.ScanPoints[len(stored.ScanPoints)-1].ActualEntryIndex
-				}
-				// fmt.Printf(colorYellow+"<%v> checking pli= %v / lastEntryIndex= %v\n allPossibleEntries= %v\n"+colorReset, relCandleIndex, pli, lastTrendEntryIndex, possibleEntryIndexes)
-				if pli < lastTrendEntryIndex {
-					continue
+					lastTradeExitIndex = stored.ScanPoints[len(stored.ScanPoints)-1].BreakIndex
 				}
 
-				newEntryData := logEntry(relCandleIndex, pli, candles, possibleEntryIndexes, stored.ScanPoints, &retData, &newLabels, maxDurationCandles, 0.995, -1, startTrailPerc, -1, nil)
-				stored.ScanPoints = append(stored.ScanPoints, retData)
-				stored.WatchingTrend = true
+				//latest entry PL must be 1) after last trade end, and 2) be the latest PL
+				latestPossibleEntry := possibleEntryIndexes[len(possibleEntryIndexes)-1]
+				minTradingIndex := lastTradeExitIndex + slCooldownCandles
 
-				//check trend break, always update stored trade data
-				breakIndex, _, action, _, _ := checkTrendBreak(&newEntryData, relCandleIndex, newEntryData.ActualEntryIndex+1, candles)
-				stored.ScanPoints[len(stored.ScanPoints)-1] = retData
-				if breakIndex > 0 && action != "MULTI-TP" {
-					breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &retData)
-					//reset
-					stored.WatchingTrend = false
-					stored.ScanPoints[len(stored.ScanPoints)-1].BreakIndex = breakIndex
-				} else {
-					stored.ScanPoints[len(stored.ScanPoints)-1] = retData
-					retData = StrategyDataPoint{}
+				//time cannot be within block window
+				timeOK := true
+				if tradeWindowStart != "" && tradeWindowEnd != "" {
+					et, _ := time.Parse(httpTimeFormat, strings.Split(candles[latestPossibleEntry].TimeOpen, ".")[0])
+					s, _ := time.Parse("15:04:05", tradeWindowStart)
+					e, _ := time.Parse("15:04:05", tradeWindowEnd)
+
+					afterS := true
+					if et.Hour() > s.Hour() {
+						afterS = true
+					} else if et.Hour() == s.Hour() {
+						if et.Minute() > s.Minute() {
+							afterS = true
+						} else {
+							afterS = false
+						}
+					} else {
+						afterS = false
+					}
+
+					beforeE := true
+					if et.Hour() < e.Hour() {
+						beforeE = true
+					} else if et.Hour() == e.Hour() {
+						if et.Minute() < e.Minute() {
+							beforeE = true
+						} else {
+							beforeE = false
+						}
+					} else {
+						beforeE = false
+					}
+
+					timeOK = afterS && beforeE
+
+					// if relCandleIndex > 400 && relCandleIndex < 1400 {
+					// 	fmt.Printf(colorGreen+"<%v> OK= %v/ et= %v,%v / s= %v,%v (%v) / e= %v,%v (%v)\n", relCandleIndex, timeOK, et.Hour(), et.Minute(), s.Hour(), s.Minute(), afterS, e.Hour(), e.Minute(), beforeE)
+					// }
+				}
+
+				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK {
+					newEntryData := StrategyDataPoint{}
+					newEntryData = logEntry(relCandleIndex, latestPossibleEntry, candles, possibleEntryIndexes, stored.ScanPoints, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
+					newEntryData.ActualEntryIndex = relCandleIndex
+					stored.ScanPoints = append(stored.ScanPoints, newEntryData)
+					stored.WatchingTrend = true
+
+					// if relCandleIndex < 300 {
+					// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
+					// }
 				}
 			}
 		}
 	}
 
 	*storage = stored
-	// if len(newLabels["middle"]) > 0 {
-	// fmt.Printf(colorYellow+"<%v> labels= %v\n"+colorReset, relCandleIndex, newLabels)
-	// }
-	// fmt.Printf(colorRed+"<%v> len(scanPoints)= %v\n"+colorReset, relCandleIndex, len(stored.ScanPoints))
 	return newLabels, retData
 }

@@ -827,7 +827,7 @@ func computeScan(
 						}
 					}
 					if restartLoop {
-						fmt.Println("break restartloop")
+						// fmt.Println("break restartloop")
 						break
 					}
 				} else if candle == allCandlesArr[len(allCandlesArr)-1] && candle.PeriodEnd != endTime.Format(httpTimeFormat)+".0000000Z" {
