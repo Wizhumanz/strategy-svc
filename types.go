@@ -169,16 +169,16 @@ type WebsocketPacket struct {
 }
 
 type CandlestickChartData struct {
-	DateTime        string  `json:"DateTime"`
-	Open            float64 `json:"Open"`
-	High            float64 `json:"High"`
-	Low             float64 `json:"Low"`
-	Close           float64 `json:"Close"`
-	StratEnterPrice float64 `json:"StratEnterPrice"`
-	StratExitPrice  float64 `json:"StratExitPrice"`
-	LabelTop        string  `json:"LabelTop"`
-	LabelMiddle     string  `json:"LabelMiddle"`
-	LabelBottom     string  `json:"LabelBottom"`
+	DateTime        string    `json:"DateTime"`
+	Open            float64   `json:"Open"`
+	High            float64   `json:"High"`
+	Low             float64   `json:"Low"`
+	Close           float64   `json:"Close"`
+	StratEnterPrice float64   `json:"StratEnterPrice"`
+	StratExitPrice  []float64 `json:"StratExitPrice"`
+	LabelTop        string    `json:"LabelTop"`
+	LabelMiddle     string    `json:"LabelMiddle"`
+	LabelBottom     string    `json:"LabelBottom"`
 }
 
 type ComputeRequest struct {

@@ -158,17 +158,30 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 	//candlestick
 	retCandlesArr := cArr
 	newCandleD := CandlestickChartData{
-		DateTime: c.DateTime(),
-		Open:     c.Open,
-		High:     c.High,
-		Low:      c.Low,
-		Close:    c.Close,
+		DateTime:       c.DateTime(),
+		Open:           c.Open,
+		High:           c.High,
+		Low:            c.Low,
+		Close:          c.Close,
+		StratExitPrice: []float64{},
 	}
 	//strategy enter/exit
 	if len(strat.Actions[relIndex]) > 0 && strat.Actions[relIndex][0].Action == "ENTER" {
 		newCandleD.StratEnterPrice = strat.Actions[relIndex][0].Price
 	} else if len(strat.Actions[relIndex]) > 0 && strat.Actions[relIndex][len(strat.Actions[relIndex])-1].Action != "" {
-		newCandleD.StratExitPrice = strat.Actions[relIndex][len(strat.Actions[relIndex])-1].Price
+		var sameIndexPrice []float64
+
+		for i := 0; i < len(strat.Actions[relIndex]); i++ {
+			// if i == 0 {
+			// 	sameIndexPriceConcat = fmt.Sprintf("%f", strat.Actions[relIndex][i].Price)
+			// } else {
+			// 	sameIndexPriceConcat = sameIndexPriceConcat + "," + fmt.Sprintf("%f", strat.Actions[relIndex][i].Price)
+			// }
+			sameIndexPrice = append(sameIndexPrice, strat.Actions[relIndex][i].Price)
+		}
+		fmt.Println(sameIndexPrice)
+		// newCandleD.StratExitPrice = strat.Actions[relIndex][len(strat.Actions[relIndex])-1].Price
+		newCandleD.StratExitPrice = sameIndexPrice
 	}
 	retCandlesArr = append(retCandlesArr, newCandleD)
 	totalCandles = append(totalCandles, newCandleD)
@@ -963,7 +976,7 @@ func makeBacktestResFile(c []CandlestickChartData, p []ProfitCurveData, s []Simu
 		if len(candle.LabelTop) > 0 || len(candle.LabelMiddle) > 0 || len(candle.LabelBottom) > 0 {
 			candleHasLabels = true
 		}
-		if ((candle.StratEnterPrice != 0) || (candle.StratExitPrice != 0) || candleHasLabels) || ((i == 0) || (i == len(c)-1)) {
+		if ((candle.StratEnterPrice != 0) || (len(candle.StratExitPrice) != 0) || candleHasLabels) || ((i == 0) || (i == len(c)-1)) {
 			saveCandles = append(saveCandles, candle)
 		}
 	}
