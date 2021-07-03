@@ -651,9 +651,9 @@ func computeBacktest(
 
 				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
-				//stream data back to client in every chunk
+				// //stream data back to client in every chunk
 
-				sendPacketBacktest(packetSender, userID, rid, chunkAddedCandles, chunkAddedPCData, chunkAddedSTData)
+				// sendPacketBacktest(packetSender, userID, rid, chunkAddedCandles, chunkAddedPCData, chunkAddedSTData)
 
 				//absolute index from absolute start of computation period
 				relIndex++
@@ -703,6 +703,11 @@ func computeBacktest(
 			break
 		}
 	}
+
+	//stream data back to client in every chunk
+
+	sendPacketBacktest(packetSender, userID, rid, retCandles, retProfitCurve[0].Data, retSimTrades[0].Data)
+
 	return retCandles, retProfitCurve, retSimTrades
 }
 
