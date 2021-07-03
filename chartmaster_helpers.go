@@ -179,7 +179,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 			// }
 			sameIndexPrice = append(sameIndexPrice, strat.Actions[relIndex][i].Price)
 		}
-		fmt.Println(sameIndexPrice)
+		// fmt.Println(sameIndexPrice)
 		// newCandleD.StratExitPrice = strat.Actions[relIndex][len(strat.Actions[relIndex])-1].Price
 		newCandleD.StratExitPrice = sameIndexPrice
 	}
