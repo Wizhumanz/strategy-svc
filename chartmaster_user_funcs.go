@@ -129,10 +129,8 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		0.77: 15.0,
-		1.0:  20.0,
-		1.4:  35.0,
-		1.8:  30.0,
+		1.0:  10.0,
+		1.83: 90.0,
 	}
 
 	pivotLowsToEnter := 4
@@ -140,7 +138,8 @@ func strat1(
 	slPerc := 0.8
 	// startTrailPerc := 1.3
 	// trailingPerc := 0.4
-	slCooldownCandles := 35 //TODO: change to pivots
+	slCooldownCandles := 35
+	tpCooldownCandles := 35
 
 	newLabels := map[string]map[int]string{
 		"top":    map[int]string{},
@@ -188,18 +187,21 @@ func strat1(
 	for k := 1; k < relCandleIndex; k++ {
 		checkIndex := relCandleIndex - k
 		if len(strategy.Actions[checkIndex]) > 0 {
-			if relCandleIndex < 50 {
-				fmt.Printf(colorYellow+"<%v> checking %+v from <%v>\n", relCandleIndex, strategy.Actions[checkIndex], checkIndex)
-			}
+			// if relCandleIndex < 50 {
+			// 	fmt.Printf(colorYellow+"<%v> checking %+v from <%v>\n", relCandleIndex, strategy.Actions[checkIndex], checkIndex)
+			// }
 			latestActions = strategy.Actions[checkIndex]
 			break
 		}
 	}
-	if relCandleIndex < 50 {
-		fmt.Printf(colorCyan+"<%v> latest= %+v\n", relCandleIndex, latestActions)
-	}
-	if len(stored.Trades) > 0 && len(latestActions) > 0 && latestActions[0].Action == "SL" {
+	// if relCandleIndex > 1600 && relCandleIndex < 1900 && len(stored.Trades) > 0 {
+	// 	fmt.Printf(colorCyan+"<%v> latest= %+v\n"+colorReset, relCandleIndex, latestActions)
+	// 	fmt.Printf(colorGreen+"%+v\n"+colorReset, stored.Trades[len(stored.Trades)-1].BreakIndex)
+	// }
+	if len(stored.Trades) > 0 && len(latestActions) > 0 && (latestActions[0].Action == "SL" && relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex+slCooldownCandles)) {
 		newLabels["middle"][0] = "ч"
+	} else if len(stored.Trades) > 0 && len(latestActions) > 0 && (latestActions[0].Action == "MULTI-TP" && (relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex + tpCooldownCandles))) {
+		newLabels["middle"][0] = "ф"
 	} else if len(stored.PivotLows) >= 4 {
 		if strategy.GetPosLongSize() > 0 {
 			//manage pos
@@ -259,8 +261,10 @@ func strat1(
 				//latest entry PL must be 1) after last trade end, and 2) be the latest PL
 				latestPossibleEntry := possibleEntryIndexes[len(possibleEntryIndexes)-1]
 				minTradingIndex := 0
-				if len(strategy.Actions[len(strategy.Actions)-1]) > 0 && strategy.Actions[len(strategy.Actions)-1][0].Action == "SL" {
+				if len(latestActions) > 0 && latestActions[0].Action == "SL" {
 					minTradingIndex = (lastTradeExitIndex + slCooldownCandles)
+				} else if len(latestActions) > 0 && latestActions[0].Action == "MULTI-TP" {
+					minTradingIndex = (lastTradeExitIndex + tpCooldownCandles)
 				} else {
 					minTradingIndex = lastTradeExitIndex
 				}
