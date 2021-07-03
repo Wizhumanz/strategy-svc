@@ -480,8 +480,6 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 }
 
 func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64, cIndex int, action string, candle Candlestick, bot Bot) {
-	// fmt.Printf(colorYellow+"<%v> CLOSING TRADE(%v) $= %v / posPercClose= %v / closeSz= %v \n"+colorReset, cIndex, action, price, posPercToClose, closeSz)
-
 	if !strat.liveTrade {
 		orderSize := 0.0
 		if closeSz > 0.0 {
@@ -514,6 +512,8 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64,
 			DateTime:    candle.DateTime(),
 		}
 		strat.Actions[cIndex] = append(strat.Actions[cIndex], newA)
+
+		// fmt.Printf(colorRed+"<%v> CLOSE TRADE(%v) $= %v (%v) / posPercClose= %v / closeSz= %v \n"+colorReset, cIndex, action, actualClosePrice, price, posPercToClose, closeSz)
 	} else {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(fmt.Sprintf("Closing pos %v/100 at %v | action = %v\n", posPercToClose, price, action),

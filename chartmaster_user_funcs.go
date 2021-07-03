@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -133,13 +134,16 @@ func strat1(
 		1.83: 90.0,
 	}
 
-	pivotLowsToEnter := 4
+	pivotLowsToEnter := 5
 	maxDurationCandles := 800
 	slPerc := 0.8
 	// startTrailPerc := 1.3
 	// trailingPerc := 0.4
 	slCooldownCandles := 35
 	tpCooldownCandles := 35
+
+	tradeWindowStart := "11:00:00"
+	tradeWindowEnd := "18:00:00"
 
 	newLabels := map[string]map[int]string{
 		"top":    map[int]string{},
@@ -268,7 +272,44 @@ func strat1(
 				} else {
 					minTradingIndex = lastTradeExitIndex
 				}
-				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] {
+
+				//time cannot be within block window
+				timeOK := false
+				if tradeWindowStart != "" && tradeWindowEnd != "" {
+					et, _ := time.Parse(httpTimeFormat, strings.Split(candles[latestPossibleEntry].TimeOpen, ".")[0])
+					s, _ := time.Parse("15:04:05", tradeWindowStart)
+					e, _ := time.Parse("15:04:05", tradeWindowEnd)
+
+					afterS := false
+					if et.Hour() > s.Hour() {
+						afterS = true
+					} else if et.Hour() == s.Hour() {
+						if et.Minute() > s.Minute() {
+							afterS = true
+						}
+					} else {
+						afterS = false
+					}
+
+					beforeE := false
+					if et.Hour() < e.Hour() {
+						beforeE = true
+					} else if et.Hour() == e.Hour() {
+						if et.Minute() < e.Minute() {
+							beforeE = true
+						}
+					} else {
+						beforeE = false
+					}
+
+					timeOK = afterS && beforeE
+
+					// if relCandleIndex > 400 && relCandleIndex < 1400 {
+					// 	fmt.Printf(colorGreen+"<%v> OK= %v/ et= %v,%v / s= %v,%v (%v) / e= %v,%v (%v)\n", relCandleIndex, timeOK, et.Hour(), et.Minute(), s.Hour(), s.Minute(), afterS, e.Hour(), e.Minute(), beforeE)
+					// }
+				}
+
+				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK {
 					newEntryData := StrategyDataPoint{}
 					newEntryData = logEntry(relCandleIndex, latestPossibleEntry, candles, possibleEntryIndexes, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
 					newEntryData.ActualEntryIndex = relCandleIndex
