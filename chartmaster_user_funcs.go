@@ -63,12 +63,18 @@ func calcEntry(entryPrice, slPrice, accPercRisk, accSz float64, leverage int) (f
 		return -1, -1
 	}
 
-	accRiskedCap := (accPercRisk / 100) * accSz
-	leveragedPosEquity := accRiskedCap / (rawRiskPerc)
+	accRisk := (accPercRisk / 100) * accSz
+	posRisk := (rawRiskPerc)
+	leveragedPosEquity := accRisk / posRisk
+
+	// fmt.Printf(colorGreen+"accSz x lev= %v / accPercRisk= %v / accSz= %v / lev= %v / rawRisk= %v\n levPosEquity= %v\n"+colorReset, accSz*float64(leverage), accPercRisk, accSz, leverage, rawRiskPerc, leveragedPosEquity)
+
 	if leveragedPosEquity > accSz*float64(leverage) {
 		leveragedPosEquity = accSz * float64(leverage)
 	}
 	posSize := leveragedPosEquity / entryPrice
+
+	// fmt.Printf(colorGreen+"FINAL levPosEquity= %v\n"+colorReset, leveragedPosEquity)
 
 	return leveragedPosEquity, posSize
 }
@@ -134,7 +140,7 @@ func strat1(
 		1.83: 90.0,
 	}
 
-	pivotLowsToEnter := 5
+	pivotLowsToEnter := 6
 	maxDurationCandles := 800
 	slPerc := 0.8
 	// startTrailPerc := 1.3
@@ -142,8 +148,10 @@ func strat1(
 	slCooldownCandles := 35
 	tpCooldownCandles := 35
 
-	tradeWindowStart := "09:00:00"
-	tradeWindowEnd := "18:00:00"
+	// tradeWindowStart := "09:00:00"
+	tradeWindowStart := ""
+	// tradeWindowEnd := "18:00:00"
+	tradeWindowEnd := ""
 
 	newLabels := map[string]map[int]string{
 		"top":    map[int]string{},
@@ -274,29 +282,33 @@ func strat1(
 				}
 
 				//time cannot be within block window
-				timeOK := false
+				timeOK := true
 				if tradeWindowStart != "" && tradeWindowEnd != "" {
 					et, _ := time.Parse(httpTimeFormat, strings.Split(candles[latestPossibleEntry].TimeOpen, ".")[0])
 					s, _ := time.Parse("15:04:05", tradeWindowStart)
 					e, _ := time.Parse("15:04:05", tradeWindowEnd)
 
-					afterS := false
+					afterS := true
 					if et.Hour() > s.Hour() {
 						afterS = true
 					} else if et.Hour() == s.Hour() {
 						if et.Minute() > s.Minute() {
 							afterS = true
+						} else {
+							afterS = false
 						}
 					} else {
 						afterS = false
 					}
 
-					beforeE := false
+					beforeE := true
 					if et.Hour() < e.Hour() {
 						beforeE = true
 					} else if et.Hour() == e.Hour() {
 						if et.Minute() < e.Minute() {
 							beforeE = true
+						} else {
+							beforeE = false
 						}
 					} else {
 						beforeE = false
