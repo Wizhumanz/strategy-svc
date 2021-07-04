@@ -703,6 +703,25 @@ func computeBacktest(
 				// fmt.Printf("\nrequiredTime: %v\n", requiredTime)
 
 			} else if retrieveCandles {
+				// fmt.Printf("\nkkk: %v,%v\n", requiredTime, candle.PeriodStart)
+				layout := "2006-01-02T15:04:05.000Z"
+				str := strings.Replace(candle.PeriodStart, "0000", "", 1)
+				t, _ := time.Parse(layout, str)
+				for {
+					if requiredTime.After(t) {
+						requiredTime = t
+						requiredTime = requiredTime.Add(time.Minute * 1)
+						break
+					}
+					// fmt.Printf("\nkms: %v\n", requiredTime)
+					requiredTime = requiredTime.Add(time.Minute * 1)
+
+					// Break for loop if the empty candle timestamp reaches the requiredTime
+					if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+						requiredTime = requiredTime.Add(time.Minute * 1)
+						break
+					}
+				}
 				continue
 			} else if containsEmptyCandles(allEmptyCandles, requiredTime) {
 				if requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
@@ -829,14 +848,28 @@ func computeScan(
 
 				progressBar(userID, rid, len(retCandles), startTime, endTime, false)
 
-				// m.Lock()
-
-				// m.Unlock()
-
 				//absolute index from absolute start of computation period
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
 			} else if retrieveCandles {
+				layout := "2006-01-02T15:04:05.000Z"
+				str := strings.Replace(candle.PeriodStart, "0000", "", 1)
+				t, _ := time.Parse(layout, str)
+				for {
+					if requiredTime.After(t) {
+						requiredTime = t
+						requiredTime = requiredTime.Add(time.Minute * 1)
+						break
+					}
+					// fmt.Printf("\nkms: %v\n", requiredTime)
+					requiredTime = requiredTime.Add(time.Minute * 1)
+
+					// Break for loop if the empty candle timestamp reaches the requiredTime
+					if requiredTime.Format(httpTimeFormat)+".0000000Z" == candle.PeriodStart {
+						requiredTime = requiredTime.Add(time.Minute * 1)
+						break
+					}
+				}
 				continue
 			} else if containsEmptyCandles(allEmptyCandles, requiredTime) {
 				if requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
