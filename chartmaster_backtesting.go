@@ -26,8 +26,9 @@ func runBacktest(
 	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c, processOption)
 
 	//run strat on all candles in chunk, stream each chunk to client
-	retCandles, retProfitCurve, retSimTrades := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c)
+	retCandles, retProfitCurve, retSimTrades, allCandles := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c)
 
+	saveCandlesPrepared(startTime, endTime, period, ticker, allCandles, userID)
 	_, file, line, _ := runtime.Caller(0)
 	go Log(fmt.Sprintf("Backtest complete %v -> %v | %v | %v | user=%v", startTime.UTC().Format(httpTimeFormat), endTime.UTC().Format(httpTimeFormat), ticker, period, userID),
 		fmt.Sprintf("<%v> %v", line, file))

@@ -309,3 +309,31 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(ret)
 }
+
+var startTimeSave time.Time
+var endTimeSave time.Time
+var periodSave string
+var tickerSave string
+var allCandlesSave []Candlestick
+var userIDSave string
+
+func saveCandlesToJson(w http.ResponseWriter, r *http.Request) {
+	setupCORS(&w, r)
+	if (*r).Method == "OPTIONS" {
+		return
+	}
+
+	saveCandlesBucket(allCandlesSave, "saved_candles-"+userIDSave, tickerSave, periodSave, startTimeSave.Format("2006-01-02_15:04:05"), endTimeSave.Format("2006-01-02_15:04:05"))
+
+	_, file, line, _ := runtime.Caller(0)
+	go Log("Candles Saved As JSON In Storage", fmt.Sprintf("<%v> %v", line, file))
+}
+
+func saveCandlesPrepared(startTime, endTime time.Time, period, ticker string, allCandles []Candlestick, userID string) {
+	startTimeSave = startTime
+	endTimeSave = endTime
+	periodSave = period
+	tickerSave = ticker
+	allCandlesSave = allCandles
+	userIDSave = userID
+}

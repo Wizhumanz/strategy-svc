@@ -592,12 +592,14 @@ func computeBacktest(
 	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) (map[string]map[int]string, int),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 	chunksArr *[]*[]Candlestick,
-	c chan time.Time) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData) {
+	c chan time.Time) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData, []Candlestick) {
 	var store interface{} //save state between strategy executions on each candle
 	var retCandles []CandlestickChartData
 	var retProfitCurve []ProfitCurveData
 	var retSimTrades []SimulatedTradeData
 	var allEmptyCandles []time.Time
+	var allCandlesArr []Candlestick
+
 	retProfitCurve = []ProfitCurveData{
 		{
 			Label: "strat1", //TODO: prep for dynamic strategy param values
@@ -624,7 +626,7 @@ func computeBacktest(
 		// fmt.Println(allEmptyCandles)
 
 		// Check if the candles arrived
-		var allCandlesArr []Candlestick
+		allCandlesArr = nil
 		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
 		}
@@ -725,7 +727,7 @@ func computeBacktest(
 
 	sendPacketBacktest(packetSender, userID, rid, retCandles, retProfitCurve[0].Data, retSimTrades[0].Data)
 
-	return retCandles, retProfitCurve, retSimTrades
+	return retCandles, retProfitCurve, retSimTrades, allCandlesArr
 }
 
 func computeScan(
@@ -1031,6 +1033,63 @@ func saveBacktestRes(
 
 	//create obj
 	object := rid + ".json"
+	// Open local file
+	f, err := os.Open(resFileName)
+	if err != nil {
+		fmt.Printf("os.Open: %v", err)
+	}
+	defer f.Close()
+	ctx2, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
+	// upload object with storage.Writer
+	wc := storageClient.Bucket(bucketName).Object(object).NewWriter(ctx2)
+	if _, err = io.Copy(wc, f); err != nil {
+		fmt.Printf("io.Copy: %v", err)
+	}
+	if err := wc.Close(); err != nil {
+		fmt.Printf("Writer.Close: %v", err)
+	}
+
+	//remove local file
+	_ = os.Remove(resFileName)
+}
+
+func candlePeriodResFile(c []Candlestick, ticker, period, start, end string) string {
+	//save candlesticks
+	file, _ := json.MarshalIndent(c, "", " ")
+	fileName := fmt.Sprintf("%v.json", start+"-"+end+"("+period+", "+ticker+")")
+	_ = ioutil.WriteFile(fileName, file, 0644)
+
+	return fileName
+}
+
+func saveCandlesBucket(
+	c []Candlestick, reqBucketname, ticker, period, start, end string) {
+	resFileName := candlePeriodResFile(c, ticker, period, start, end)
+
+	storageClient, _ := storage.NewClient(ctx)
+	defer storageClient.Close()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
+	//if bucket doesn't exist, create new
+	buckets, _ := listBuckets()
+	var bucketName string
+	for _, bn := range buckets {
+		if bn == reqBucketname {
+			bucketName = bn
+		}
+	}
+	if bucketName == "" {
+		bucket := storageClient.Bucket(reqBucketname)
+		if err := bucket.Create(ctx, googleProjectID, nil); err != nil {
+			fmt.Printf("Failed to create bucket: %v", err)
+		}
+		bucketName = reqBucketname
+	}
+
+	//create obj
+	object := start + "-" + end + "(" + period + ", " + ticker + ")" + ".json"
 	// Open local file
 	f, err := os.Open(resFileName)
 	if err != nil {

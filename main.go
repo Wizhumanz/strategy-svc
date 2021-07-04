@@ -174,6 +174,8 @@ func main() {
 	router.Methods("GET", "OPTIONS").Path("/backtestHistory").HandlerFunc(getBacktestHistoryHandler)
 	router.Methods("GET", "OPTIONS").Path("/backtestHistory/{id}").HandlerFunc(getBacktestResHandler)
 
+	router.Methods("POST", "OPTIONS").Path("/saveCandlesToJson").HandlerFunc(saveCandlesToJson)
+
 	port := os.Getenv("PORT")
 	fmt.Println("strategy-svc listening on port " + port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
