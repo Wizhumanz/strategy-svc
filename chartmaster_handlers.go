@@ -329,6 +329,20 @@ func saveCandlesToJson(w http.ResponseWriter, r *http.Request) {
 	go Log("Candles Saved As JSON In Storage", fmt.Sprintf("<%v> %v", line, file))
 }
 
+func getSavedCandlesHandler(w http.ResponseWriter, r *http.Request) {
+	setupCORS(&w, r)
+	if (*r).Method == "OPTIONS" {
+		return
+	}
+
+	userID := r.URL.Query()["user"][0]
+	bucketData := listFiles("saved_candles-" + userID)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(bucketData)
+}
+
 func saveCandlesPrepared(startTime, endTime time.Time, period, ticker string, allCandles []Candlestick, userID string) {
 	startTimeSave = startTime
 	endTimeSave = endTime
