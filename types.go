@@ -380,8 +380,6 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		strat.totalEquity = strat.availableEquity + actualCap
 		strat.lastEntryEquity = actualCap
 
-		// fmt.Printf(colorGreen+"actualPrice= %v (%v)\nsl= %v\ntp= %v\nactualCap= (%v)%v\nactualPosSize= %v\n --> $%v\n"+colorReset, actualPrice, price, sl, tp, actualCap, desiredPosCap, actualPosSize, strat.totalEquity)
-
 		if directionIsLong {
 			strat.posLongSize = actualPosSize
 		} else {
@@ -390,6 +388,11 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 
 		//complete multi-tp map with actual pos sizes
 		retMultiTPs = calcMultiTPs(multiTPs, actualPosSize, cIndex)
+
+		// fmt.Printf(colorGreen+"<%v> actualPrice= %v (%v)\nsl= %v\ntp= %v\nactualCap= (%v)%v\nactualPosSize= %v\n --> $%v (%v)\n"+colorReset, cIndex, actualPrice, price, sl, tp, actualCap, desiredPosCap, actualPosSize, strat.totalEquity, strat.posLongSize)
+		// for _, tpp := range retMultiTPs {
+		// 	fmt.Printf("%+v\n", tpp)
+		// }
 
 		if len(strat.Actions[cIndex]) <= 0 {
 			strat.Actions[cIndex] = []StrategyExecutorAction{}
@@ -497,7 +500,7 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64,
 		strat.posLongSize = strat.posLongSize - orderSize
 		strat.totalEquity = strat.availableEquity + (strat.posLongSize * price) //run this line on every iteration to constantly update equity (including unrealized PnL)
 
-		// fmt.Printf(colorYellow+"CLOSE actualPrice= %v (%v)\nactualCloseEquity= %v\norderSz = %v\n --> $%v\n"+colorReset, actualClosePrice, price, actualCloseCap, orderSize, strat.totalEquity)
+		// fmt.Printf(colorRed+"<%v> CLOSE actualPrice= %v (%v)\nactualCloseEquity= %v\norderSz = %v\n --> $%v (%v)\n"+colorReset, cIndex, actualClosePrice, price, actualCloseCap, orderSize, strat.totalEquity, strat.posLongSize)
 
 		// _, file, line, _ := runtime.Caller(0)
 		// Log(fmt.Sprintf("<%v> SIM closed pos %v/100 at %v | action = %v\n ---> $%v", cIndex, posPercToClose, price, action, strat.totalEquity),
