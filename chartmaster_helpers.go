@@ -537,6 +537,24 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 	}()
 }
 
+func retrieveJsonFromStorage(userID, fileName string, chunksArr *[]*[]Candlestick) {
+	//get candles json files
+	storageClient, _ := storage.NewClient(ctx)
+	defer storageClient.Close()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+	bucketName := "saved_candles-" + userID
+	rc, _ := storageClient.Bucket(bucketName).Object(fileName).NewReader(ctx)
+	defer rc.Close()
+
+	candlesByteArr, _ := ioutil.ReadAll(rc)
+	var rawRes []Candlestick
+	json.Unmarshal(candlesByteArr, &rawRes)
+
+	*chunksArr = append(*chunksArr, &rawRes)
+	// return rawRes
+}
+
 func containsEmptyCandles(s []time.Time, e time.Time) bool {
 	for _, a := range s {
 		if a == e {
@@ -592,7 +610,9 @@ func computeBacktest(
 	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) (map[string]map[int]string, int),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 	chunksArr *[]*[]Candlestick,
-	c chan time.Time) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData, []Candlestick) {
+	c chan time.Time,
+	retrieveCandles bool,
+) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData, []Candlestick) {
 	var store interface{} //save state between strategy executions on each candle
 	var retCandles []CandlestickChartData
 	var retProfitCurve []ProfitCurveData
@@ -621,9 +641,12 @@ func computeBacktest(
 	relIndex := 0
 	requiredTime := startTime
 	for {
-		// Check for all empty candle start time
-		allEmptyCandles = append(allEmptyCandles, <-c)
-		// fmt.Println(allEmptyCandles)
+
+		if !retrieveCandles {
+			// Check for all empty candle start time
+			allEmptyCandles = append(allEmptyCandles, <-c)
+			// fmt.Println(allEmptyCandles)
+		}
 
 		// Check if the candles arrived
 		allCandlesArr = nil
@@ -679,6 +702,8 @@ func computeBacktest(
 				requiredTime = requiredTime.Add(time.Minute * 1)
 				// fmt.Printf("\nrequiredTime: %v\n", requiredTime)
 
+			} else if retrieveCandles {
+				continue
 			} else if containsEmptyCandles(allEmptyCandles, requiredTime) {
 				if requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
 
@@ -1057,7 +1082,7 @@ func saveBacktestRes(
 func candlePeriodResFile(c []Candlestick, ticker, period, start, end string) string {
 	//save candlesticks
 	file, _ := json.MarshalIndent(c, "", " ")
-	fileName := fmt.Sprintf("%v.json", start+"-"+end+"("+period+", "+ticker+")")
+	fileName := fmt.Sprintf("%v.json", start+"~"+end+"("+period+", "+ticker+")")
 	_ = ioutil.WriteFile(fileName, file, 0644)
 
 	return fileName
@@ -1089,7 +1114,7 @@ func saveCandlesBucket(
 	}
 
 	//create obj
-	object := start + "-" + end + "(" + period + ", " + ticker + ")" + ".json"
+	object := start + "~" + end + "(" + period + ", " + ticker + ")" + ".json"
 	// Open local file
 	f, err := os.Open(resFileName)
 	if err != nil {

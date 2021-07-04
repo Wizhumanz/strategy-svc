@@ -44,6 +44,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 	size := req.Size
 	reqType := req.Operation
 	reqProcess := req.Process
+	retrieveCandles := req.RetrieveCandles
 
 	candlePacketSize, err := strconv.Atoi(req.CandlePacketSize)
 	if err != nil {
@@ -80,7 +81,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = runScan(userID, rid, ticker, period, start, end, candlePacketSize, scanPivotTrends, streamScanResData, reqProcess)
 		//TODO: save scan results like backtest results?
 	} else {
-		candles, profitCurve, simTrades = runBacktest(rF, lF, szF, userID, rid, ticker, period, start, end, candlePacketSize, strat1, streamBacktestResData, reqProcess)
+		candles, profitCurve, simTrades = runBacktest(rF, lF, szF, userID, rid, ticker, period, start, end, candlePacketSize, strat1, streamBacktestResData, reqProcess, retrieveCandles)
 
 		// delete an element in history if more than 10 items
 		bucketName := "res-" + userID
