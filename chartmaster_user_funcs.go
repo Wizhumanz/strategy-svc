@@ -416,18 +416,18 @@ func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candle
 				lastEntryPivotIndex := allPivotLows[plSliIndexOfEntryPL]
 				lastEntryPivot := candles[lastEntryPivotIndex].Low
 
-				if relCandleIndex < 5000 {
-					fmt.Printf(colorGreen+"first= %v / last= %v \n"+colorReset, firstEntryPivotIndex, lastEntryPivotIndex)
-				}
+				// if relCandleIndex < 5000 {
+				// 	fmt.Printf(colorGreen+"first= %v / last= %v \n"+colorReset, firstEntryPivotIndex, lastEntryPivotIndex)
+				// }
 
 				retData.FirstToLastEntryPivotDuration = lastEntryPivotIndex - firstEntryPivotIndex
 				retData.FirstLastEntryPivotPriceDiffPerc = ((firstEntryPivot - lastEntryPivot) / firstEntryPivot) * 100
 
 				priceDiffPercTotal := 0.0
 				for i := 0; i < pivotLowsToEnter-1; i++ {
-					if relCandleIndex < 5000 {
-						fmt.Printf(colorCyan+"<%v> plSliIndexOfEntryPL= %v (%v) / pl1= %v / pl2 = %v\n __ %v\n"+colorReset, relCandleIndex, plSliIndexOfEntryPL, allPivotLows[plSliIndexOfEntryPL], allPivotLows[plSliIndexOfEntryPL-i], allPivotLows[plSliIndexOfEntryPL-i-1], allPivotLows)
-					}
+					// if relCandleIndex < 5000 {
+					// 	fmt.Printf(colorCyan+"<%v> plSliIndexOfEntryPL= %v (%v) / pl1= %v / pl2 = %v\n __ %v\n"+colorReset, relCandleIndex, plSliIndexOfEntryPL, allPivotLows[plSliIndexOfEntryPL], allPivotLows[plSliIndexOfEntryPL-i], allPivotLows[plSliIndexOfEntryPL-i-1], allPivotLows)
+					// }
 
 					pl1 := candles[allPivotLows[plSliIndexOfEntryPL-i]].Low
 					pl2 := candles[allPivotLows[plSliIndexOfEntryPL-i-1]].Low
