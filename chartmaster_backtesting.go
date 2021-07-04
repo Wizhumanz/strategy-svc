@@ -57,6 +57,7 @@ func runScan(
 	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, StrategyDataPoint),
 	packetSender func(string, string, []CandlestickChartData, []StrategyDataPoint),
 	processOption string,
+	retrieveCandles bool,
 ) ([]CandlestickChartData, []StrategyDataPoint) {
 	var chunksArr []*[]Candlestick
 
@@ -64,11 +65,21 @@ func runScan(
 
 	// Channel to get timestamps for empty candles
 	c := make(chan time.Time)
-	//fetch all candle data concurrently
-	concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c, processOption)
+
+	if retrieveCandles {
+		// Fetch from Cloud Storage
+		fileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")" + ".json"
+		retrieveJsonFromStorage(userID, fileName, &chunksArr)
+	} else {
+		//fetch all candle data concurrently
+		concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c, processOption)
+	}
 
 	//run strat on all candles in chunk, stream each chunk to client
-	retCandles, retScanRes := computeScan(packetSize, userID, rid, startTime, endTime, scannerFunc, packetSender, &chunksArr, c)
+	retCandles, retScanRes, allCandles := computeScan(packetSize, userID, rid, startTime, endTime, scannerFunc, packetSender, &chunksArr, c, retrieveCandles)
+
+	// Store the variables in case the user wants to store it as JSON in GCP Bucket
+	saveCandlesPrepared(startTime, endTime, period, ticker, allCandles, userID)
 
 	_, file, line, _ := runtime.Caller(0)
 	go Log(fmt.Sprintf(colorGreen+"\n!!! Scan complete!"+colorReset), fmt.Sprintf("<%v> %v", line, file))

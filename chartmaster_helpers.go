@@ -762,11 +762,14 @@ func computeScan(
 	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, StrategyDataPoint),
 	packetSender func(string, string, []CandlestickChartData, []StrategyDataPoint),
 	chunksArr *[]*[]Candlestick,
-	c chan time.Time) ([]CandlestickChartData, []StrategyDataPoint) {
+	c chan time.Time,
+	retrieveCandles bool,
+) ([]CandlestickChartData, []StrategyDataPoint, []Candlestick) {
 	var store interface{} //save state between strategy executions on each candle
 	var retCandles []CandlestickChartData
 	var retScanRes []StrategyDataPoint
 	var allEmptyCandles []time.Time
+	var allCandlesArr []Candlestick
 
 	// m := sync.Mutex{}
 
@@ -778,11 +781,14 @@ func computeScan(
 	relIndex := 0
 	requiredTime := startTime
 	for {
-		// Check for all empty candle start time
-		allEmptyCandles = append(allEmptyCandles, <-c)
+
+		if !retrieveCandles {
+			// Check for all empty candle start time
+			allEmptyCandles = append(allEmptyCandles, <-c)
+		}
 
 		// Check if the candles arrived
-		var allCandlesArr []Candlestick
+		allCandlesArr = nil
 		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
 		}
@@ -830,6 +836,8 @@ func computeScan(
 				//absolute index from absolute start of computation period
 				relIndex++
 				requiredTime = requiredTime.Add(time.Minute * 1)
+			} else if retrieveCandles {
+				continue
 			} else if containsEmptyCandles(allEmptyCandles, requiredTime) {
 				if requiredTime.Format(httpTimeFormat)+".0000000Z" <= candle.PeriodStart {
 
@@ -878,7 +886,7 @@ func computeScan(
 	//stream data back to client in every chunk
 	sendPacketScan(packetSender, userID, rid, retCandles, retScanRes)
 
-	return retCandles, retScanRes
+	return retCandles, retScanRes, allCandlesArr
 }
 
 func streamPacket(ws *websocket.Conn, chartData []interface{}, resID string) {

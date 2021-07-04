@@ -78,7 +78,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 	var simTrades []SimulatedTradeData
 	// var scanRes []PivotTrendScanDataPoint
 	if reqType == "SCAN" {
-		_, _ = runScan(userID, rid, ticker, period, start, end, candlePacketSize, scanPivotTrends, streamScanResData, reqProcess)
+		_, _ = runScan(userID, rid, ticker, period, start, end, candlePacketSize, scanPivotTrends, streamScanResData, reqProcess, retrieveCandles)
 		//TODO: save scan results like backtest results?
 	} else {
 		candles, profitCurve, simTrades = runBacktest(rF, lF, szF, userID, rid, ticker, period, start, end, candlePacketSize, strat1, streamBacktestResData, reqProcess, retrieveCandles)
