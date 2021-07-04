@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"runtime"
 	"sort"
 	"strings"
@@ -19,29 +20,30 @@ type MultiTPPoint struct {
 }
 
 type StrategyDataPoint struct {
-	EntryTime                          string         `json:"EntryTime"`
-	SLPrice                            float64        `json:"SLPrice"`
-	TPPrice                            float64        `json:"TPPrice"`
-	MultiTPs                           []MultiTPPoint `json:"MultiTPs"`
-	EntryTradeOpenCandle               Candlestick    `json:"EntryTradeOpenCandle"`
-	EntryLastPLIndex                   int            `json:"EntryLastPLIndex,string"`
-	ActualEntryIndex                   int            `json:"ActualEntryIndex,string"`
-	ExtentTime                         string         `json:"ExtentTime"`
-	MaxExitIndex                       int            `json:"MaxExitIndex"`
-	Duration                           float64        `json:"Duration"`
-	Growth                             float64        `json:"Growth"`
-	MaxDrawdownPerc                    float64        `json:"MaxDrawdownPerc"` //used to determine safe SL when trading
-	BreakTime                          string         `json:"BreakTime"`
-	BreakIndex                         int            `json:"BreakIndex"`
-	FirstSecondEntryPivotPriceDiffPerc float64        `json:"FirstSecondEntryPivotPriceDiffPerc"`
-	SecondThirdEntryPivotPriceDiffPerc float64        `json:"SecondThirdEntryPivotPriceDiffPerc"`
-	FirstThirdEntryPivotPriceDiffPerc  float64        `json:"FirstThirdEntryPivotPriceDiffPerc"`
-	TrailingStarted                    bool           `json:"TrailingStarted,string"`
-	StartTrailPerc                     float64        `json:"StartTrailPerc"`
-	TrailingPerc                       float64        `json:"TrailingPerc,string"`
-	TrailingMax                        float64        `json:"TrailingMax,string"`
-	TrailingMin                        float64        `json:"TrailingMin,string"`
-	TrailingMaxDrawdownPercTillExtent  float64        `json:"TrailingMaxDrawdownPercTillExtent,string"`
+	EntryTime                         string         `json:"EntryTime"`
+	SLPrice                           float64        `json:"SLPrice"`
+	TPPrice                           float64        `json:"TPPrice"`
+	MultiTPs                          []MultiTPPoint `json:"MultiTPs"`
+	EntryTradeOpenCandle              Candlestick    `json:"EntryTradeOpenCandle"`
+	EntryLastPLIndex                  int            `json:"EntryLastPLIndex,string"`
+	ActualEntryIndex                  int            `json:"ActualEntryIndex,string"`
+	ExtentTime                        string         `json:"ExtentTime"`
+	MaxExitIndex                      int            `json:"MaxExitIndex"`
+	Duration                          float64        `json:"Duration"`
+	Growth                            float64        `json:"Growth"`
+	MaxDrawdownPerc                   float64        `json:"MaxDrawdownPerc"` //used to determine safe SL when trading
+	BreakTime                         string         `json:"BreakTime"`
+	BreakIndex                        int            `json:"BreakIndex"`
+	FirstLastEntryPivotPriceDiffPerc  float64        `json:"FirstLastEntryPivotPriceDiffPerc"`
+	FirstToLastEntryPivotDuration     int            `json:"FirstToLastEntryPivotDuration"`
+	AveragePriceDiffPercEntryPivots   float64        `json:"AveragePriceDiffPercEntryPivots"`
+	TrailingStarted                   bool           `json:"TrailingStarted,string"`
+	StartTrailPerc                    float64        `json:"StartTrailPerc"`
+	TrailingPerc                      float64        `json:"TrailingPerc,string"`
+	TrailingMax                       float64        `json:"TrailingMax,string"`
+	TrailingMin                       float64        `json:"TrailingMin,string"`
+	TrailingMaxDrawdownPercTillExtent float64        `json:"TrailingMaxDrawdownPercTillExtent,string"`
+	EndAction                         string         `json:EndAction`
 }
 
 type PivotsStore struct {
@@ -136,13 +138,13 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		1.0: 5,
-		1.6: 15,
-		2.5: 10,
-		3.2: 20,
-		3.8: 20,
-		4.4: 20,
-		5.2: 10,
+		1.4: 5,
+		1.6: 10,
+		3.0: 15,
+		3.5: 20,
+		4.0: 25,
+		5.6: 15,
+		6.0: 10,
 	}
 
 	//0.8% SL
@@ -167,6 +169,9 @@ func strat1(
 	tradeWindowStart := ""
 	// tradeWindowEnd := "18:00:00"
 	tradeWindowEnd := ""
+
+	entryPivotPriceDiffPercNoTradeZoneStart := 0.45
+	entryPivotPriceDiffPercNoTradeZoneEnd := 0.99
 
 	newLabels := map[string]map[int]string{
 		"top":    map[int]string{},
@@ -194,22 +199,6 @@ func strat1(
 	//calculate pivots
 	newLabels, _ = findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows), newLabels)
 
-	//TESTs
-	// (*strategy).Buy(close[relCandleIndex], 0.9*close[relCandleIndex], -1, 0.9*close[relCandleIndex], 0.9*close[relCandleIndex], risk, int(lev), relCandleIndex, nil, candles[len(candles)-1], true, bot)
-
-	// completedMultiTPs := (*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, newEntryData.MultiTPs, candles[len(candles)-1], true, bot)
-
-	// newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
-
-	// //TP cooldown labels
-	// if relCandleIndex <= (stored.TPIndex + tpTradeCooldownCandles) {
-	// 	newLabels["middle"][0] = "й"
-	// }
-
-	//SL cooldown labels
-	// if relCandleIndex < 120 {
-	// 	fmt.Printf("%+v\n", strategy.Actions)
-	// }
 	latestActions := []StrategyExecutorAction{}
 	for k := 1; k < relCandleIndex; k++ {
 		checkIndex := relCandleIndex - k
@@ -247,21 +236,23 @@ func strat1(
 			// }
 
 			if breakIndex > 0 && breakPrice > 0 && action != "MULTI-TP" {
-				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
+				fmt.Printf(colorYellow+"%v %v (%v)\n"+colorReset, action, breakPrice, breakIndex)
+
+				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action)
 				stored.Trades = append(stored.Trades, latestEntryData)
 				(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot)
 			} else if breakIndex > 0 && action == "MULTI-TP" {
-				// if relCandleIndex < 3000 {
-				// 	for _, p := range multiTPs {
-				// 		fmt.Printf(colorYellow+"<%v> %+v\n"+colorReset, relCandleIndex, p)
-				// 	}
-				// }
+				if relCandleIndex < 3000 {
+					for _, p := range multiTPs {
+						fmt.Printf(colorYellow+"<%v> MULTI-TP %+v\n"+colorReset, relCandleIndex, p)
+					}
+				}
 
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 					for _, tpPoint := range multiTPs {
 						if tpPoint.Order == tpPoint.TotalPointsInSet {
 							// fmt.Printf(colorGreen+"<%v> BREAK TREND point= %+v\n latestEntry= %+v\n", relCandleIndex, tpPoint, latestEntryData)
-							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
+							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action)
 							stored.Trades = append(stored.Trades, latestEntryData) //TODO: how to append trade when not all TPs hit?
 						}
 						(*strategy).CloseLong(tpPoint.Price, -1, tpPoint.CloseSize, relCandleIndex, action, candles[len(candles)-1], bot)
@@ -336,9 +327,20 @@ func strat1(
 					// }
 				}
 
-				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK {
+				//entry pivots price diff cannot be within block window
+				entryPivotsDiffOK := false
+				lastPLIndex := latestPossibleEntry
+				lastPL := candles[lastPLIndex].Low
+				firstPLIndex := stored.PivotLows[len(stored.PivotLows)-1-(pivotLowsToEnter-1)]
+				firstPL := candles[firstPLIndex].Low
+				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
+				if !(entryPivotsPriceDiffPerc >= entryPivotPriceDiffPercNoTradeZoneStart && entryPivotsPriceDiffPerc <= entryPivotPriceDiffPercNoTradeZoneEnd) {
+					entryPivotsDiffOK = true
+				}
+
+				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK {
 					newEntryData := StrategyDataPoint{}
-					newEntryData = logEntry(relCandleIndex, latestPossibleEntry, candles, possibleEntryIndexes, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
+					newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
 					newEntryData.ActualEntryIndex = relCandleIndex
 
 					// if relCandleIndex < 300 {
@@ -372,7 +374,7 @@ type PivotTrendScanStore struct {
 	WatchingTrend bool
 }
 
-func logEntry(relCandleIndex, entryIndex int, candles []Candlestick, pivotLows []int, dataPoints []StrategyDataPoint, retData *StrategyDataPoint, newLabels *(map[string]map[int]string), maxDurationCandles int, slPerc, tpPerc, startTrailPerc, trailingPerc float64, tpMap map[float64]float64) StrategyDataPoint {
+func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candlestick, possibleEntryPLIndexes, allPivotLows []int, dataPoints []StrategyDataPoint, retData *StrategyDataPoint, newLabels *(map[string]map[int]string), maxDurationCandles int, slPerc, tpPerc, startTrailPerc, trailingPerc float64, tpMap map[float64]float64) StrategyDataPoint {
 	// fmt.Printf(colorGreen+"<%v> adding %+v\n"+colorReset, relCandleIndex, retData)
 
 	duplicateFound := false
@@ -401,22 +403,38 @@ func logEntry(relCandleIndex, entryIndex int, candles []Candlestick, pivotLows [
 		retData.EntryLastPLIndex = entryIndex
 		retData.ActualEntryIndex = actualEntryIndex
 
-		if len(pivotLows) >= 3 {
-			plSliEntryIndex := len(pivotLows) - 1
-			for i := 0; i < len(pivotLows)-1; i++ {
-				if pivotLows[len(pivotLows)-1-i] == entryIndex {
-					plSliEntryIndex = len(pivotLows) - 1 - i
+		if len(allPivotLows) >= pivotLowsToEnter {
+			plSliIndexOfEntryPL := 0
+			for i := 0; i < len(allPivotLows); i++ {
+				if allPivotLows[i] == entryIndex {
+					plSliIndexOfEntryPL = i
 					break
 				}
 			}
-			if (plSliEntryIndex - 2) > 0 {
-				firstEntryPivot := candles[pivotLows[plSliEntryIndex-2]].Low
-				secondEntryPivot := candles[pivotLows[plSliEntryIndex-1]].Low
-				thirdEntryPivot := candles[pivotLows[plSliEntryIndex]].Low
+			if (plSliIndexOfEntryPL-pivotLowsToEnter-1) >= 0 && plSliIndexOfEntryPL < len(allPivotLows) {
+				firstEntryPivotIndex := allPivotLows[plSliIndexOfEntryPL-(pivotLowsToEnter-1)]
+				firstEntryPivot := candles[firstEntryPivotIndex].Low
+				lastEntryPivotIndex := allPivotLows[plSliIndexOfEntryPL]
+				lastEntryPivot := candles[lastEntryPivotIndex].Low
 
-				retData.FirstSecondEntryPivotPriceDiffPerc = ((firstEntryPivot - secondEntryPivot) / firstEntryPivot) * 100
-				retData.SecondThirdEntryPivotPriceDiffPerc = ((secondEntryPivot - thirdEntryPivot) / secondEntryPivot) * 100
-				retData.FirstThirdEntryPivotPriceDiffPerc = ((firstEntryPivot - thirdEntryPivot) / firstEntryPivot) * 100
+				// if relCandleIndex < 5000 {
+				// 	fmt.Printf(colorGreen+"first= %v / last= %v \n"+colorReset, firstEntryPivotIndex, lastEntryPivotIndex)
+				// }
+
+				retData.FirstToLastEntryPivotDuration = lastEntryPivotIndex - firstEntryPivotIndex
+				retData.FirstLastEntryPivotPriceDiffPerc = ((firstEntryPivot - lastEntryPivot) / firstEntryPivot) * 100
+
+				priceDiffPercTotal := 0.0
+				for i := 0; i < pivotLowsToEnter-1; i++ {
+					// if relCandleIndex < 5000 {
+					// 	fmt.Printf(colorCyan+"<%v> plSliIndexOfEntryPL= %v (%v) / pl1= %v / pl2 = %v\n __ %v\n"+colorReset, relCandleIndex, plSliIndexOfEntryPL, allPivotLows[plSliIndexOfEntryPL], allPivotLows[plSliIndexOfEntryPL-i], allPivotLows[plSliIndexOfEntryPL-i-1], allPivotLows)
+					// }
+
+					pl1 := candles[allPivotLows[plSliIndexOfEntryPL-i]].Low
+					pl2 := candles[allPivotLows[plSliIndexOfEntryPL-i-1]].Low
+					priceDiffPercTotal = priceDiffPercTotal + math.Abs(((pl2-pl1)/pl2)*100)
+				}
+				retData.AveragePriceDiffPercEntryPivots = priceDiffPercTotal / float64(pivotLowsToEnter)
 			}
 		}
 
@@ -588,9 +606,10 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 	return -1, -1.0, "", nil, StrategyDataPoint{}
 }
 
-func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels *(map[string]map[int]string), retData *StrategyDataPoint) {
+func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels *(map[string]map[int]string), retData *StrategyDataPoint, action string) {
 	(*retData).BreakIndex = breakIndex
 	(*retData).BreakTime = candles[breakIndex].DateTime()
+	(*retData).EndAction = action
 
 	//find highest point between second entry pivot and trend break
 	trendExtentIndex := retData.ActualEntryIndex //rolling compare of highest high index
@@ -684,8 +703,8 @@ func scanPivotTrends(
 		5.7: 5,
 	}
 
-	pivotLowsToEnter := 6
-	maxDurationCandles := 1200
+	pivotLowsToEnter := 5
+	maxDurationCandles := 600
 	slPerc := 1.0
 	slCooldownCandles := 35
 	// tpCooldownCandles := 35
@@ -741,7 +760,7 @@ func scanPivotTrends(
 			// }
 
 			if breakIndex > 0 && breakPrice > 0 && action != "MULTI-TP" {
-				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData)
+				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action)
 				stored.ScanPoints = append(stored.ScanPoints, latestEntryData)
 				stored.WatchingTrend = false
 				retData = latestEntryData
@@ -809,7 +828,7 @@ func scanPivotTrends(
 
 				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK {
 					newEntryData := StrategyDataPoint{}
-					newEntryData = logEntry(relCandleIndex, latestPossibleEntry, candles, possibleEntryIndexes, stored.ScanPoints, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
+					newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.ScanPoints, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
 					newEntryData.ActualEntryIndex = relCandleIndex
 					stored.ScanPoints = append(stored.ScanPoints, newEntryData)
 					stored.WatchingTrend = true
