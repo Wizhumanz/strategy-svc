@@ -63,6 +63,49 @@ func executeLiveStrategy(
 
 	var fetchedCandles []Candlestick
 
+	tradeWindowStart := bot.StartTime + ":00"
+	tradeWindowEnd := bot.EndTime + ":00"
+
+	for {
+		//time cannot be within block window
+		timeOK := false
+		dt := time.Now()
+
+		if tradeWindowStart != "" && tradeWindowEnd != "" {
+			et, _ := time.Parse("15:04:05", dt.Format("15:04:05"))
+			s, _ := time.Parse("15:04:05", tradeWindowStart)
+			e, _ := time.Parse("15:04:05", tradeWindowEnd)
+
+			afterS := false
+			if et.Hour() > s.Hour() {
+				afterS = true
+			} else if et.Hour() == s.Hour() {
+				if et.Minute() > s.Minute() {
+					afterS = true
+				}
+			} else {
+				afterS = false
+			}
+
+			beforeE := false
+			if et.Hour() < e.Hour() {
+				beforeE = true
+			} else if et.Hour() == e.Hour() {
+				if et.Minute() < e.Minute() {
+					beforeE = true
+				}
+			} else {
+				beforeE = false
+			}
+
+			timeOK = afterS && beforeE
+		}
+
+		if timeOK {
+			break
+		}
+	}
+
 	createJSONFile(bot.Name, bot.Period)
 	timeNow := time.Now().UTC()
 
@@ -86,9 +129,9 @@ func executeLiveStrategy(
 	for {
 		//wait for current time to equal closest standardized interval time, t (only once)
 		if t == time.Now().UTC() {
+
 			//fetch closed latest candle (same as the one checked before) and previous candles to compute pivots
 			data := fetchCandleData(bot.Ticker, bot.Period, t.Add(-periodDurationMap[bot.Period]*50), t.Add(-periodDurationMap[bot.Period]*1))
-
 			//compute some previous pivots to give strategy starting point
 			var stratStore interface{}
 			var opens, highs, lows, closes []float64
@@ -128,6 +171,8 @@ func executeLiveStrategy(
 
 			//fetch candle and run live strat on every interval tick
 			for n := range minuteTicker(bot.Period).C {
+				fmt.Println("THE CLOCK IS RUNNING")
+				fmt.Println(n)
 				if skipCandles != 0 {
 					skipCandles -= 1
 				} else {

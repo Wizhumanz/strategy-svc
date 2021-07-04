@@ -86,6 +86,8 @@ type Bot struct {
 	K                       *datastore.Key `datastore:"__key__"`
 	Name                    string         `json:"Name"`
 	AggregateID             int            `json:"AggregateID,string"`
+	StartTime               string         `json:"StartTime"`
+	EndTime                 string         `json:"EndTime"`
 	UserID                  string         `json:"UserID"`
 	ExchangeConnection      string         `json:"ExchangeConnection"`
 	AccountRiskPercPerTrade string         `json:"AccountRiskPercPerTrade"`
