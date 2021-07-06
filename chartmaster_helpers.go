@@ -556,8 +556,7 @@ func retrieveJsonFromStorage(userID, fileName string, chunksArr *[]*[]Candlestic
 	var rawRes []Candlestick
 	var rawString string
 	json.Unmarshal(candlesByteArr, &rawString)
-
-	for _, cand := range strings.Split(rawString, "~") {
+	for _, cand := range strings.Split(rawString, ">") {
 		var tempCandle Candlestick
 		tempString := strings.Split(cand, "/")
 		tempCandle.PeriodStart = tempString[0]
