@@ -35,9 +35,9 @@ func strat1(
 	tpCooldownCandles := 35
 
 	// tradeWindowStart := "09:00:00"
-	tradeWindowStart := "0545"
+	tradeWindowStart := "05:45:00"
 	// tradeWindowEnd := "18:00:00"
-	tradeWindowEnd := "1900"
+	tradeWindowEnd := "19:00:00"
 
 	//block = 1600-1830
 
@@ -193,7 +193,7 @@ func strat1(
 
 					timeOK = afterS && beforeE
 
-					// if relCandleIndex > 400 && relCandleIndex < 1400 {
+					// if relCandleIndex < 1400 {
 					// 	fmt.Printf(colorGreen+"<%v> OK= %v/ et= %v,%v / s= %v,%v (%v) / e= %v,%v (%v)\n", relCandleIndex, timeOK, et.Hour(), et.Minute(), s.Hour(), s.Minute(), afterS, e.Hour(), e.Minute(), beforeE)
 					// }
 				}
