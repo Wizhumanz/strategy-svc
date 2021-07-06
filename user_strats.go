@@ -22,10 +22,9 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		1.8: 30,
-		3.0: 30,
-		3.5: 30,
-		3.8: 10,
+		3.5: 80, //second largest
+		3.8: 10, //largest
+		4.0: 10,
 	}
 
 	pivotLowsToEnter := 4
