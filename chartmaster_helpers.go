@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"math"
 	"math/rand"
-	"net/http"
 	"os"
 	"runtime"
 	"sort"
@@ -56,54 +56,54 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 }
 
 func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick {
-	fetchEndTime := end.Add(1 * periodDurationMap[period])
-	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf("FETCHING new candles %v -> %v", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
-		fmt.Sprintf("<%v> %v", line, file))
+	// fetchEndTime := end.Add(1 * periodDurationMap[period])
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log(fmt.Sprintf("FETCHING new candles %v -> %v", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
+	// 	fmt.Sprintf("<%v> %v", line, file))
 
-	//send request
-	base := "https://rest.coinapi.io/v1/ohlcv/BINANCEFTS_PERP_BTC_USDT/history" //TODO: build dynamically based on ticker
-	full := fmt.Sprintf("%s?period_id=%s&time_start=%s&time_end=%s",
-		base,
-		period,
-		start.Format(httpTimeFormat),
-		fetchEndTime.Format(httpTimeFormat))
+	// //send request
+	// base := "https://rest.coinapi.io/v1/ohlcv/BINANCEFTS_PERP_BTC_USDT/history" //TODO: build dynamically based on ticker
+	// full := fmt.Sprintf("%s?period_id=%s&time_start=%s&time_end=%s",
+	// 	base,
+	// 	period,
+	// 	start.Format(httpTimeFormat),
+	// 	fetchEndTime.Format(httpTimeFormat))
 
-	req, _ := http.NewRequest("GET", full, nil)
-	req.Header.Add("X-CoinAPI-Key", "4D684039-406E-451F-BB2B-6BDC123808E1")
-	client := &http.Client{}
-	response, err := client.Do(req)
+	// req, _ := http.NewRequest("GET", full, nil)
+	// req.Header.Add("X-CoinAPI-Key", "170F2DBA-F62F-4649-857C-2A2A5A6C62A1")
+	// client := &http.Client{}
+	// response, err := client.Do(req)
 
-	if err != nil {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("GET candle data err %v\n", err), fmt.Sprintf("<%v> %v", line, file))
-		return nil
-	}
+	// if err != nil {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprintf("GET candle data err %v\n", err), fmt.Sprintf("<%v> %v", line, file))
+	// 	return nil
+	// }
 
-	//parse data
-	body, _ := ioutil.ReadAll(response.Body)
-	// fmt.Println(string(body))
-	var jStruct []Candlestick
-	errJson := json.Unmarshal(body, &jStruct)
-	if errJson != nil {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("JSON unmarshall candle data err %v\n", errJson),
-			fmt.Sprintf("<%v> %v", line, file))
-	}
-	//save data to cache so don't have to fetch again
-	if len(jStruct) > 0 && jStruct[0].Open != 0 {
-		go cacheCandleData(jStruct, ticker, period)
+	// //parse data
+	// body, _ := ioutil.ReadAll(response.Body)
+	// // fmt.Println(string(body))
+	// var jStruct []Candlestick
+	// errJson := json.Unmarshal(body, &jStruct)
+	// if errJson != nil {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprintf("JSON unmarshall candle data err %v\n", errJson),
+	// 		fmt.Sprintf("<%v> %v", line, file))
+	// }
+	// //save data to cache so don't have to fetch again
+	// if len(jStruct) > 0 && jStruct[0].Open != 0 {
+	// 	go cacheCandleData(jStruct, ticker, period)
 
-		//temp save to loval file to preserve CoinAPI credits
-		fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
-		file, _ := json.MarshalIndent(jStruct, "", " ")
-		_ = ioutil.WriteFile(fileName, file, 0644)
-	} else {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
-	}
-	return jStruct
-	// return nil
+	// 	//temp save to loval file to preserve CoinAPI credits
+	// 	fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
+	// 	file, _ := json.MarshalIndent(jStruct, "", " ")
+	// 	_ = ioutil.WriteFile(fileName, file, 0644)
+	// } else {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
+	// }
+	// return jStruct
+	return nil
 }
 
 func getCachedCandleData(ticker, period string, start, end time.Time) []Candlestick {
@@ -544,13 +544,34 @@ func retrieveJsonFromStorage(userID, fileName string, chunksArr *[]*[]Candlestic
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 	bucketName := "saved_candles-" + userID
-	rc, _ := storageClient.Bucket(bucketName).Object(fileName).NewReader(ctx)
+	rc, err := storageClient.Bucket(bucketName).Object(fileName).NewReader(ctx)
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+	}
+
 	defer rc.Close()
 
 	candlesByteArr, _ := ioutil.ReadAll(rc)
-	var rawRes []Candlestick
-	json.Unmarshal(candlesByteArr, &rawRes)
 
+	var rawRes []Candlestick
+	var rawString string
+	json.Unmarshal(candlesByteArr, &rawString)
+
+	for _, cand := range strings.Split(rawString, "~") {
+		var tempCandle Candlestick
+		tempString := strings.Split(cand, "/")
+		tempCandle.PeriodStart = tempString[0]
+		tempCandle.PeriodEnd = tempString[1]
+		tempCandle.TimeOpen = tempString[2]
+		tempCandle.TimeClose = tempString[3]
+		tempCandle.Open, _ = strconv.ParseFloat(tempString[4], 64)
+		tempCandle.High, _ = strconv.ParseFloat(tempString[5], 64)
+		tempCandle.Low, _ = strconv.ParseFloat(tempString[6], 64)
+		tempCandle.Close, _ = strconv.ParseFloat(tempString[7], 64)
+		rawRes = append(rawRes, tempCandle)
+	}
+
+	fmt.Printf("\nOriginal len: %v\n", len(rawRes))
 	*chunksArr = append(*chunksArr, &rawRes)
 	// return rawRes
 }
@@ -640,6 +661,7 @@ func computeBacktest(
 	allCandles := []Candlestick{}
 	relIndex := 0
 	requiredTime := startTime
+	tempIndex := true
 	for {
 
 		if !retrieveCandles {
@@ -652,6 +674,10 @@ func computeBacktest(
 		allCandlesArr = nil
 		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
+			if len(allCandlesArr) == 0 && tempIndex {
+				fmt.Println("allCandlesArr is 0")
+				tempIndex = false
+			}
 		}
 
 		//run strat for all chunk's candles
@@ -799,6 +825,8 @@ func computeScan(
 	allCandles := []Candlestick{}
 	relIndex := 0
 	requiredTime := startTime
+	tempIndex := false
+
 	for {
 
 		if !retrieveCandles {
@@ -810,6 +838,10 @@ func computeScan(
 		allCandlesArr = nil
 		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
+			if len(allCandlesArr) == 0 && tempIndex {
+				fmt.Println("allCandlesArr is 0")
+				tempIndex = false
+			}
 		}
 
 		for _, candle := range allCandlesArr {
@@ -1121,8 +1153,18 @@ func saveBacktestRes(
 }
 
 func candlePeriodResFile(c []Candlestick, ticker, period, start, end string) string {
+	//convert candlestick struct to string in order to decrease file size
+	var fileString string
+	for i, cand := range c {
+		if i == 0 {
+			fileString = cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
+		} else {
+			fileString = fileString + ">" + cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
+		}
+	}
+
 	//save candlesticks
-	file, _ := json.MarshalIndent(c, "", " ")
+	file, _ := json.MarshalIndent(fileString, "", " ")
 	fileName := fmt.Sprintf("%v.json", start+"~"+end+"("+period+", "+ticker+")")
 	_ = ioutil.WriteFile(fileName, file, 0644)
 

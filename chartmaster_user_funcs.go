@@ -137,13 +137,17 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		1.0: 5,
-		1.6: 15,
-		2.5: 10,
-		3.2: 20,
-		3.8: 20,
-		4.4: 20,
-		5.2: 10,
+		// 1.5: 10,
+		// 2.5: 5,
+		// 3.2: 10,
+		// 3.8: 25,
+		// 4.4: 20,
+		// 5.2: 30,
+		1.5:  10,
+		4.0:  30,
+		5.0:  30,
+		8.0:  20,
+		10.0: 10,
 	}
 
 	//0.8% SL
@@ -156,13 +160,13 @@ func strat1(
 	// 	5.7: 5,
 	// }
 
-	pivotLowsToEnter := 6
-	maxDurationCandles := 1200
-	slPerc := 1.5
+	pivotLowsToEnter := 1
+	maxDurationCandles := 5000
+	slPerc := 10.0
 	// startTrailPerc := 1.3
 	// trailingPerc := 0.4
-	slCooldownCandles := 35
-	tpCooldownCandles := 35
+	slCooldownCandles := 10
+	tpCooldownCandles := 10
 
 	// tradeWindowStart := "09:00:00"
 	tradeWindowStart := ""
@@ -701,10 +705,10 @@ func scanPivotTrends(
 		5.7: 5,
 	}
 
-	pivotLowsToEnter := 6
-	maxDurationCandles := 1200
-	slPerc := 1.0
-	slCooldownCandles := 35
+	pivotLowsToEnter := 3
+	maxDurationCandles := 5000
+	slPerc := 10.0
+	slCooldownCandles := 10
 	// tpCooldownCandles := 35
 
 	// tradeWindowStart := "09:00:00"
