@@ -11,11 +11,8 @@ func scanPivotTrends(
 	open, high, low, close []float64,
 	relCandleIndex int,
 	storage *interface{}) (map[string]map[int]string, StrategyDataPoint) {
-	// exitWatchPivots := 3
-	// checkTrendBreakFromStartingPivots := false
-	// minEntryPivotsDiffPerc := float64(0)
-	// maxEntryPivotsDiffPerc := 0.5
-	//map of profit % TO account size perc to close (multi-tp)
+
+	//NOTE: tp map not used in scanning
 	tpMap := map[float64]float64{
 		1.3: 10,
 		1.9: 20,
@@ -25,9 +22,9 @@ func scanPivotTrends(
 		5.7: 5,
 	}
 
-	pivotLowsToEnter := 3
+	pivotLowsToEnter := 4
 	maxDurationCandles := 1800
-	slPerc := 2.5
+	slPerc := 1.5
 	slCooldownCandles := 35
 	// tpCooldownCandles := 35
 
