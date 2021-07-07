@@ -20,36 +20,36 @@ func strat1(
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
+	// //map of profit % TO account size perc to close (multi-tp)
+	// tpMap := map[float64]float64{
+	// 	3.5: 20, //second largest
+	// 	3.8: 10, //largest
+	// 	4.0: 70,
+	// }
+
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		3.5: 20, //second largest
-		3.8: 10, //largest
-		4.0: 70,
+		0.75: 20,
+		1.2:  5,
+		2.8:  75,
 	}
 
 	pivotLowsToEnter := 4
-	maxDurationCandles := 1800
-	slPerc := 1.5
+	maxDurationCandles := 480
+	slPerc := 2.0
 	slCooldownCandles := 35
 	tpCooldownCandles := 35
 
-	// tradeWindowStart := "09:00:00"
-	tradeWindowStart := "05:45:00"
-	// tradeWindowEnd := "18:00:00"
-	tradeWindowEnd := "19:00:00"
+	tradeWindows := []ValRange{}
 
 	entryPivotNoTradeZones := []ValRange{
 		{
-			Start: 0.0,
-			End:   0.18,
+			Start: 0.1,
+			End:   0.2,
 		},
 		{
-			Start: 0.36,
-			End:   0.51,
-		},
-		{
-			Start: 0.75,
-			End:   0.87,
+			Start: 0.35,
+			End:   0.49,
 		},
 		{
 			Start: 3.2,
@@ -172,11 +172,14 @@ func strat1(
 				}
 
 				//time cannot be within block window
-				timeOK := true
-				if tradeWindowStart != "" && tradeWindowEnd != "" {
-					et, _ := time.Parse(httpTimeFormat, strings.Split(candles[latestPossibleEntry].TimeOpen, ".")[0])
-					s, _ := time.Parse("15:04:05", tradeWindowStart)
-					e, _ := time.Parse("15:04:05", tradeWindowEnd)
+				timeOK := false
+				if len(tradeWindows) <= 0 {
+					timeOK = true
+				}
+				et, _ := time.Parse(httpTimeFormat, strings.Split(candles[latestPossibleEntry].TimeOpen, ".")[0])
+				for _, window := range tradeWindows {
+					s, _ := time.Parse("15:04:05", window.Start.(string))
+					e, _ := time.Parse("15:04:05", window.End.(string))
 
 					afterS := true
 					if et.Hour() > s.Hour() {
@@ -206,6 +209,9 @@ func strat1(
 
 					timeOK = afterS && beforeE
 
+					if timeOK {
+						break
+					}
 					// if relCandleIndex < 1400 {
 					// 	fmt.Printf(colorGreen+"<%v> OK= %v/ et= %v,%v / s= %v,%v (%v) / e= %v,%v (%v)\n", relCandleIndex, timeOK, et.Hour(), et.Minute(), s.Hour(), s.Minute(), afterS, e.Hour(), e.Minute(), beforeE)
 					// }
@@ -219,7 +225,7 @@ func strat1(
 				firstPL := candles[firstPLIndex].Low
 				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
 				for _, window := range entryPivotNoTradeZones {
-					if entryPivotsPriceDiffPerc >= window.Start && entryPivotsPriceDiffPerc <= window.End {
+					if entryPivotsPriceDiffPerc >= window.Start.(float64) && entryPivotsPriceDiffPerc <= window.End.(float64) {
 						entryPivotsDiffOK = false
 						break
 					}

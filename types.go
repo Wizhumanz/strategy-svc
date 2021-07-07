@@ -369,7 +369,7 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 
 	if !strat.liveTrade {
 		actualPrice := (1 + (strat.OrderSlippagePerc / 100)) * price //TODO: modify to - for shorting
-		desiredPosCap, _ := calcEntry(actualPrice, sl, accRisk, strat.availableEquity, lev)
+		desiredPosCap, _ := calcEntry(price, sl, accRisk, strat.availableEquity, lev)
 		//binance min order size = 10 USDT
 		if desiredPosCap <= 10 {
 			return retMultiTPs
@@ -445,13 +445,12 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		limitOrderMultiply := -30.00 //CHANGE THIS TO MAKE SURE NO ENTRY
 		entryLimitOrderSubmitPrice := (1 + (limitOrderMultiply / 100)) * price
 		slLimitOrderPrice := 0.994 * sl
-		entryLimitOrderMultiply := 1.006
 
 		bal, _ := strconv.ParseFloat(balance, 64)
 		accPercToUse, _ := strconv.ParseFloat(bot.AccountSizePercToTrade, 64)
 		riskPerTrade, _ := strconv.ParseFloat(bot.AccountRiskPercPerTrade, 64)
 
-		_, posSz := calcEntry(entryLimitOrderMultiply*price, sl, riskPerTrade, accPercToUse*bal, lev)
+		_, posSz := calcEntry(price, sl, riskPerTrade, accPercToUse*bal, lev)
 		//calc TP map
 		tps := calcMultiTPs(multiTPs, posSz, cIndex)
 

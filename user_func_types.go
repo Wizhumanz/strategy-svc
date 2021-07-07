@@ -57,6 +57,6 @@ type PivotTrendScanStore struct {
 
 //for block periods
 type ValRange struct {
-	Start float64
-	End   float64
+	Start interface{}
+	End   interface{}
 }

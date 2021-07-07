@@ -24,8 +24,8 @@ func scanPivotTrends(
 	}
 
 	pivotLowsToEnter := 4
-	maxDurationCandles := 1800
-	slPerc := 1.5
+	maxDurationCandles := 480
+	slPerc := 0.5
 	slCooldownCandles := 35
 	// tpCooldownCandles := 35
 
@@ -34,24 +34,7 @@ func scanPivotTrends(
 	// tradeWindowEnd := "18:00:00"
 	tradeWindowEnd := ""
 
-	entryPivotNoTradeZones := []ValRange{
-		{
-			Start: 0.0,
-			End:   0.18,
-		},
-		{
-			Start: 0.36,
-			End:   0.51,
-		},
-		{
-			Start: 0.75,
-			End:   0.87,
-		},
-		{
-			Start: 3.2,
-			End:   99.9,
-		},
-	}
+	entryPivotNoTradeZones := []ValRange{}
 
 	retData := StrategyDataPoint{}
 	stored, ok := (*storage).(PivotTrendScanStore)
@@ -173,7 +156,7 @@ func scanPivotTrends(
 				firstPL := candles[firstPLIndex].Low
 				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
 				for _, window := range entryPivotNoTradeZones {
-					if entryPivotsPriceDiffPerc >= window.Start && entryPivotsPriceDiffPerc <= window.End {
+					if entryPivotsPriceDiffPerc >= window.Start.(float64) && entryPivotsPriceDiffPerc <= window.End.(float64) {
 						entryPivotsDiffOK = false
 						break
 					}
