@@ -151,8 +151,9 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 }
 
 var totalCandles []CandlestickChartData
+var previousEquity float64
 
-func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
+func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
 
 	//candlestick
@@ -250,20 +251,23 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve *[]ProfitCurveData
 
 	//profit curve
 	var pd ProfitCurveDataPoint
-	if profitCurve != nil {
-		//only add data point if changed from last point OR 1st or 2nd datapoint
-		if (strat.GetTotalEquity() != 0) && (len(*profitCurve) == 0) && (relIndex != 0) {
-			pd = ProfitCurveDataPoint{
-				DateTime: c.DateTime(),
-				Equity:   strat.GetTotalEquity(),
-			}
-		} else if (relIndex == 0) || (strat.GetTotalEquity() != (*profitCurve)[len(*profitCurve)-1].Equity) {
-			pd = ProfitCurveDataPoint{
-				DateTime: c.DateTime(),
-				Equity:   strat.GetTotalEquity(),
-			}
+	// if profitCurve != nil {
+	//only add data point if changed from last point OR 1st or 2nd datapoint
+	// if (strat.GetTotalEquity() != 0) && (len(profitCurve) == 0) && (relIndex != 0) {
+	// 	fmt.Println("AAA")
+	// 	pd = ProfitCurveDataPoint{
+	// 		DateTime: c.DateTime(),
+	// 		Equity:   strat.GetTotalEquity(),
+	// 	}
+	// } else
+	if (relIndex == 0) || (strat.GetTotalEquity() != previousEquity) {
+		pd = ProfitCurveDataPoint{
+			DateTime: c.DateTime(),
+			Equity:   strat.GetTotalEquity(),
 		}
+		previousEquity = strat.GetTotalEquity()
 	}
+	// }
 
 	//sim trades
 	retSimData := []SimulatedTradeDataPoint{}
@@ -556,6 +560,8 @@ func retrieveJsonFromStorage(userID, fileName string, chunksArr *[]*[]Candlestic
 	var rawRes []Candlestick
 	var rawString string
 	json.Unmarshal(candlesByteArr, &rawString)
+	fmt.Printf("\nOriginal len: %v\n", len(rawString))
+
 	for _, cand := range strings.Split(rawString, ">") {
 		var tempCandle Candlestick
 		tempString := strings.Split(cand, "/")
@@ -570,7 +576,6 @@ func retrieveJsonFromStorage(userID, fileName string, chunksArr *[]*[]Candlestic
 		rawRes = append(rawRes, tempCandle)
 	}
 
-	fmt.Printf("\nOriginal len: %v\n", len(rawRes))
 	*chunksArr = append(*chunksArr, &rawRes)
 	// return rawRes
 }
@@ -660,7 +665,6 @@ func computeBacktest(
 	allCandles := []Candlestick{}
 	relIndex := 0
 	requiredTime := startTime
-	tempIndex := true
 	for {
 
 		if !retrieveCandles {
@@ -673,10 +677,6 @@ func computeBacktest(
 		allCandlesArr = nil
 		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
-			if len(allCandlesArr) == 0 && tempIndex {
-				fmt.Println("allCandlesArr is 0")
-				tempIndex = false
-			}
 		}
 
 		//run strat for all chunk's candles
@@ -700,7 +700,7 @@ func computeBacktest(
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
-				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, &chunkAddedPCData, candle, strategySim, relIndex, labels)
+				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels)
 
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
@@ -792,10 +792,6 @@ func computeBacktest(
 		}
 	}
 
-	//stream data back to client in every chunk
-
-	sendPacketBacktest(packetSender, userID, rid, retCandles, retProfitCurve[0].Data, retSimTrades[0].Data)
-
 	return retCandles, retProfitCurve, retSimTrades, allCandlesArr
 }
 
@@ -824,10 +820,8 @@ func computeScan(
 	allCandles := []Candlestick{}
 	relIndex := 0
 	requiredTime := startTime
-	tempIndex := false
 
 	for {
-
 		if !retrieveCandles {
 			// Check for all empty candle start time
 			allEmptyCandles = append(allEmptyCandles, <-c)
@@ -837,10 +831,6 @@ func computeScan(
 		allCandlesArr = nil
 		for _, chunk := range *chunksArr {
 			allCandlesArr = append(allCandlesArr, *chunk...)
-			if len(allCandlesArr) == 0 && tempIndex {
-				fmt.Println("allCandlesArr is 0")
-				tempIndex = false
-			}
 		}
 
 		for _, candle := range allCandlesArr {
@@ -926,7 +916,6 @@ func computeScan(
 						}
 					}
 					if restartLoop {
-						// fmt.Println("break restartloop")
 						break
 					}
 				} else if candle == allCandlesArr[len(allCandlesArr)-1] && candle.PeriodEnd != endTime.Format(httpTimeFormat)+".0000000Z" {
@@ -942,13 +931,9 @@ func computeScan(
 		}
 
 		if requiredTime.Equal(endTime) {
-			fmt.Printf("\nbreak: %v\n", requiredTime)
 			break
 		}
 	}
-
-	//stream data back to client in every chunk
-	sendPacketScan(packetSender, userID, rid, retCandles, retScanRes)
 
 	return retCandles, retScanRes, allCandlesArr
 }
