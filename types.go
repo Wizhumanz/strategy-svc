@@ -445,24 +445,24 @@ func (strat *StrategyExecutor) Buy(price, sl, tp, startTrailPerc, trailingPerc, 
 		limitOrderMultiply := -30.00 //CHANGE THIS TO MAKE SURE NO ENTRY
 		entryLimitOrderSubmitPrice := (1 + (limitOrderMultiply / 100)) * price
 		slLimitOrderPrice := 0.994 * sl
+		entryLimitOrderMultiply := 1.006
 
 		bal, _ := strconv.ParseFloat(balance, 64)
 		accPercToUse, _ := strconv.ParseFloat(bot.AccountSizePercToTrade, 64)
 		riskPerTrade, _ := strconv.ParseFloat(bot.AccountRiskPercPerTrade, 64)
 
-		_, posSz := calcEntry(entryLimitOrderSubmitPrice, sl, riskPerTrade, accPercToUse*bal, lev)
+		_, posSz := calcEntry(entryLimitOrderMultiply*price, sl, riskPerTrade, accPercToUse*bal, lev)
 		//calc TP map
 		tps := calcMultiTPs(multiTPs, posSz, cIndex)
 
 		//submit entry order
-		newOrder(symbol, "BUY", "LIMIT", fmt.Sprintf("%.2f", posSz), fmt.Sprintf("%.2f", entryLimitOrderSubmitPrice), "no", "0")
+		newOrder(symbol, "BUY", "LIMIT", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 0.8*price), "no", "0")
 		// submit SL order
-		newOrder(symbol, "SELL", "STOP", fmt.Sprintf("%.2f", posSz), fmt.Sprintf("%.2f", slLimitOrderPrice), "true", fmt.Sprintf("%.2f", sl))
+		newOrder(symbol, "SELL", "STOP", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 0.79*price), "true", fmt.Sprintf("%.2f", 0.8*price))
 
 		//for each TP point, submit a stop limit order
-		for _, tp := range tps {
-			newOrder(symbol, "SELL", "TAKE_PROFIT", fmt.Sprintf("%.2f", tp.CloseSize), fmt.Sprintf("%.2f", tp.Price*(1-(limitOrderMultiply/100))), "true", fmt.Sprintf("%.2f", tp.Price))
-		}
+		newOrder(symbol, "SELL", "TAKE_PROFIT", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 1.49*price), "true", fmt.Sprintf("%.2f", 1.5*price))
+		newOrder(symbol, "SELL", "TAKE_PROFIT", fmt.Sprintf("%.2f", currentBalance/(0.8*price)), fmt.Sprintf("%.2f", 1.49*price), "true", fmt.Sprintf("%.2f", 1.5*price))
 
 		// args := map[string]interface{}{}
 		// args["slPrice"] = float64(sl)

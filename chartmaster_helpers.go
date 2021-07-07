@@ -1356,14 +1356,14 @@ func deleteFile(bucket, object string) error {
 }
 
 func saveJsonToRedis() {
-	data, err := ioutil.ReadFile("./mar-apr2021.json")
+	data, err := ioutil.ReadFile("./juneBINANCEBTCUSDT.json")
 	if err != nil {
 		fmt.Print(err)
 	}
 
 	var jStruct []Candlestick
 	json.Unmarshal(data, &jStruct)
-	// go cacheCandleData(jStruct, ticker, period)
+	// go cacheCandleData(jStruct, "BINANCEFTS_PERP_BTC_USDT", "1MIN")
 }
 
 func renameKeys() {
