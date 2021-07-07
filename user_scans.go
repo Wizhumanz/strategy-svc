@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 )
@@ -32,6 +33,25 @@ func scanPivotTrends(
 	tradeWindowStart := ""
 	// tradeWindowEnd := "18:00:00"
 	tradeWindowEnd := ""
+
+	entryPivotNoTradeZones := []ValRange{
+		{
+			Start: 0.0,
+			End:   0.18,
+		},
+		{
+			Start: 0.36,
+			End:   0.51,
+		},
+		{
+			Start: 0.75,
+			End:   0.87,
+		},
+		{
+			Start: 3.2,
+			End:   99.9,
+		},
+	}
 
 	retData := StrategyDataPoint{}
 	stored, ok := (*storage).(PivotTrendScanStore)
@@ -145,7 +165,21 @@ func scanPivotTrends(
 					// }
 				}
 
-				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK {
+				//entry pivots price diff cannot be within block windows
+				entryPivotsDiffOK := true
+				lastPLIndex := latestPossibleEntry
+				lastPL := candles[lastPLIndex].Low
+				firstPLIndex := stored.PivotLows[len(stored.PivotLows)-1-(pivotLowsToEnter-1)]
+				firstPL := candles[firstPLIndex].Low
+				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
+				for _, window := range entryPivotNoTradeZones {
+					if entryPivotsPriceDiffPerc >= window.Start && entryPivotsPriceDiffPerc <= window.End {
+						entryPivotsDiffOK = false
+						break
+					}
+				}
+
+				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK {
 					newEntryData := StrategyDataPoint{}
 					newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.ScanPoints, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
 					newEntryData.ActualEntryIndex = relCandleIndex

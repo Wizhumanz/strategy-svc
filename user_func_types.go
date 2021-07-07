@@ -54,3 +54,9 @@ type PivotTrendScanStore struct {
 	ScanPoints    []StrategyDataPoint
 	WatchingTrend bool
 }
+
+//for block periods
+type ValRange struct {
+	Start float64
+	End   float64
+}

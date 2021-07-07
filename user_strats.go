@@ -22,9 +22,9 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		3.5: 73, //second largest
-		3.8: 17, //largest
-		4.0: 10,
+		3.5: 20, //second largest
+		3.8: 10, //largest
+		4.0: 70,
 	}
 
 	pivotLowsToEnter := 4
@@ -38,10 +38,24 @@ func strat1(
 	// tradeWindowEnd := "18:00:00"
 	tradeWindowEnd := "19:00:00"
 
-	//block = 1600-1830
-
-	entryPivotPriceDiffPercNoTradeZoneStart := 0.0
-	entryPivotPriceDiffPercNoTradeZoneEnd := 0.5
+	entryPivotNoTradeZones := []ValRange{
+		{
+			Start: 0.0,
+			End:   0.18,
+		},
+		{
+			Start: 0.36,
+			End:   0.51,
+		},
+		{
+			Start: 0.75,
+			End:   0.87,
+		},
+		{
+			Start: 3.2,
+			End:   99.9,
+		},
+	}
 
 	newLabels := map[string]map[int]string{
 		"top":    map[int]string{},
@@ -106,17 +120,17 @@ func strat1(
 			// }
 
 			if breakIndex > 0 && breakPrice > 0 && action != "MULTI-TP" {
-				fmt.Printf(colorYellow+"%v %v (%v)\n"+colorReset, action, breakPrice, breakIndex)
+				// fmt.Printf(colorYellow+"%v %v (%v)\n"+colorReset, action, breakPrice, breakIndex)
 
 				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action)
 				stored.Trades = append(stored.Trades, latestEntryData)
 				(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot)
 			} else if breakIndex > 0 && action == "MULTI-TP" {
-				if relCandleIndex < 3000 {
-					for _, p := range multiTPs {
-						fmt.Printf(colorYellow+"<%v> MULTI-TP %+v\n"+colorReset, relCandleIndex, p)
-					}
-				}
+				// if relCandleIndex < 3000 {
+				// 	for _, p := range multiTPs {
+				// 		fmt.Printf(colorYellow+"<%v> MULTI-TP %+v\n"+colorReset, relCandleIndex, p)
+				// 	}
+				// }
 
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 					for _, tpPoint := range multiTPs {
@@ -197,15 +211,18 @@ func strat1(
 					// }
 				}
 
-				//entry pivots price diff cannot be within block window
-				entryPivotsDiffOK := false
+				//entry pivots price diff cannot be within block windows
+				entryPivotsDiffOK := true
 				lastPLIndex := latestPossibleEntry
 				lastPL := candles[lastPLIndex].Low
 				firstPLIndex := stored.PivotLows[len(stored.PivotLows)-1-(pivotLowsToEnter-1)]
 				firstPL := candles[firstPLIndex].Low
 				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
-				if !(entryPivotsPriceDiffPerc >= entryPivotPriceDiffPercNoTradeZoneStart && entryPivotsPriceDiffPerc <= entryPivotPriceDiffPercNoTradeZoneEnd) {
-					entryPivotsDiffOK = true
+				for _, window := range entryPivotNoTradeZones {
+					if entryPivotsPriceDiffPerc >= window.Start && entryPivotsPriceDiffPerc <= window.End {
+						entryPivotsDiffOK = false
+						break
+					}
 				}
 
 				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK {
