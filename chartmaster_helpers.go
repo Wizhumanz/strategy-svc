@@ -1340,15 +1340,15 @@ func deleteFile(bucket, object string) error {
 	return nil
 }
 
-func saveJsonToRedis() {
-	data, err := ioutil.ReadFile("./juneBINANCEBTCUSDT.json")
+func saveJsonToRedis(file string) {
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		fmt.Print(err)
 	}
 
 	var jStruct []Candlestick
 	json.Unmarshal(data, &jStruct)
-	// go cacheCandleData(jStruct, "BINANCEFTS_PERP_BTC_USDT", "1MIN")
+	go cacheCandleData(jStruct, "BINANCEFTS_PERP_BTC_USDT", "1MIN")
 }
 
 func renameKeys() {
