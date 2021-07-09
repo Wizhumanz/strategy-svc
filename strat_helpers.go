@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -62,10 +61,10 @@ func findPivots(
 		}
 		noPivotCandles := relCandleIndex - latestPL
 
-		if relCandleIndex < 250 {
-			// fmt.Printf(colorGreen+"<%v> lookHigh= %v / searchStartIndex= %v\n ph(%v)=%v \n pl(%v)= %v\n"+colorReset, relCandleIndex, lookForHigh, newPivotSearchStartIndex, len(*ph), *ph, len(*pl), *pl)
-			fmt.Printf(colorGreen+"<%v> noPivotCandles= %v\n"+colorReset, relCandleIndex, noPivotCandles)
-		}
+		// if relCandleIndex < 250 {
+		// 	// fmt.Printf(colorGreen+"<%v> lookHigh= %v / searchStartIndex= %v\n ph(%v)=%v \n pl(%v)= %v\n"+colorReset, relCandleIndex, lookForHigh, newPivotSearchStartIndex, len(*ph), *ph, len(*pl), *pl)
+		// 	fmt.Printf(colorGreen+"<%v> noPivotCandles= %v\n"+colorReset, relCandleIndex, noPivotCandles)
+		// }
 
 		// fmt.Println(colorRed + "looking for HIGH" + colorReset)
 		//check if new candle took out the low of previous candles since last pivot
@@ -118,10 +117,10 @@ func findPivots(
 		}
 		noPivotCandles := relCandleIndex - latestPH
 
-		if relCandleIndex < 250 {
-			// fmt.Printf(colorGreen+"<%v> lookHigh= %v / searchStartIndex= %v\n ph(%v)=%v \n pl(%v)= %v\n"+colorReset, relCandleIndex, lookForHigh, newPivotSearchStartIndex, len(*ph), *ph, len(*pl), *pl)
-			fmt.Printf(colorRed+"<%v> noPivotCandles= %v\n"+colorReset, relCandleIndex, noPivotCandles)
-		}
+		// if relCandleIndex < 250 {
+		// 	// fmt.Printf(colorGreen+"<%v> lookHigh= %v / searchStartIndex= %v\n ph(%v)=%v \n pl(%v)= %v\n"+colorReset, relCandleIndex, lookForHigh, newPivotSearchStartIndex, len(*ph), *ph, len(*pl), *pl)
+		// 	fmt.Printf(colorRed+"<%v> noPivotCandles= %v\n"+colorReset, relCandleIndex, noPivotCandles)
+		// }
 
 		// fmt.Println(colorYellow + "looking for LOW" + colorReset)
 		for i := newPivotSearchStartIndex; (i+1) < len(high) && (i+1) < len(low); i++ {
@@ -185,9 +184,9 @@ func findPivots(
 		}
 	}
 
-	if relCandleIndex < 180 {
-		fmt.Printf(colorCyan+"ph= %v / pl= %v\n", *ph, *pl)
-	}
+	// if relCandleIndex < 180 {
+	// 	fmt.Printf(colorCyan+"ph= %v / pl= %v\n", *ph, *pl)
+	// }
 
 	return labels, foundPL
 }
