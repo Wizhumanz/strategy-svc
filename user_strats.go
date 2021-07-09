@@ -61,7 +61,7 @@ func strat1(
 		"middle": map[int]string{},
 		"bottom": map[int]string{},
 	}
-	newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
+	// newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
 
 	var stored PivotsStore
 	//prep storage var
