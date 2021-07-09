@@ -15,26 +15,36 @@ func scanPivotTrends(
 
 	//NOTE: tp map not used in scanning
 	tpMap := map[float64]float64{
-		1.3: 10,
-		1.9: 20,
-		2.5: 20,
-		3.3: 20,
-		3.9: 25,
-		5.7: 5,
+		99.0: 100,
 	}
 
-	pivotLowsToEnter := 4
-	maxDurationCandles := 480
-	slPerc := 1.0
+	pivotLowsToEnter := 3
+	maxDurationCandles := 700
+	slPerc := 2.0
 	slCooldownCandles := 35
 	// tpCooldownCandles := 35
 
-	// tradeWindowStart := "09:00:00"
-	tradeWindowStart := ""
-	// tradeWindowEnd := "18:00:00"
-	tradeWindowEnd := ""
+	tradeWindows := []ValRange{
+		{
+			Start: "06:36:00",
+			End:   "07:48:00",
+		},
+		{
+			Start: "08:24:00",
+			End:   "09:00:00",
+		},
+	}
 
-	entryPivotNoTradeZones := []ValRange{}
+	entryPivotNoTradeZones := []ValRange{
+		{
+			Start: 0.0,
+			End:   0.7,
+		},
+		{
+			Start: 0.8,
+			End:   0.9,
+		},
+	}
 
 	retData := StrategyDataPoint{}
 	stored, ok := (*storage).(PivotTrendScanStore)
@@ -73,7 +83,7 @@ func scanPivotTrends(
 			//check sl + tp + max duration
 			breakIndex, breakPrice, action, _, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles)
 
-			if updatedEntryData.MultiTPs[0].Price > 0.0 {
+			if len(updatedEntryData.MultiTPs) > 0 && updatedEntryData.MultiTPs[0].Price > 0.0 {
 				latestEntryData = updatedEntryData
 			}
 
@@ -88,7 +98,7 @@ func scanPivotTrends(
 				retData = latestEntryData
 			}
 
-			if updatedEntryData.MultiTPs[0].Price > 0.0 {
+			if len(updatedEntryData.MultiTPs) > 0 && updatedEntryData.MultiTPs[0].Price > 0.0 {
 				stored.ScanPoints[len(stored.ScanPoints)-1] = latestEntryData //entry data will be updated if multi TP
 			}
 		} else {
@@ -109,11 +119,14 @@ func scanPivotTrends(
 				minTradingIndex := lastTradeExitIndex + slCooldownCandles
 
 				//time cannot be within block window
-				timeOK := true
-				if tradeWindowStart != "" && tradeWindowEnd != "" {
-					et, _ := time.Parse(httpTimeFormat, strings.Split(candles[latestPossibleEntry].TimeOpen, ".")[0])
-					s, _ := time.Parse("15:04:05", tradeWindowStart)
-					e, _ := time.Parse("15:04:05", tradeWindowEnd)
+				timeOK := false
+				if len(tradeWindows) <= 0 {
+					timeOK = true
+				}
+				et, _ := time.Parse(httpTimeFormat, strings.Split(candles[latestPossibleEntry].TimeOpen, ".")[0])
+				for _, window := range tradeWindows {
+					s, _ := time.Parse("15:04:05", window.Start.(string))
+					e, _ := time.Parse("15:04:05", window.End.(string))
 
 					afterS := true
 					if et.Hour() > s.Hour() {
@@ -143,7 +156,10 @@ func scanPivotTrends(
 
 					timeOK = afterS && beforeE
 
-					// if relCandleIndex > 400 && relCandleIndex < 1400 {
+					if timeOK {
+						break
+					}
+					// if relCandleIndex < 1400 {
 					// 	fmt.Printf(colorGreen+"<%v> OK= %v/ et= %v,%v / s= %v,%v (%v) / e= %v,%v (%v)\n", relCandleIndex, timeOK, et.Hour(), et.Minute(), s.Hour(), s.Minute(), afterS, e.Hour(), e.Minute(), beforeE)
 					// }
 				}
@@ -156,7 +172,7 @@ func scanPivotTrends(
 				firstPL := candles[firstPLIndex].Low
 				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
 				for _, window := range entryPivotNoTradeZones {
-					if entryPivotsPriceDiffPerc >= window.Start.(float64) && entryPivotsPriceDiffPerc <= window.End.(float64) {
+					if entryPivotsPriceDiffPerc > (window.Start.(float64)/100) && entryPivotsPriceDiffPerc < (window.End.(float64)/100) {
 						entryPivotsDiffOK = false
 						break
 					}
