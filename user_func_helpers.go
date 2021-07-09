@@ -23,7 +23,7 @@ func calcEntry(entryPrice, slPrice, accPercRisk, accSz float64, leverage int) (f
 	}
 	posSize := leveragedPosEquity / entryPrice
 
-	fmt.Printf(colorGreen+"entry= %v, SL= %v (%v), posEq= %v \n accSz x lev= %v / accPercRisk= %v / accSz= %v / lev= %v / rawRisk= %v\n"+colorReset, entryPrice, slPrice, ((entryPrice-slPrice)/entryPrice)*100, leveragedPosEquity, accSz*float64(leverage), accPercRisk, accSz, leverage, rawRiskPerc)
+	// fmt.Printf(colorGreen+"entry= %v, SL= %v (%v), posEq= %v \n accSz x lev= %v / accPercRisk= %v / accSz= %v / lev= %v / rawRisk= %v\n"+colorReset, entryPrice, slPrice, ((entryPrice-slPrice)/entryPrice)*100, leveragedPosEquity, accSz*float64(leverage), accPercRisk, accSz, leverage, rawRiskPerc)
 
 	return leveragedPosEquity, posSize
 }

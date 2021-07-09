@@ -29,9 +29,8 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		0.75: 20,
-		1.2:  5,
-		2.8:  75,
+		0.75: 10,
+		2.8:  90,
 	}
 
 	pivotLowsToEnter := 4
@@ -62,6 +61,8 @@ func strat1(
 		"middle": map[int]string{},
 		"bottom": map[int]string{},
 	}
+	newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
+
 	var stored PivotsStore
 	//prep storage var
 	switch (*storage).(type) {

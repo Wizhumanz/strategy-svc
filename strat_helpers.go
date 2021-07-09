@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -21,6 +22,7 @@ func findPivots(
 	relCandleIndex int,
 	ph, pl *[]int,
 	labels map[string]map[int]string) (map[string]map[int]string, bool) {
+	maxNoPivotsCandles := 50
 	foundPL := false
 	// fmt.Printf(colorWhite+"findPivots index %v | o = %v, h = %v, l = %v, c = %v\n"+colorReset, relCandleIndex, len(open), len(high), len(low), len(close))
 
@@ -50,15 +52,25 @@ func findPivots(
 		newPivotSearchStartIndex++                                                              //don't allow both pivot high and low on same candle
 	}
 
-	// if relCandleIndex > 127 && relCandleIndex < 170 {
-	// 	fmt.Printf(colorGreen+"<%v> lookHigh= %v / searchStartIndex= %v\n ph(%v)=%v \n pl(%v)= %v\n"+colorReset, relCandleIndex, lookForHigh, newPivotSearchStartIndex, len(*ph), *ph, len(*pl), *pl)
-	// }
-
 	if lookForHigh {
+		//calc latest pivot index (too many candles without pivots and must auto assign)
+		var latestPL int
+		if len(*pl) <= 0 {
+			latestPL = 0
+		} else {
+			latestPL = (*pl)[len(*pl)-1]
+		}
+		noPivotCandles := relCandleIndex - latestPL
+
+		if relCandleIndex < 250 {
+			// fmt.Printf(colorGreen+"<%v> lookHigh= %v / searchStartIndex= %v\n ph(%v)=%v \n pl(%v)= %v\n"+colorReset, relCandleIndex, lookForHigh, newPivotSearchStartIndex, len(*ph), *ph, len(*pl), *pl)
+			fmt.Printf(colorGreen+"<%v> noPivotCandles= %v\n"+colorReset, relCandleIndex, noPivotCandles)
+		}
+
 		// fmt.Println(colorRed + "looking for HIGH" + colorReset)
 		//check if new candle took out the low of previous candles since last pivot
 		for i := newPivotSearchStartIndex; (i+1) < len(low) && (i+1) < len(high); i++ { //TODO: should be relCandleIndex-1 but causes index outta range err
-			if (low[i+1] < low[i]) && (high[i+1] < high[i]) {
+			if ((low[i+1] < low[i]) && (high[i+1] < high[i])) || (noPivotCandles > maxNoPivotsCandles && (i+1) == len(low)-1) {
 				//check if pivot already exists
 				found := checkExists(i, *ph)
 				if found {
@@ -70,14 +82,14 @@ func findPivots(
 				if len(*pl) > 0 && len(*ph) > 0 && newPHIndex > 0 {
 					latestPLIndex := (*pl)[len(*pl)-1]
 					latestPHIndex := (*ph)[len(*ph)-1]
-					for f := newPHIndex - 1; f >= latestPLIndex && f > latestPHIndex; f-- {
+					for f := newPHIndex - 1; f > latestPLIndex && f > latestPHIndex; f-- {
 						if high[f] > high[newPHIndex] && !found {
 							newPHIndex = f
 						}
 					}
 
 					//check if current candle actually clears new selected candle as pivot high
-					if !((low[i+1] < low[newPHIndex]) && (high[i+1] < high[newPHIndex])) {
+					if !((low[i+1] < low[newPHIndex]) && (high[i+1] < high[newPHIndex])) && !(noPivotCandles > maxNoPivotsCandles) {
 						continue
 					}
 				}
@@ -97,13 +109,27 @@ func findPivots(
 			}
 		}
 	} else {
+		//calc latest pivot index (too many candles without pivots and must auto assign)
+		var latestPH int
+		if len(*ph) <= 0 {
+			latestPH = 0
+		} else {
+			latestPH = (*ph)[len(*ph)-1]
+		}
+		noPivotCandles := relCandleIndex - latestPH
+
+		if relCandleIndex < 250 {
+			// fmt.Printf(colorGreen+"<%v> lookHigh= %v / searchStartIndex= %v\n ph(%v)=%v \n pl(%v)= %v\n"+colorReset, relCandleIndex, lookForHigh, newPivotSearchStartIndex, len(*ph), *ph, len(*pl), *pl)
+			fmt.Printf(colorRed+"<%v> noPivotCandles= %v\n"+colorReset, relCandleIndex, noPivotCandles)
+		}
+
 		// fmt.Println(colorYellow + "looking for LOW" + colorReset)
 		for i := newPivotSearchStartIndex; (i+1) < len(high) && (i+1) < len(low); i++ {
 			// if relCandleIndex > 127 && relCandleIndex < 170 {
 			// 	fmt.Printf(colorPurple+"<%v> checking PL %v\n", relCandleIndex, i)
 			// }
 
-			if (high[i+1] > high[i]) && (low[i+1] > low[i]) {
+			if ((high[i+1] > high[i]) && (low[i+1] > low[i])) || (noPivotCandles > maxNoPivotsCandles && (i+1) == len(high)-1) {
 				//check if pivot already exists
 				found := false
 				for _, pl := range *pl {
@@ -129,14 +155,14 @@ func findPivots(
 					// if relCandleIndex > 150 && relCandleIndex < 170 {
 					// 	fmt.Printf("SEARCH lowest low latestPHIndex = %v, latestPLIndex = %v\n", latestPHIndex, latestPLIndex)
 					// }
-					for f := newPLIndex - 1; f >= latestPHIndex && f > latestPLIndex && f < len(low) && f < len(high); f-- {
+					for f := newPLIndex - 1; f > latestPHIndex && f > latestPLIndex && f < len(low); f-- {
 						if low[f] < low[newPLIndex] && !found {
 							newPLIndex = f
 						}
 					}
 
 					//check if current candle actually clears new selected candle as pivot high
-					if !((high[i+1] > high[newPLIndex]) && (low[i+1] > low[newPLIndex])) {
+					if !((high[i+1] > high[newPLIndex]) && (low[i+1] > low[newPLIndex])) && !(noPivotCandles > maxNoPivotsCandles) {
 						// if relCandleIndex > 127 && relCandleIndex < 170 {
 						// 	fmt.Printf(colorRed+"<%v, %v> skipping add = %v\n"+colorReset, relCandleIndex, close[relCandleIndex], newPLIndex)
 						// }
@@ -144,7 +170,7 @@ func findPivots(
 					}
 				}
 
-				if newPLIndex >= 0 {
+				if newPLIndex >= 0 && !(checkExists(newPLIndex, *pl)) {
 					*pl = append(*pl, newPLIndex)
 					pivotBarsBack = relCandleIndex - newPLIndex
 					if labels["bottom"] != nil {
@@ -157,6 +183,10 @@ func findPivots(
 				}
 			}
 		}
+	}
+
+	if relCandleIndex < 180 {
+		fmt.Printf(colorCyan+"ph= %v / pl= %v\n", *ph, *pl)
 	}
 
 	return labels, foundPL
