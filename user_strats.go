@@ -29,32 +29,42 @@ func strat1(
 
 	//map of profit % TO account size perc to close (multi-tp)
 	tpMap := map[float64]float64{
-		0.75: 10,
-		2.8:  90,
+		1.5: 10,
+		2.0: 10,
+		3.0: 20,
+		3.5: 70,
 	}
 
 	pivotLowsToEnter := 4
 	maxDurationCandles := 480
-	slPerc := 2.0
+	slPerc := 1.0
 	slCooldownCandles := 35
-	tpCooldownCandles := 35
+	tpCooldownCandles := 0
 
-	tradeWindows := []ValRange{}
-
-	entryPivotNoTradeZones := []ValRange{
+	tradeWindows := []ValRange{
 		{
-			Start: 0.1,
-			End:   0.2,
+			Start: "00:00:00",
+			End:   "00:00:48",
 		},
 		{
-			Start: 0.35,
-			End:   0.49,
+			Start: "00:04:48",
+			End:   "00:06:24",
 		},
 		{
-			Start: 3.2,
-			End:   99.9,
+			Start: "00:08:48",
+			End:   "00:10:24",
+		},
+		{
+			Start: "00:16:00",
+			End:   "00:22:24",
+		},
+		{
+			Start: "00:23:12",
+			End:   "00:23:59",
 		},
 	}
+
+	entryPivotNoTradeZones := []ValRange{}
 
 	newLabels := map[string]map[int]string{
 		"top":    map[int]string{},

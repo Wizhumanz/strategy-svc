@@ -25,7 +25,7 @@ func scanPivotTrends(
 
 	pivotLowsToEnter := 4
 	maxDurationCandles := 480
-	slPerc := 0.5
+	slPerc := 1.0
 	slCooldownCandles := 35
 	// tpCooldownCandles := 35
 
