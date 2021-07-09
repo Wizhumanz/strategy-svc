@@ -66,9 +66,9 @@ func strat1(
 	// }
 
 	tpMap := map[float64]float64{
-		2.2: 15,
+		2.2: 10,
 		2.7: 10,
-		3.5: 75,
+		3.0: 80,
 	}
 
 	pivotLowsToEnter := 3
@@ -88,14 +88,37 @@ func strat1(
 		},
 	}
 
-	entryPivotNoTradeZones := []ValRange{
+	// entryPivotNoTradeZones := []ValRange{
+	// 	{
+	// 		Start: 0.0,
+	// 		End:   0.72,
+	// 	},
+	// 	{
+	// 		Start: 0.8,
+	// 		End:   0.88,
+	// 	},
+	// 	{
+	// 		Start: 0.96,
+	// 		End:   2.16,
+	// 	},
+	// 	{
+	// 		Start: 2.24,
+	// 		End:   999.99,
+	// 	},
+	// }
+
+	entryPivotTradeZones := []ValRange{
 		{
-			Start: 0.0,
-			End:   0.7,
+			Start: 0.72,
+			End:   0.8,
 		},
 		{
-			Start: 0.8,
-			End:   0.9,
+			Start: 0.88,
+			End:   0.96,
+		},
+		{
+			Start: 2.16,
+			End:   2.24,
 		},
 	}
 
@@ -262,17 +285,20 @@ func strat1(
 				}
 
 				//entry pivots price diff cannot be within block windows
-				entryPivotsDiffOK := true
+				entryPivotsDiffOK := false
 				lastPLIndex := latestPossibleEntry
 				lastPL := candles[lastPLIndex].Low
 				firstPLIndex := stored.PivotLows[len(stored.PivotLows)-1-(pivotLowsToEnter-1)]
 				firstPL := candles[firstPLIndex].Low
 				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
-				for _, window := range entryPivotNoTradeZones {
-					if entryPivotsPriceDiffPerc > (window.Start.(float64)/100) && entryPivotsPriceDiffPerc < (window.End.(float64)/100) {
-						entryPivotsDiffOK = false
+				for _, window := range entryPivotTradeZones {
+					if entryPivotsPriceDiffPerc >= (window.Start.(float64)/100) && entryPivotsPriceDiffPerc <= (window.End.(float64)/100) {
+						entryPivotsDiffOK = true
 						break
 					}
+				}
+				if len(entryPivotTradeZones) <= 0 {
+					entryPivotsDiffOK = true
 				}
 
 				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK {
