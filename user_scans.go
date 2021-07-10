@@ -35,16 +35,7 @@ func scanPivotTrends(
 		},
 	}
 
-	entryPivotNoTradeZones := []ValRange{
-		{
-			Start: 0.0,
-			End:   0.7,
-		},
-		{
-			Start: 0.8,
-			End:   0.9,
-		},
-	}
+	entryPivotNoTradeZones := []ValRange{}
 
 	retData := StrategyDataPoint{}
 	stored, ok := (*storage).(PivotTrendScanStore)

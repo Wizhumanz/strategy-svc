@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"runtime"
 	"strings"
 	"time"
@@ -66,9 +67,9 @@ func strat1(
 	// }
 
 	tpMap := map[float64]float64{
-		2.2: 10,
-		2.7: 10,
-		3.0: 80,
+		2.2: 5,
+		2.7: 5,
+		3.0: 90,
 	}
 
 	pivotLowsToEnter := 3
@@ -77,16 +78,18 @@ func strat1(
 	slCooldownCandles := 35
 	tpCooldownCandles := 0
 
-	tradeWindows := []ValRange{
-		{
-			Start: "06:36:00",
-			End:   "07:48:00",
-		},
-		{
-			Start: "08:24:00",
-			End:   "09:00:00",
-		},
-	}
+	// tradeWindows := []ValRange{
+	// 	{
+	// 		Start: "06:36:00",
+	// 		End:   "07:48:00",
+	// 	},
+	// 	{
+	// 		Start: "08:24:00",
+	// 		End:   "09:00:00",
+	// 	},
+	// }
+
+	tradeWindows := []ValRange{}
 
 	// entryPivotNoTradeZones := []ValRange{
 	// 	{
@@ -107,20 +110,7 @@ func strat1(
 	// 	},
 	// }
 
-	entryPivotTradeZones := []ValRange{
-		{
-			Start: 0.72,
-			End:   0.8,
-		},
-		{
-			Start: 0.88,
-			End:   0.96,
-		},
-		{
-			Start: 2.16,
-			End:   2.24,
-		},
-	}
+	entryPivotTradeZones := []ValRange{}
 
 	newLabels := map[string]map[int]string{
 		"top":    map[int]string{},
@@ -178,7 +168,7 @@ func strat1(
 			//check sl + tp + max duration
 			breakIndex, breakPrice, action, multiTPs, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles)
 
-			if updatedEntryData.MultiTPs[0].Price > 0.0 {
+			if len(updatedEntryData.MultiTPs) > 0 && updatedEntryData.MultiTPs[0].Price > 0.0 {
 				latestEntryData = updatedEntryData
 			}
 
@@ -211,7 +201,7 @@ func strat1(
 				}
 			}
 
-			if updatedEntryData.MultiTPs[0].Price > 0.0 {
+			if len(updatedEntryData.MultiTPs) > 0 && updatedEntryData.MultiTPs[0].Price > 0.0 {
 				stored.Trades[len(stored.Trades)-1] = latestEntryData //entry data will be updated if multi TP
 			}
 		} else {
@@ -291,6 +281,7 @@ func strat1(
 				firstPLIndex := stored.PivotLows[len(stored.PivotLows)-1-(pivotLowsToEnter-1)]
 				firstPL := candles[firstPLIndex].Low
 				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
+				// fmt.Printf(colorYellow+"<%v> %v / %v\n"+colorReset, relCandleIndex, entryPivotsPriceDiffPerc, entryPivotTradeZones)
 				for _, window := range entryPivotTradeZones {
 					if entryPivotsPriceDiffPerc >= (window.Start.(float64)/100) && entryPivotsPriceDiffPerc <= (window.End.(float64)/100) {
 						entryPivotsDiffOK = true
@@ -301,7 +292,13 @@ func strat1(
 					entryPivotsDiffOK = true
 				}
 
-				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK {
+				//random trade selector
+				rand.Seed(time.Now().UnixNano())
+				r := rand.Intn(40)
+				randOK := r == 1
+				randOK = true
+
+				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK && randOK {
 					newEntryData := StrategyDataPoint{}
 					newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
 					newEntryData.ActualEntryIndex = relCandleIndex
