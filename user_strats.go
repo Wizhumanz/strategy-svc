@@ -67,9 +67,8 @@ func strat1(
 	// }
 
 	tpMap := map[float64]float64{
-		2.2: 5,
-		2.7: 5,
-		3.0: 90,
+		1.5: 70,
+		2.0: 30,
 	}
 
 	pivotLowsToEnter := 3
@@ -78,18 +77,16 @@ func strat1(
 	slCooldownCandles := 35
 	tpCooldownCandles := 0
 
-	// tradeWindows := []ValRange{
-	// 	{
-	// 		Start: "06:36:00",
-	// 		End:   "07:48:00",
-	// 	},
-	// 	{
-	// 		Start: "08:24:00",
-	// 		End:   "09:00:00",
-	// 	},
-	// }
-
-	tradeWindows := []ValRange{}
+	tradeWindows := []ValRange{
+		{
+			Start: "06:36:00",
+			End:   "07:48:00",
+		},
+		{
+			Start: "08:24:00",
+			End:   "09:00:00",
+		},
+	}
 
 	// entryPivotNoTradeZones := []ValRange{
 	// 	{
