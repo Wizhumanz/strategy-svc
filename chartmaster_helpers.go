@@ -351,15 +351,15 @@ func calcIndicators(candles []Candlestick, relIndex int) []float64 {
 	breakAll := false
 
 	// fmt.Printf("candles= %v, periods= %v\n", len(candles), periods)
-	for i := 0; i < periods[len(periods)-1]-2; i++ {
+	for i := 0; i < periods[len(periods)-1]; i++ {
 		if len(candles) < periods[0] || breakAll {
 			break
 		}
 
 		runningTotal = runningTotal + candles[len(candles)-1-i].Close
 
-		// if relIndex > 53 && relIndex < 59 {
-		// 	fmt.Printf(colorBlue+"<%v> i= %v / "+colorReset, relIndex, i)
+		// if relIndex > 375 && relIndex < 379 && i > 370 {
+		// 	fmt.Printf(colorYellow+"<%v> i= %v \n"+colorReset, relIndex, i)
 		// }
 
 		for j, p := range periods {
