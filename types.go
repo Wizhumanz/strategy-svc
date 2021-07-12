@@ -181,6 +181,10 @@ type CandlestickChartData struct {
 	LabelTop        string    `json:"LabelTop"`
 	LabelMiddle     string    `json:"LabelMiddle"`
 	LabelBottom     string    `json:"LabelBottom"`
+	EMA1            float64   `json:"ema1"`
+	EMA2            float64   `json:"ema2"`
+	EMA3            float64   `json:"ema3"`
+	EMA4            float64   `json:"ema4"`
 }
 
 type ComputeRequest struct {
@@ -256,10 +260,6 @@ type Candlestick struct {
 	Close       float64 `json:"price_close"`
 	Volume      float64 `json:"volume_traded"`
 	TradesCount float64 `json:"trades_count"`
-	EMA1        float64 `json:"ema1"`
-	EMA2        float64 `json:"ema2"`
-	EMA3        float64 `json:"ema3"`
-	EMA4        float64 `json:"ema4"`
 }
 
 func (c *Candlestick) Create(redisData map[string]string) {
