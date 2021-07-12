@@ -67,31 +67,31 @@ func strat1(
 	// }
 
 	tpMap := map[float64]float64{
-		1.0: 70,
-		2.0: 30,
-		// 4.0: 30,
-		// 7.0: 40,
-		// 5.0: 10,
+		// 1.5: 70,
+		2.5: 30,
+		3.0: 40,
+		4.0: 20,
+		5.0: 10,
 	}
 
-	pivotLowsToEnter := 5
-	maxDurationCandles := 300
-	slPerc := 2.0
+	pivotLowsToEnter := 7
+	maxDurationCandles := 1000
+	slPerc := 1.5
 	slCooldownCandles := 35
 	tpCooldownCandles := 0
 
 	tradeWindows := []ValRange{
 		// {
-		// 	Start: "00:02:24",
-		// 	End:   "00:07:12",
+		// 	Start: "09:00:00",
+		// 	End:   "11:00:00",
 		// },
+		{
+			Start: "15:38:00",
+			End:   "17:00:00",
+		},
 		// {
-		// 	Start: "00:08:48",
-		// 	End:   "00:12:00",
-		// },
-		// {
-		// 	Start: "00:21:24",
-		// 	End:   "00:23:12",
+		// 	Start: "16:00:00",
+		// 	End:   "18:24:00",
 		// },
 	}
 

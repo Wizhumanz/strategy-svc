@@ -18,21 +18,21 @@ func scanPivotTrends(
 		99.0: 100,
 	}
 
-	pivotLowsToEnter := 3
-	maxDurationCandles := 300
-	slPerc := 2.0
+	pivotLowsToEnter := 7
+	maxDurationCandles := 1000
+	slPerc := 1.5
 	slCooldownCandles := 35
 	// tpCooldownCandles := 35
 
 	tradeWindows := []ValRange{
-		{
-			Start: "06:36:00",
-			End:   "07:48:00",
-		},
-		{
-			Start: "08:24:00",
-			End:   "09:00:00",
-		},
+		// {
+		// 	Start: "00:00:00",
+		// 	End:   "24:00:00",
+		// },
+		// {
+		// 	Start: "08:24:00",
+		// 	End:   "09:00:00",
+		// },
 	}
 
 	entryPivotNoTradeZones := []ValRange{}
