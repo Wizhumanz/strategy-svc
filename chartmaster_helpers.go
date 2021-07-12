@@ -153,7 +153,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 var totalCandles []CandlestickChartData
 var previousEquity float64
 
-func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
+func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
 
 	//candlestick
@@ -166,6 +166,25 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 		Close:          c.Close,
 		StratExitPrice: []float64{},
 	}
+	emas := calcIndicators(allCandles)
+
+	// if relIndex < 200 {
+	// 	fmt.Printf("<%v> %v\n", relIndex, emas)
+	// }
+
+	if len(emas) >= 1 {
+		newCandleD.EMA1 = emas[0]
+	}
+	if len(emas) >= 2 {
+		newCandleD.EMA2 = emas[1]
+	}
+	if len(emas) >= 3 {
+		newCandleD.EMA3 = emas[2]
+	}
+	if len(emas) >= 4 {
+		newCandleD.EMA4 = emas[3]
+	}
+
 	//strategy enter/exit
 	if len(strat.Actions[relIndex]) > 0 && strat.Actions[relIndex][0].Action == "ENTER" {
 		newCandleD.StratEnterPrice = strat.Actions[relIndex][0].Price
@@ -320,6 +339,37 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 	}
 
 	return retCandlesArr, pd, retSimData
+}
+
+func calcIndicators(candles []Candlestick) []float64 {
+	periods := []int{21, 55, 200, 377}
+	emas := []float64{}
+	runningTotal := 0.0
+	breakAll := false
+
+	// fmt.Printf("candles= %v, periods= %v\n", len(candles), periods)
+	for i := 0; i < periods[len(periods)-1]-2; i++ {
+		if len(candles) < periods[0] || breakAll {
+			break
+		}
+
+		runningTotal = runningTotal + candles[len(candles)-1-i].Close
+
+		for j, p := range periods {
+			if i == (p - 1) {
+				newEMA := runningTotal / float64(p)
+				emas = append(emas, newEMA)
+				// fmt.Printf(colorCyan+"calc %v ema with i=%v\n", p, i)
+
+				if j < len(periods)-1 && i < periods[j+1] {
+					breakAll = true
+				}
+				break
+			}
+		}
+	}
+
+	return emas
 }
 
 func getChunkCandleDataAll(chunkSlice *[]Candlestick, packetSize int, ticker, period string,
@@ -700,7 +750,7 @@ func computeBacktest(
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
-				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels)
+				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles)
 
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
@@ -851,7 +901,7 @@ func computeScan(
 				labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
 
 				//save res data
-				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels)
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles)
 				duplicateFound := false
 				for _, v := range chunkAddedScanData {
 					if v.EntryLastPLIndex == pivotScanData.EntryLastPLIndex {
