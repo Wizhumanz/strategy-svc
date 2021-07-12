@@ -166,7 +166,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 		Close:          c.Close,
 		StratExitPrice: []float64{},
 	}
-	emas := calcIndicators(allCandles)
+	emas := calcIndicators(allCandles, relIndex)
 
 	// if relIndex < 200 {
 	// 	fmt.Printf("<%v> %v\n", relIndex, emas)
@@ -177,12 +177,15 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 	}
 	if len(emas) >= 2 {
 		newCandleD.EMA2 = emas[1]
+		// fmt.Printf(colorGreen+"%v - "+colorReset, newCandleD.EMA2)
 	}
 	if len(emas) >= 3 {
 		newCandleD.EMA3 = emas[2]
+		// fmt.Printf(colorYellow+"%v - "+colorReset, newCandleD.EMA3)
 	}
 	if len(emas) >= 4 {
 		newCandleD.EMA4 = emas[3]
+		// fmt.Printf(colorCyan+"%v - "+colorReset, newCandleD.EMA4)
 	}
 
 	//strategy enter/exit
@@ -341,7 +344,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 	return retCandlesArr, pd, retSimData
 }
 
-func calcIndicators(candles []Candlestick) []float64 {
+func calcIndicators(candles []Candlestick, relIndex int) []float64 {
 	periods := []int{21, 55, 200, 377}
 	emas := []float64{}
 	runningTotal := 0.0
@@ -355,13 +358,17 @@ func calcIndicators(candles []Candlestick) []float64 {
 
 		runningTotal = runningTotal + candles[len(candles)-1-i].Close
 
+		// if relIndex > 53 && relIndex < 59 {
+		// 	fmt.Printf(colorBlue+"<%v> i= %v / "+colorReset, relIndex, i)
+		// }
+
 		for j, p := range periods {
 			if i == (p - 1) {
 				newEMA := runningTotal / float64(p)
 				emas = append(emas, newEMA)
 				// fmt.Printf(colorCyan+"calc %v ema with i=%v\n", p, i)
 
-				if j < len(periods)-1 && i < periods[j+1] {
+				if j < len(periods)-1 && len(candles) < periods[j+1] {
 					breakAll = true
 				}
 				break
