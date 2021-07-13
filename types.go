@@ -231,6 +231,10 @@ type SimulatedTradeDataPoint struct {
 	Profit        float64 `json:"Profit"`
 	RawProfitPerc float64 `json:"RawProfitPerc"`
 	TotalFees     float64 `json:"TotalFees"`
+	EMA1          float64 `json:"ema1"`
+	EMA2          float64 `json:"ema2"`
+	EMA3          float64 `json:"ema3"`
+	EMA4          float64 `json:"ema4"`
 }
 
 type SimulatedTradeData struct {

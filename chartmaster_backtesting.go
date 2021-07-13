@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -11,7 +12,7 @@ func runBacktest(
 	userID, rid, ticker, period string,
 	startTime, endTime time.Time,
 	packetSize int,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) (map[string]map[int]string, int),
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, int, int, int, int, float64, float64) (map[string]map[int]string, int),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 	processOption string,
 	retrieveCandles bool,
@@ -32,9 +33,34 @@ func runBacktest(
 		concFetchCandleData(startTime, endTime, period, ticker, packetSize, &chunksArr, c, processOption)
 	}
 
-	//run strat on all candles in chunk, stream each chunk to client
-	retCandles, retProfitCurve, retSimTrades, allCandles := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c, retrieveCandles)
+	pivotLowsNum := 5
+	maxDurationNum := 1000
+	slCooldown := 35
+	tpCooldown := 0
+	slPercent := 1.5
+	tpSingle := 1.5
 
+	//run strat on all candles in chunk, stream each chunk to client
+	retCandles, retProfitCurve, retSimTrades, allCandles := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c, retrieveCandles, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
+
+	csvData := [][]string{{"EMA1", "EMA2", "EMA3", "EMA4", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}}
+
+	for i, s := range retSimTrades[0].Data {
+		if s.ExitDateTime != "" && s.Profit > 0 {
+			ema1 := retSimTrades[0].Data[i-1].EMA1
+			ema2 := retSimTrades[0].Data[i-1].EMA2
+			ema3 := retSimTrades[0].Data[i-1].EMA3
+			ema4 := retSimTrades[0].Data[i-1].EMA4
+
+			layout := "2006-01-02T15:04:05"
+			time, _ := time.Parse(layout, retSimTrades[0].Data[i-1].EntryDateTime)
+			// csvData = append(csvData, []string{fmt.Sprint(ema1, ema2, ema3, ema4, time.Hour()*60+time.Minute(), int(time.Weekday()), int(time.Month()), pivotLowsNum, maxDurationNum, slPercent, slCooldown, tpSingle)})
+
+			csvData = append(csvData, []string{fmt.Sprint(ema1), fmt.Sprint(ema2), fmt.Sprint(ema3), fmt.Sprint(ema4), strconv.Itoa(time.Hour()*60 + time.Minute()), strconv.Itoa(int(time.Weekday())), strconv.Itoa(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)})
+		}
+	}
+
+	csvWrite(csvData)
 	// Store the variables in case the user wants to store it as JSON in GCP Bucket
 	saveCandlesPrepared(startTime, endTime, period, ticker, allCandles, userID)
 

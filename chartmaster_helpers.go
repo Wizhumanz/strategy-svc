@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -335,6 +336,21 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 				sd.TotalFees = a.ExchangeFee
 				sd.EntryDateTime = a.DateTime
 				sd.Direction = "LONG" //TODO: fix later when strategy changes
+				if len(emas) >= 1 {
+					sd.EMA1 = emas[0]
+				}
+				if len(emas) >= 2 {
+					sd.EMA2 = emas[1]
+					// fmt.Printf(colorGreen+"%v - "+colorReset, newCandleD.EMA2)
+				}
+				if len(emas) >= 3 {
+					sd.EMA3 = emas[2]
+					// fmt.Printf(colorYellow+"%v - "+colorReset, newCandleD.EMA3)
+				}
+				if len(emas) >= 4 {
+					sd.EMA4 = emas[3]
+					// fmt.Printf(colorCyan+"%v - "+colorReset, newCandleD.EMA4)
+				}
 			}
 
 			retSimData = append(retSimData, sd)
@@ -689,11 +705,12 @@ func computeBacktest(
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) (map[string]map[int]string, int),
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, int, int, int, int, float64, float64) (map[string]map[int]string, int),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 	chunksArr *[]*[]Candlestick,
 	c chan time.Time,
 	retrieveCandles bool,
+	pivotLowsNum, maxDurationNum, slCooldown, tpCooldown int, slPercent, tpSingle float64,
 ) ([]CandlestickChartData, []ProfitCurveData, []SimulatedTradeData, []Candlestick) {
 	var store interface{} //save state between strategy executions on each candle
 	var retCandles []CandlestickChartData
@@ -753,7 +770,7 @@ func computeBacktest(
 				allCandles = append(allCandles, candle)
 				//TODO: build results and run for different param sets
 				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
-				labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
+				labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
@@ -1496,5 +1513,25 @@ func generateRandomProfitCurve() {
 			startDate = startDate.AddDate(0, 0, randSkip+1)
 			retData[j].Data = append(retData[j].Data, new)
 		}
+	}
+}
+
+func csvWrite(data [][]string) {
+	file, err := os.Create("TradingData.csv")
+	checkError("Cannot create file", err)
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	for _, value := range data {
+		err := writer.Write(value)
+		checkError("Cannot write to file", err)
+	}
+}
+
+func checkError(message string, err error) {
+	if err != nil {
+		log.Fatal(message, err)
 	}
 }

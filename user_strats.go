@@ -16,7 +16,7 @@ func strat1(
 	open, high, low, close []float64,
 	relCandleIndex int,
 	strategy *StrategyExecutor,
-	storage *interface{}, bot Bot) (map[string]map[int]string, int) {
+	storage *interface{}, bot Bot, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown int, slPercent, tpSingle float64) (map[string]map[int]string, int) {
 	//TODO: pass these 2 from frontend
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
@@ -68,27 +68,24 @@ func strat1(
 
 	tpMap := map[float64]float64{
 		// 1.5: 70,
-		2.5: 30,
-		3.0: 40,
-		4.0: 20,
-		5.0: 10,
+		tpSingle: 100,
 	}
 
-	pivotLowsToEnter := 7
-	maxDurationCandles := 1000
-	slPerc := 1.5
-	slCooldownCandles := 35
-	tpCooldownCandles := 0
+	pivotLowsToEnter := pivotLowsNum
+	maxDurationCandles := maxDurationNum
+	slPerc := slPercent
+	slCooldownCandles := slCooldown
+	tpCooldownCandles := tpCooldown
 
 	tradeWindows := []ValRange{
 		// {
 		// 	Start: "09:00:00",
 		// 	End:   "11:00:00",
 		// },
-		{
-			Start: "15:38:00",
-			End:   "17:00:00",
-		},
+		// {
+		// 	Start: "15:38:00",
+		// 	End:   "17:00:00",
+		// },
 		// {
 		// 	Start: "16:00:00",
 		// 	End:   "18:24:00",
