@@ -43,7 +43,7 @@ func runBacktest(
 	//run strat on all candles in chunk, stream each chunk to client
 	retCandles, retProfitCurve, retSimTrades, allCandles := computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c, retrieveCandles, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
 
-	csvData := [][]string{{"EMA1", "EMA2", "EMA3", "EMA4", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}}
+	csvData := [][]string{{"EMA1", "EMA2", "EMA3", "EMA4", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle", "Profit Perc"}}
 
 	for i, s := range retSimTrades[0].Data {
 		if s.ExitDateTime != "" && s.Profit > 0 {
@@ -52,11 +52,13 @@ func runBacktest(
 			ema3 := retSimTrades[0].Data[i-1].EMA3
 			ema4 := retSimTrades[0].Data[i-1].EMA4
 
+			if ema1 == 0 || ema2 == 0 || ema3 == 0 || ema4 == 0 {
+				continue
+			}
+
 			layout := "2006-01-02T15:04:05"
 			time, _ := time.Parse(layout, retSimTrades[0].Data[i-1].EntryDateTime)
-			// csvData = append(csvData, []string{fmt.Sprint(ema1, ema2, ema3, ema4, time.Hour()*60+time.Minute(), int(time.Weekday()), int(time.Month()), pivotLowsNum, maxDurationNum, slPercent, slCooldown, tpSingle)})
-
-			csvData = append(csvData, []string{fmt.Sprint(ema1), fmt.Sprint(ema2), fmt.Sprint(ema3), fmt.Sprint(ema4), strconv.Itoa(time.Hour()*60 + time.Minute()), strconv.Itoa(int(time.Weekday())), strconv.Itoa(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)})
+			csvData = append(csvData, []string{fmt.Sprint(ema1), fmt.Sprint(ema2), fmt.Sprint(ema3), fmt.Sprint(ema4), strconv.Itoa(time.Hour()*60 + time.Minute()), strconv.Itoa(int(time.Weekday())), strconv.Itoa(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle), fmt.Sprint(s.RawProfitPerc)})
 		}
 	}
 
