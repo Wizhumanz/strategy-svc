@@ -21,72 +21,62 @@ func strat1(
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
-	// //map of profit % TO account size perc to close (multi-tp)
-	// tpMap := map[float64]float64{
-	// 	3.5: 20, //second largest
-	// 	3.8: 10, //largest
-	// 	4.0: 70,
-	// }
-
-	// 4 PL to enter
-
-	//map of profit % TO account size perc to close (multi-tp)
-	// tpMap := map[float64]float64{
-	// 	1.5: 20,
-	// 	3.0: 10,
-	// 	3.5: 70,
-	// }
-
-	// pivotLowsToEnter := 4
-	// maxDurationCandles := 480
-	// slPerc := 1.0
-	// slCooldownCandles := 35
-	// tpCooldownCandles := 0
-
-	// tradeWindows := []ValRange{
-	// 	{
-	// 		Start: "00:00:00",
-	// 		End:   "00:00:48",
-	// 	},
-	// 	{
-	// 		Start: "00:04:48",
-	// 		End:   "00:06:24",
-	// 	},
-	// 	{
-	// 		Start: "00:08:48",
-	// 		End:   "00:10:24",
-	// 	},
-	// 	{
-	// 		Start: "00:16:00",
-	// 		End:   "00:22:24",
-	// 	},
-	// 	{
-	// 		Start: "00:23:12",
-	// 		End:   "00:23:59",
-	// 	},
-	// }
-
 	tpMap := map[float64]float64{
-		1.5: 70,
-		2.0: 30,
+		1.5: 20,
+		3.0: 10,
+		3.5: 70,
 	}
 
-	pivotLowsToEnter := 5
-	maxDurationCandles := 300
-	slPerc := 2.0
+	pivotLowsToEnter := 4
+	maxDurationCandles := 480
+	slPerc := 1.0
 	slCooldownCandles := 35
 	tpCooldownCandles := 0
 
 	tradeWindows := []ValRange{
 		{
-			Start: "06:36:00",
-			End:   "07:48:00",
+			Start: "00:00:00",
+			End:   "00:00:48",
 		},
 		{
-			Start: "08:24:00",
-			End:   "09:00:00",
+			Start: "00:04:48",
+			End:   "00:06:24",
+		},
+		{
+			Start: "00:08:48",
+			End:   "00:10:24",
+		},
+		{
+			Start: "00:16:00",
+			End:   "00:22:24",
+		},
+		{
+			Start: "00:23:12",
+			End:   "00:23:59",
 		},
 	}
+
+	// tpMap := map[float64]float64{
+	// 	1.5: 70,
+	// 	2.0: 30,
+	// }
+
+	// pivotLowsToEnter := 3
+	// maxDurationCandles := 700
+	// slPerc := 2.0
+	// slCooldownCandles := 35
+	// tpCooldownCandles := 0
+
+	// tradeWindows := []ValRange{
+	// 	{
+	// 		Start: "06:36:00",
+	// 		End:   "07:48:00",
+	// 	},
+	// 	{
+	// 		Start: "08:24:00",
+	// 		End:   "09:00:00",
+	// 	},
+	// }
 
 	// entryPivotNoTradeZones := []ValRange{
 	// 	{
