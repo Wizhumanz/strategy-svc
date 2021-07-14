@@ -344,37 +344,57 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 	return retCandlesArr, pd, retSimData
 }
 
+var previousEmas []float64
+
 func calcIndicators(candles []Candlestick, relIndex int) []float64 {
 	periods := []int{21, 55, 200, 377}
 	emas := []float64{}
-	runningTotal := 0.0
-	breakAll := false
+	// runningTotal := 0.0
+	// breakAll := false
 
-	// fmt.Printf("candles= %v, periods= %v\n", len(candles), periods)
-	for i := 0; i < periods[len(periods)-1]; i++ {
-		if len(candles) < periods[0] || breakAll {
+	// // fmt.Printf("candles= %v, periods= %v\n", len(candles), periods)
+	// for i := 0; i < periods[len(periods)-1]; i++ {
+	// 	if len(candles) < periods[0] || breakAll {
+	// 		break
+	// 	}
+
+	// 	runningTotal = runningTotal + candles[len(candles)-1-i].Close
+
+	// 	// if relIndex > 375 && relIndex < 379 && i > 370 {
+	// 	// 	fmt.Printf(colorYellow+"<%v> i= %v \n"+colorReset, relIndex, i)
+	// 	// }
+
+	// 	for j, p := range periods {
+	// 		if i == (p - 1) {
+	// 			newEMA := runningTotal / float64(p)
+	// 			emas = append(emas, newEMA)
+	// 			// fmt.Printf(colorCyan+"calc %v ema with i=%v\n", p, i)
+
+	// 			if j < len(periods)-1 && len(candles) < periods[j+1] {
+	// 				breakAll = true
+	// 			}
+	// 			break
+	// 		}
+	// 	}
+	// }
+
+	for i, p := range periods {
+		var totalSum float64
+		if relIndex < p-1 {
 			break
 		}
 
-		runningTotal = runningTotal + candles[len(candles)-1-i].Close
-
-		// if relIndex > 375 && relIndex < 379 && i > 370 {
-		// 	fmt.Printf(colorYellow+"<%v> i= %v \n"+colorReset, relIndex, i)
-		// }
-
-		for j, p := range periods {
-			if i == (p - 1) {
-				newEMA := runningTotal / float64(p)
-				emas = append(emas, newEMA)
-				// fmt.Printf(colorCyan+"calc %v ema with i=%v\n", p, i)
-
-				if j < len(periods)-1 && len(candles) < periods[j+1] {
-					breakAll = true
-				}
-				break
+		if relIndex == p-1 {
+			for i := 0; i < p; i++ {
+				totalSum += candles[i].Close
 			}
+			emas = append(emas, totalSum/float64(p))
+		} else {
+			emas = append(emas, (2.0/float64(p+1))*(candles[len(candles)-1].Close-previousEmas[i])+previousEmas[i])
 		}
 	}
+
+	previousEmas = emas
 
 	return emas
 }
