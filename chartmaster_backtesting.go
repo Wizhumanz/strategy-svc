@@ -47,14 +47,14 @@ func runBacktest(
 	// tpSingle := 1.5
 
 	for pivotLowsNum := 3; pivotLowsNum <= 5; pivotLowsNum++ {
-		fmt.Printf("\npivotLowsNum: %v\n", pivotLowsNum)
 		for maxDurationNum := 800; maxDurationNum <= 1000; maxDurationNum += 100 {
-			fmt.Printf("\nmaxDurationNum: %v\n", maxDurationNum)
 			for slCooldown := 5; slCooldown <= 85; slCooldown += 20 {
-				fmt.Printf("\nslCooldown: %v\n", slCooldown)
 				for _, slPercent := range []float64{0.5, 0.7, 1.0, 1.5, 2.0} {
-					fmt.Printf("\nslPercent: %v\n", slPercent)
 					for _, tpSingle := range []float64{1.5, 2.5, 2.75} {
+						fmt.Printf("\npivotLowsNum: %v\n", pivotLowsNum)
+						fmt.Printf("\nmaxDurationNum: %v\n", maxDurationNum)
+						fmt.Printf("\nslCooldown: %v\n", slCooldown)
+						fmt.Printf("\nslPercent: %v\n", slPercent)
 						fmt.Printf("\ntpSingle: %v\n", tpSingle)
 						//run strat on all candles in chunk, stream each chunk to client
 						retCandles, retProfitCurve, retSimTrades, _ = computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c, retrieveCandles, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
