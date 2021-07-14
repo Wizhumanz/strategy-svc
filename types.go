@@ -185,6 +185,10 @@ type CandlestickChartData struct {
 	EMA2            float64   `json:"ema2"`
 	EMA3            float64   `json:"ema3"`
 	EMA4            float64   `json:"ema4"`
+	SMA1            float64   `json:"sma1"`
+	SMA2            float64   `json:"sma2"`
+	SMA3            float64   `json:"sma3"`
+	SMA4            float64   `json:"sma4"`
 }
 
 type ComputeRequest struct {

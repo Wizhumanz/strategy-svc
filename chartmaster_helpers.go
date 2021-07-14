@@ -166,11 +166,27 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 		Close:          c.Close,
 		StratExitPrice: []float64{},
 	}
-	emas := calcIndicators(allCandles, relIndex)
+	smas, emas := calcIndicators(allCandles, relIndex)
 
 	// if relIndex < 200 {
 	// 	fmt.Printf("<%v> %v\n", relIndex, emas)
 	// }
+
+	if len(smas) >= 1 {
+		newCandleD.SMA1 = smas[0]
+	}
+	if len(smas) >= 2 {
+		newCandleD.SMA2 = smas[1]
+		// fmt.Printf(colorGreen+"%v - "+colorReset, newCandleD.EMA2)
+	}
+	if len(smas) >= 3 {
+		newCandleD.SMA3 = smas[2]
+		// fmt.Printf(colorYellow+"%v - "+colorReset, newCandleD.EMA3)
+	}
+	if len(smas) >= 4 {
+		newCandleD.SMA4 = smas[3]
+		// fmt.Printf(colorCyan+"%v - "+colorReset, newCandleD.EMA4)
+	}
 
 	if len(emas) >= 1 {
 		newCandleD.EMA1 = emas[0]
@@ -346,39 +362,42 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 
 var previousEmas []float64
 
-func calcIndicators(candles []Candlestick, relIndex int) []float64 {
-	periods := []int{21, 55, 200, 377}
+func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64) {
+	smaPeriods := []int{10, 21, 50, 200}
+	smas := []float64{}
+	emaperiods := []int{21, 55, 200, 377}
 	emas := []float64{}
-	// runningTotal := 0.0
-	// breakAll := false
 
-	// // fmt.Printf("candles= %v, periods= %v\n", len(candles), periods)
-	// for i := 0; i < periods[len(periods)-1]; i++ {
-	// 	if len(candles) < periods[0] || breakAll {
-	// 		break
-	// 	}
+	runningTotal := 0.0
+	breakAll := false
 
-	// 	runningTotal = runningTotal + candles[len(candles)-1-i].Close
+	// fmt.Printf("candles= %v, periods= %v\n", len(candles), periods)
+	for i := 0; i < smaPeriods[len(smaPeriods)-1]; i++ {
+		if len(candles) < smaPeriods[0] || breakAll {
+			break
+		}
 
-	// 	// if relIndex > 375 && relIndex < 379 && i > 370 {
-	// 	// 	fmt.Printf(colorYellow+"<%v> i= %v \n"+colorReset, relIndex, i)
-	// 	// }
+		runningTotal = runningTotal + candles[len(candles)-1-i].Close
 
-	// 	for j, p := range periods {
-	// 		if i == (p - 1) {
-	// 			newEMA := runningTotal / float64(p)
-	// 			emas = append(emas, newEMA)
-	// 			// fmt.Printf(colorCyan+"calc %v ema with i=%v\n", p, i)
+		// if relIndex > 375 && relIndex < 379 && i > 370 {
+		// 	fmt.Printf(colorYellow+"<%v> i= %v \n"+colorReset, relIndex, i)
+		// }
 
-	// 			if j < len(periods)-1 && len(candles) < periods[j+1] {
-	// 				breakAll = true
-	// 			}
-	// 			break
-	// 		}
-	// 	}
-	// }
+		for j, p := range smaPeriods {
+			if i == (p - 1) {
+				newEMA := runningTotal / float64(p)
+				smas = append(smas, newEMA)
+				// fmt.Printf(colorCyan+"calc %v ema with i=%v\n", p, i)
 
-	for i, p := range periods {
+				if j < len(smaPeriods)-1 && len(candles) < smaPeriods[j+1] {
+					breakAll = true
+				}
+				break
+			}
+		}
+	}
+
+	for i, p := range emaperiods {
 		var totalSum float64
 		if relIndex < p-1 {
 			break
@@ -396,7 +415,7 @@ func calcIndicators(candles []Candlestick, relIndex int) []float64 {
 
 	previousEmas = emas
 
-	return emas
+	return smas, emas
 }
 
 func getChunkCandleDataAll(chunkSlice *[]Candlestick, packetSize int, ticker, period string,
