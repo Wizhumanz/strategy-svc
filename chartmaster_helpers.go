@@ -1354,6 +1354,8 @@ func completeBacktestResFile(
 		// fmt.Printf("Sending candles %v to %v\n", fetchCandlesStart, fetchCandlesEnd)
 		packetSender(userID, rid, chunkCandles, rawData.ProfitCurve, rawData.SimulatedTrades)
 
+		progressBar(userID, rid, len(completeCandles), start, end, false)
+
 		//increment
 		fetchCandlesStart = fetchCandlesEnd.Add(periodDurationMap[rawData.Period])
 	}
