@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -83,11 +84,22 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		_, profitCurve, simTrades = runBacktest(rF, lF, szF, userID, rid, ticker, period, start, end, candlePacketSize, strat1, streamBacktestResData, reqProcess, retrieveCandles)
 
+		// Get all of user's shared history json data
+		shareResult := getAllShareResult(userID)
+
 		// delete an element in history if more than 10 items
 		bucketName := "res-" + userID
 		bucketData := listFiles(bucketName)
-		if len(bucketData) >= 10 {
-			deleteFile(bucketName, bucketData[0])
+		if len(bucketData) >= 10+len(shareResult) {
+			for i, file := range bucketData {
+				// fmt.Println(file)
+				// fmt.Println(shareResult)
+				// fmt.Println(contains(shareResult, strings.Split(file, ".")[0]))
+				if !contains(shareResult, strings.Split(file, ".")[0]) {
+					deleteFile(bucketName, bucketData[i])
+					break
+				}
+			}
 		}
 
 		//save result to bucket
@@ -206,6 +218,12 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	rc, _ := storageClient.Bucket(bucketName).Object(objName).NewReader(ctx)
 	defer rc.Close()
 
+	// Progress bar tuned to show 10 percent done
+	layout := "2006-01-02T15:04:05.000Z"
+	startTime, _ := time.Parse(layout, "2021-01-01T00:00:00.000Z")
+	endTime, _ := time.Parse(layout, "2021-01-01T00:59:00.000Z")
+	progressBar(userID, rid, 6, startTime, endTime, false)
+
 	backtestResByteArr, _ := ioutil.ReadAll(rc)
 
 	var rawHistory historyResFile
@@ -226,9 +244,14 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal([]byte(rawHistory.ProfitCurve), &profitData)
 	json.Unmarshal([]byte(rawHistory.SimulatedTrades), &simData)
 
+	// Progress bar tuned to show half done
+	start, _ := time.Parse(layout, "2021-01-01T00:00:00.000Z")
+	end, _ := time.Parse(layout, "2021-01-01T00:59:00.000Z")
+	progressBar(userID, rid, 30, start, end, false)
+
 	// Send history data to frontend
 	streamBacktestResData(userID, rid, candleData, profitData, simData)
-	ret := []float64{risk, lev, accSize}
+	ret := []string{fmt.Sprint(risk), fmt.Sprint(lev), fmt.Sprint(accSize), backtestResID}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -298,6 +321,12 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 	rc, _ := storageClient.Bucket(bucketName).Object(objName).NewReader(ctx)
 	defer rc.Close()
 
+	// Progress bar tuned to show 10 percent done
+	layout := "2006-01-02T15:04:05.000Z"
+	startTime, _ := time.Parse(layout, "2021-01-01T00:00:00.000Z")
+	endTime, _ := time.Parse(layout, "2021-01-01T00:59:00.000Z")
+	progressBar(userID, rid, 6, startTime, endTime, false)
+
 	backtestResByteArr, _ := ioutil.ReadAll(rc)
 
 	var rawHistory historyResFile
@@ -317,6 +346,11 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal([]byte(rawHistory.Candlestick), &candleData)
 	json.Unmarshal([]byte(rawHistory.ProfitCurve), &profitData)
 	json.Unmarshal([]byte(rawHistory.SimulatedTrades), &simData)
+
+	// Progress bar tuned to show half done
+	start, _ := time.Parse(layout, "2021-01-01T00:00:00.000Z")
+	end, _ := time.Parse(layout, "2021-01-01T00:59:00.000Z")
+	progressBar(userID, rid, 30, start, end, false)
 
 	// Send history data to frontend
 	streamBacktestResData(userID, rid, candleData, profitData, simData)
