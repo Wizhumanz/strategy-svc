@@ -73,7 +73,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 	lF, _ := strconv.ParseFloat(leverage, 32)
 	szF, _ := strconv.ParseFloat(size, 32)
 
-	var candles []CandlestickChartData
+	// var candles []CandlestickChartData
 	var profitCurve []ProfitCurveData
 	var simTrades []SimulatedTradeData
 	// var scanRes []PivotTrendScanDataPoint
@@ -81,7 +81,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = runScan(userID, rid, ticker, period, start, end, candlePacketSize, scanPivotTrends, streamScanResData, reqProcess, retrieveCandles)
 		//TODO: save scan results like backtest results?
 	} else {
-		candles, profitCurve, simTrades = runBacktest(rF, lF, szF, userID, rid, ticker, period, start, end, candlePacketSize, strat1, streamBacktestResData, reqProcess, retrieveCandles)
+		_, profitCurve, simTrades = runBacktest(rF, lF, szF, userID, rid, ticker, period, start, end, candlePacketSize, strat1, streamBacktestResData, reqProcess, retrieveCandles)
 
 		// delete an element in history if more than 10 items
 		bucketName := "res-" + userID
@@ -91,7 +91,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//save result to bucket
-		go saveBacktestRes(candles, profitCurve, simTrades, rid, bucketName, ticker, period, req.TimeStart, req.TimeEnd)
+		go saveSharableResult(totalCandles, profitCurve, simTrades, bucketName, ticker, period, req.TimeStart, req.TimeEnd, rF, lF, szF)
 	}
 
 	// return
@@ -189,7 +189,7 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	candlePacketSize := 100
+	// candlePacketSize := 100
 
 	//create result ID for websocket packets + res storage
 	rid := fmt.Sprintf("%v", time.Now().UnixNano())
@@ -207,20 +207,28 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	defer rc.Close()
 
 	backtestResByteArr, _ := ioutil.ReadAll(rc)
-	var rawRes BacktestResFile
-	json.Unmarshal(backtestResByteArr, &rawRes)
 
-	//rehydrate backtest results
-	candles, profitCurve, simTrades := completeBacktestResFile(rawRes, userID, rid, candlePacketSize, streamBacktestResData)
-	ret := BacktestResFile{
-		Ticker:               rawRes.Ticker,
-		Period:               rawRes.Period,
-		Start:                rawRes.Start,
-		End:                  rawRes.End,
-		ModifiedCandlesticks: candles,
-		ProfitCurve:          profitCurve,
-		SimulatedTrades:      simTrades,
-	}
+	var rawHistory historyResFile
+	var risk float64
+	var lev float64
+	var accSize float64
+	var candleData []CandlestickChartData
+	var profitData []ProfitCurveData
+	var simData []SimulatedTradeData
+
+	json.Unmarshal(backtestResByteArr, &rawHistory)
+	fmt.Printf("\nLen of share: %v\n", len(rawHistory.Candlestick))
+
+	risk = rawHistory.Risk
+	lev = rawHistory.Leverage
+	accSize = rawHistory.AccountSize
+	json.Unmarshal([]byte(rawHistory.Candlestick), &candleData)
+	json.Unmarshal([]byte(rawHistory.ProfitCurve), &profitData)
+	json.Unmarshal([]byte(rawHistory.SimulatedTrades), &simData)
+
+	// Send history data to frontend
+	streamBacktestResData(userID, rid, candleData, profitData, simData)
+	ret := []float64{risk, lev, accSize}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -267,7 +275,7 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	candlePacketSize, err := strconv.Atoi(r.URL.Query()["candlePacketSize"][0])
+	_, err := strconv.Atoi(r.URL.Query()["candlePacketSize"][0])
 	if err != nil {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(err.Error(), fmt.Sprintf("<%v> %v", line, file))
@@ -291,20 +299,29 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 	defer rc.Close()
 
 	backtestResByteArr, _ := ioutil.ReadAll(rc)
-	var rawRes BacktestResFile
-	json.Unmarshal(backtestResByteArr, &rawRes)
 
-	//rehydrate backtest results
-	candles, profitCurve, simTrades := completeBacktestResFile(rawRes, userID, rid, candlePacketSize, streamBacktestResData)
-	ret := BacktestResFile{
-		Ticker:               rawRes.Ticker,
-		Period:               rawRes.Period,
-		Start:                rawRes.Start,
-		End:                  rawRes.End,
-		ModifiedCandlesticks: candles,
-		ProfitCurve:          profitCurve,
-		SimulatedTrades:      simTrades,
-	}
+	var rawHistory historyResFile
+	var risk float64
+	var lev float64
+	var accSize float64
+	var candleData []CandlestickChartData
+	var profitData []ProfitCurveData
+	var simData []SimulatedTradeData
+
+	json.Unmarshal(backtestResByteArr, &rawHistory)
+	fmt.Printf("\nLen of load: %v\n", len(rawHistory.Candlestick))
+
+	risk = rawHistory.Risk
+	lev = rawHistory.Leverage
+	accSize = rawHistory.AccountSize
+	json.Unmarshal([]byte(rawHistory.Candlestick), &candleData)
+	json.Unmarshal([]byte(rawHistory.ProfitCurve), &profitData)
+	json.Unmarshal([]byte(rawHistory.SimulatedTrades), &simData)
+
+	// Send history data to frontend
+	streamBacktestResData(userID, rid, candleData, profitData, simData)
+
+	ret := []float64{risk, lev, accSize}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

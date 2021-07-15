@@ -1181,6 +1181,61 @@ func makeBacktestResFile(c []CandlestickChartData, p []ProfitCurveData, s []Simu
 	return fileName
 }
 
+func saveSharableResult(
+	c []CandlestickChartData,
+	p []ProfitCurveData,
+	s []SimulatedTradeData,
+	reqBucketname, ticker, period, start, end string, risk, lev, accSize float64) {
+	resFileName := sharableResFile(c, p, s, ticker, period, start, end, risk, lev, accSize)
+
+	storageClient, _ := storage.NewClient(ctx)
+	defer storageClient.Close()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
+	//if bucket doesn't exist, create new
+	buckets, _ := listBuckets()
+	var bucketName string
+	for _, bn := range buckets {
+		if bn == reqBucketname {
+			bucketName = bn
+		}
+	}
+	if bucketName == "" {
+		bucket := storageClient.Bucket(reqBucketname)
+		if err := bucket.Create(ctx, googleProjectID, nil); err != nil {
+			fmt.Printf("Failed to create bucket: %v", err)
+		}
+		bucketName = reqBucketname
+	}
+
+	//create obj
+	object := start + "~" + end + "(" + period + ", " + ticker + ")" + ".json"
+	// Open local file
+	f, err := os.Open(resFileName)
+	if err != nil {
+		fmt.Printf("os.Open: %v", err)
+	}
+	defer f.Close()
+	ctx2, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
+	// upload object with storage.Writer
+	wc := storageClient.Bucket(bucketName).Object(object).NewWriter(ctx2)
+	if _, err = io.Copy(wc, f); err != nil {
+		fmt.Printf("io.Copy: %v", err)
+	}
+	if err := wc.Close(); err != nil {
+		fmt.Printf("Writer.Close: %v", err)
+	}
+
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf("Saved Result %v -> %v | %v | %v", start, end, ticker, period),
+		fmt.Sprintf("<%v> %v", line, file))
+
+	//remove local file
+	_ = os.Remove(resFileName)
+}
+
 func saveBacktestRes(
 	c []CandlestickChartData,
 	p []ProfitCurveData,
@@ -1232,19 +1287,47 @@ func saveBacktestRes(
 	_ = os.Remove(resFileName)
 }
 
-func candlePeriodResFile(c []Candlestick, ticker, period, start, end string) string {
+func sharableResFile(c []CandlestickChartData, p []ProfitCurveData, s []SimulatedTradeData, ticker, period, start, end string, risk, lev, accSize float64) string {
 	//convert candlestick struct to string in order to decrease file size
-	var fileString string
-	for i, cand := range c {
-		if i == 0 {
-			fileString = cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
-		} else {
-			fileString = fileString + ">" + cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
-		}
-	}
+	// var fileString string
+	var historyData historyResFile
+	marshalCandles, _ := json.Marshal(c)
+
+	// for i, cand := range c {
+	// 	//Marshal float slice
+	// 	marshalExitPrice, _ := json.Marshal(cand.StratExitPrice)
+	// 	if i == 0 {
+	// 		fileString = cand.DateTime + "/" + cand.LabelTop + "/" + cand.LabelMiddle + "/" + cand.LabelBottom + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close) + "/" + fmt.Sprintf("%f", cand.EMA1) + "/" + fmt.Sprintf("%f", cand.EMA2) + "/" + fmt.Sprintf("%f", cand.EMA3) + "/" + fmt.Sprintf("%f", cand.EMA4) + "/" + fmt.Sprintf("%f", cand.SMA1) + "/" + fmt.Sprintf("%f", cand.SMA2) + "/" + fmt.Sprintf("%f", cand.SMA3) + "/" + fmt.Sprintf("%f", cand.SMA4) + "/" + fmt.Sprintf("%f", cand.StratEnterPrice) + "/" + string(marshalExitPrice)
+	// 	} else {
+	// 		fileString = fileString + ">" + cand.DateTime + "/" + cand.LabelTop + "/" + cand.LabelMiddle + "/" + cand.LabelBottom + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close) + "/" + fmt.Sprintf("%f", cand.EMA1) + "/" + fmt.Sprintf("%f", cand.EMA2) + "/" + fmt.Sprintf("%f", cand.EMA3) + "/" + fmt.Sprintf("%f", cand.EMA4) + "/" + fmt.Sprintf("%f", cand.SMA1) + "/" + fmt.Sprintf("%f", cand.SMA2) + "/" + fmt.Sprintf("%f", cand.SMA3) + "/" + fmt.Sprintf("%f", cand.SMA4) + "/" + fmt.Sprintf("%f", cand.StratEnterPrice) + "/" + string(marshalExitPrice)
+	// 	}
+	// }
+
+	marshalProfit, _ := json.Marshal(p)
+
+	// for i, prof := range p[0].Datax {
+	// 	//Marshal float slice
+	// 	marshalExitPrice, _ := json.Marshal(cand.StratExitPrice)
+	// 	if i == 0 {
+	// 		fileString = cand.DateTime + "/" + cand.LabelTop + "/" + cand.LabelMiddle + "/" + cand.LabelBottom + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close) + "/" + fmt.Sprintf("%f", cand.EMA1) + "/" + fmt.Sprintf("%f", cand.EMA2) + "/" + fmt.Sprintf("%f", cand.EMA3) + "/" + fmt.Sprintf("%f", cand.EMA4) + "/" + fmt.Sprintf("%f", cand.SMA1) + "/" + fmt.Sprintf("%f", cand.SMA2) + "/" + fmt.Sprintf("%f", cand.SMA3) + "/" + fmt.Sprintf("%f", cand.SMA4) + "/" + fmt.Sprintf("%f", cand.StratEnterPrice) + "/" + string(marshalExitPrice)
+	// 	} else {
+	// 		fileString = fileString + ">" + cand.DateTime + "/" + cand.LabelTop + "/" + cand.LabelMiddle + "/" + cand.LabelBottom + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close) + "/" + fmt.Sprintf("%f", cand.EMA1) + "/" + fmt.Sprintf("%f", cand.EMA2) + "/" + fmt.Sprintf("%f", cand.EMA3) + "/" + fmt.Sprintf("%f", cand.EMA4) + "/" + fmt.Sprintf("%f", cand.SMA1) + "/" + fmt.Sprintf("%f", cand.SMA2) + "/" + fmt.Sprintf("%f", cand.SMA3) + "/" + fmt.Sprintf("%f", cand.SMA4) + "/" + fmt.Sprintf("%f", cand.StratEnterPrice) + "/" + string(marshalExitPrice)
+	// 	}
+	// }
+
+	marshalTrades, _ := json.Marshal(s)
+
+	// fileString = risk + "/" + lev + "/" + accSize + "/" + string(marshalCandles) + "/" + string(marshalProfit) + "/" + string(marshalTrades)
+
+	historyData.Risk = risk
+	historyData.Leverage = lev
+	historyData.AccountSize = accSize
+	historyData.Candlestick = string(marshalCandles)
+	historyData.ProfitCurve = string(marshalProfit)
+	historyData.SimulatedTrades = string(marshalTrades)
 
 	//save candlesticks
-	file, _ := json.MarshalIndent(fileString, "", " ")
+	file, _ := json.MarshalIndent(historyData, "", " ")
 	fileName := fmt.Sprintf("%v.json", start+"~"+end+"("+period+", "+ticker+")")
 	_ = ioutil.WriteFile(fileName, file, 0644)
 
@@ -1297,6 +1380,25 @@ func saveCandlesBucket(
 
 	//remove local file
 	_ = os.Remove(resFileName)
+}
+
+func candlePeriodResFile(c []Candlestick, ticker, period, start, end string) string {
+	//convert candlestick struct to string in order to decrease file size
+	var fileString string
+	for i, cand := range c {
+		if i == 0 {
+			fileString = cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
+		} else {
+			fileString = fileString + ">" + cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
+		}
+	}
+
+	//save candlesticks
+	file, _ := json.MarshalIndent(fileString, "", " ")
+	fileName := fmt.Sprintf("%v.json", start+"~"+end+"("+period+", "+ticker+")")
+	_ = ioutil.WriteFile(fileName, file, 0644)
+
+	return fileName
 }
 
 func completeBacktestResFile(
