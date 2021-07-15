@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -73,7 +74,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 	lF, _ := strconv.ParseFloat(leverage, 32)
 	szF, _ := strconv.ParseFloat(size, 32)
 
-	var candles []CandlestickChartData
+	// var candles []CandlestickChartData
 	var profitCurve []ProfitCurveData
 	var simTrades []SimulatedTradeData
 	// var scanRes []PivotTrendScanDataPoint
@@ -81,7 +82,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = runScan(userID, rid, ticker, period, start, end, candlePacketSize, scanPivotTrends, streamScanResData, reqProcess, retrieveCandles)
 		//TODO: save scan results like backtest results?
 	} else {
-		candles, profitCurve, simTrades = runBacktest(rF, lF, szF, userID, rid, ticker, period, start, end, candlePacketSize, strat1, streamBacktestResData, reqProcess, retrieveCandles)
+		_, profitCurve, simTrades = runBacktest(rF, lF, szF, userID, rid, ticker, period, start, end, candlePacketSize, strat1, streamBacktestResData, reqProcess, retrieveCandles)
 
 		// delete an element in history if more than 10 items
 		bucketName := "res-" + userID
@@ -89,9 +90,12 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 		if len(bucketData) >= 10 {
 			deleteFile(bucketName, bucketData[0])
 		}
-
+		for _, cand := range totalCandles {
+			fmt.Printf("\ntop: %v\n", cand.LabelTop)
+			fmt.Printf("\nclose: %v\n", cand.Close)
+		}
 		//save result to bucket
-		go saveBacktestRes(candles, profitCurve, simTrades, rid, bucketName, ticker, period, req.TimeStart, req.TimeEnd)
+		go saveSharableResult(totalCandles, profitCurve, simTrades, bucketName, ticker, period, req.TimeStart, req.TimeEnd, fmt.Sprintf("%f", rF), fmt.Sprintf("%f", lF), fmt.Sprintf("%f", szF))
 	}
 
 	// return
@@ -267,7 +271,7 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	candlePacketSize, err := strconv.Atoi(r.URL.Query()["candlePacketSize"][0])
+	_, err := strconv.Atoi(r.URL.Query()["candlePacketSize"][0])
 	if err != nil {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(err.Error(), fmt.Sprintf("<%v> %v", line, file))
@@ -291,20 +295,42 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 	defer rc.Close()
 
 	backtestResByteArr, _ := ioutil.ReadAll(rc)
-	var rawRes BacktestResFile
-	json.Unmarshal(backtestResByteArr, &rawRes)
+	// var rawRes BacktestResFile
+	var rawString string
+	var risk float64
+	var lev float64
+	var accSize float64
+	var candleData []CandlestickChartData
+	var profitData []ProfitCurveData
+	var simData []SimulatedTradeData
+
+	json.Unmarshal(backtestResByteArr, &rawString)
+	fmt.Printf("\nLen of load: %v\n", len(rawString))
+
+	splitData := strings.Split(rawString, "/")
+	json.Unmarshal([]byte(splitData[0]), &risk)
+	json.Unmarshal([]byte(splitData[1]), &lev)
+	json.Unmarshal([]byte(splitData[2]), &accSize)
+	json.Unmarshal([]byte(splitData[3]), &candleData)
+	json.Unmarshal([]byte(splitData[4]), &profitData)
+	json.Unmarshal([]byte(splitData[5]), &simData)
+
+	streamBacktestResData(userID, rid, candleData, profitData, simData)
 
 	//rehydrate backtest results
-	candles, profitCurve, simTrades := completeBacktestResFile(rawRes, userID, rid, candlePacketSize, streamBacktestResData)
-	ret := BacktestResFile{
-		Ticker:               rawRes.Ticker,
-		Period:               rawRes.Period,
-		Start:                rawRes.Start,
-		End:                  rawRes.End,
-		ModifiedCandlesticks: candles,
-		ProfitCurve:          profitCurve,
-		SimulatedTrades:      simTrades,
-	}
+	// candles, profitCurve, simTrades := completeBacktestResFile(rawRes, userID, rid, candlePacketSize, streamBacktestResData)
+
+	ret := []float64{risk, lev, accSize}
+
+	// ret := BacktestResFile{
+	// 	Ticker:               rawRes.Ticker,
+	// 	Period:               rawRes.Period,
+	// 	Start:                rawRes.Start,
+	// 	End:                  rawRes.End,
+	// 	ModifiedCandlesticks: candles,
+	// 	ProfitCurve:          profitCurve,
+	// 	SimulatedTrades:      simTrades,
+	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
