@@ -252,6 +252,15 @@ type BacktestResFile struct {
 	SimulatedTrades      []SimulatedTradeData   `json:"SimulatedTrades"`
 }
 
+type historyResFile struct {
+	Risk            float64 `json:"Risk"`
+	Leverage        float64 `json:"Leverage"`
+	AccountSize     float64 `json:"AccountSize"`
+	Candlestick     string  `json:"Candlestick"`
+	ProfitCurve     string  `json:"ProfitCurve"`
+	SimulatedTrades string  `json:"SimulatedTrades"`
+}
+
 type Candlestick struct {
 	// DateTime    string
 	PeriodStart string  `json:"time_period_start"`

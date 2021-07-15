@@ -1185,7 +1185,7 @@ func saveSharableResult(
 	c []CandlestickChartData,
 	p []ProfitCurveData,
 	s []SimulatedTradeData,
-	reqBucketname, ticker, period, start, end, risk, lev, accSize string) {
+	reqBucketname, ticker, period, start, end string, risk, lev, accSize float64) {
 	resFileName := sharableResFile(c, p, s, ticker, period, start, end, risk, lev, accSize)
 
 	storageClient, _ := storage.NewClient(ctx)
@@ -1287,9 +1287,10 @@ func saveBacktestRes(
 	_ = os.Remove(resFileName)
 }
 
-func sharableResFile(c []CandlestickChartData, p []ProfitCurveData, s []SimulatedTradeData, ticker, period, start, end, risk, lev, accSize string) string {
+func sharableResFile(c []CandlestickChartData, p []ProfitCurveData, s []SimulatedTradeData, ticker, period, start, end string, risk, lev, accSize float64) string {
 	//convert candlestick struct to string in order to decrease file size
-	var fileString string
+	// var fileString string
+	var historyData historyResFile
 	marshalCandles, _ := json.Marshal(c)
 
 	// for i, cand := range c {
@@ -1316,10 +1317,17 @@ func sharableResFile(c []CandlestickChartData, p []ProfitCurveData, s []Simulate
 
 	marshalTrades, _ := json.Marshal(s)
 
-	fileString = risk + "/" + lev + "/" + accSize + "/" + string(marshalCandles) + "/" + string(marshalProfit) + "/" + string(marshalTrades)
+	// fileString = risk + "/" + lev + "/" + accSize + "/" + string(marshalCandles) + "/" + string(marshalProfit) + "/" + string(marshalTrades)
+
+	historyData.Risk = risk
+	historyData.Leverage = lev
+	historyData.AccountSize = accSize
+	historyData.Candlestick = string(marshalCandles)
+	historyData.ProfitCurve = string(marshalProfit)
+	historyData.SimulatedTrades = string(marshalTrades)
 
 	//save candlesticks
-	file, _ := json.MarshalIndent(fileString, "", " ")
+	file, _ := json.MarshalIndent(historyData, "", " ")
 	fileName := fmt.Sprintf("%v.json", start+"~"+end+"("+period+", "+ticker+")")
 	_ = ioutil.WriteFile(fileName, file, 0644)
 
