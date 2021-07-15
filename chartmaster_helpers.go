@@ -1516,7 +1516,7 @@ func generateRandomProfitCurve() {
 	}
 }
 
-func csvWrite(data [][]string) {
+func csvWrite(data []string) {
 	file, err := os.Create("TradingData.csv")
 	checkError("Cannot create file", err)
 	defer file.Close()
@@ -1524,14 +1524,24 @@ func csvWrite(data [][]string) {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	for _, value := range data {
-		err := writer.Write(value)
-		checkError("Cannot write to file", err)
-	}
+	error := writer.Write(data)
+	checkError("Cannot write to file", error)
 }
 
 func checkError(message string, err error) {
 	if err != nil {
 		log.Fatal(message, err)
 	}
+}
+
+//csvWriter appends a slice of strings to a CSV file
+func csvAppend(data []string) {
+	f, err := os.OpenFile("TradingData.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	w := csv.NewWriter(f)
+	w.Write(data)
+	w.Flush()
 }

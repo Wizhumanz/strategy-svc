@@ -37,7 +37,10 @@ func runBacktest(
 	var retProfitCurve []ProfitCurveData
 	var retSimTrades []SimulatedTradeData
 	// var allCandles []Candlestick
-	csvData := [][]string{{"EMA1", "EMA2", "EMA3", "EMA4", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle", "Profit Perc"}}
+
+	// Create csv file
+	csvData := []string{"EMA1", "EMA2", "EMA3", "EMA4", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle", "Profit Perc"}
+	csvWrite(csvData)
 
 	// pivotLowsNum := 5
 	// maxDurationNum := 1000
@@ -72,7 +75,8 @@ func runBacktest(
 
 								layout := "2006-01-02T15:04:05"
 								time, _ := time.Parse(layout, retSimTrades[0].Data[i-1].EntryDateTime)
-								csvData = append(csvData, []string{fmt.Sprint(ema1), fmt.Sprint(ema2), fmt.Sprint(ema3), fmt.Sprint(ema4), strconv.Itoa(time.Hour()*60 + time.Minute()), strconv.Itoa(int(time.Weekday())), strconv.Itoa(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle), fmt.Sprint(s.RawProfitPerc)})
+								csvAdd := []string{fmt.Sprint(ema1), fmt.Sprint(ema2), fmt.Sprint(ema3), fmt.Sprint(ema4), strconv.Itoa(time.Hour()*60 + time.Minute()), strconv.Itoa(int(time.Weekday())), strconv.Itoa(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle), fmt.Sprint(s.RawProfitPerc)}
+								csvAppend(csvAdd)
 							}
 						}
 					}
@@ -81,7 +85,6 @@ func runBacktest(
 		}
 	}
 
-	csvWrite(csvData)
 	// Store the variables in case the user wants to store it as JSON in GCP Bucket
 	// saveCandlesPrepared(startTime, endTime, period, ticker, allCandles, userID)
 
