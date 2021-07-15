@@ -371,13 +371,12 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 	// fmt.Printf(colorRed+"<%v> retData= %+v\n"+colorReset, retData.BreakTime, retData)
 }
 
-func contains(sli []int, find int) bool {
-	found := false
-	for _, e := range sli {
-		if e == find {
-			found = true
-			break
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
 		}
 	}
-	return found
+
+	return false
 }
