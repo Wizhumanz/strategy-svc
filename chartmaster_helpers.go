@@ -1228,6 +1228,10 @@ func saveSharableResult(
 		fmt.Printf("Writer.Close: %v", err)
 	}
 
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf("Saved Result %v -> %v | %v | %v", start, end, ticker, period),
+		fmt.Sprintf("<%v> %v", line, file))
+
 	//remove local file
 	_ = os.Remove(resFileName)
 }

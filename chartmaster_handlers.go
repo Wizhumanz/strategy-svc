@@ -90,10 +90,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 		if len(bucketData) >= 10 {
 			deleteFile(bucketName, bucketData[0])
 		}
-		for _, cand := range totalCandles {
-			fmt.Printf("\ntop: %v\n", cand.LabelTop)
-			fmt.Printf("\nclose: %v\n", cand.Close)
-		}
+
 		//save result to bucket
 		go saveSharableResult(totalCandles, profitCurve, simTrades, bucketName, ticker, period, req.TimeStart, req.TimeEnd, fmt.Sprintf("%f", rF), fmt.Sprintf("%f", lF), fmt.Sprintf("%f", szF))
 	}
@@ -193,7 +190,7 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	candlePacketSize := 100
+	// candlePacketSize := 100
 
 	//create result ID for websocket packets + res storage
 	rid := fmt.Sprintf("%v", time.Now().UnixNano())
@@ -211,20 +208,39 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	defer rc.Close()
 
 	backtestResByteArr, _ := ioutil.ReadAll(rc)
-	var rawRes BacktestResFile
-	json.Unmarshal(backtestResByteArr, &rawRes)
+	var rawString string
+	var risk float64
+	var lev float64
+	var accSize float64
+	var candleData []CandlestickChartData
+	var profitData []ProfitCurveData
+	var simData []SimulatedTradeData
+
+	json.Unmarshal(backtestResByteArr, &rawString)
+	fmt.Printf("\nLen of share: %v\n", len(rawString))
+
+	splitData := strings.Split(rawString, "/")
+	json.Unmarshal([]byte(splitData[0]), &risk)
+	json.Unmarshal([]byte(splitData[1]), &lev)
+	json.Unmarshal([]byte(splitData[2]), &accSize)
+	json.Unmarshal([]byte(splitData[3]), &candleData)
+	json.Unmarshal([]byte(splitData[4]), &profitData)
+	json.Unmarshal([]byte(splitData[5]), &simData)
+
+	streamBacktestResData(userID, rid, candleData, profitData, simData)
+	ret := []float64{risk, lev, accSize}
 
 	//rehydrate backtest results
-	candles, profitCurve, simTrades := completeBacktestResFile(rawRes, userID, rid, candlePacketSize, streamBacktestResData)
-	ret := BacktestResFile{
-		Ticker:               rawRes.Ticker,
-		Period:               rawRes.Period,
-		Start:                rawRes.Start,
-		End:                  rawRes.End,
-		ModifiedCandlesticks: candles,
-		ProfitCurve:          profitCurve,
-		SimulatedTrades:      simTrades,
-	}
+	// candles, profitCurve, simTrades := completeBacktestResFile(rawRes, userID, rid, candlePacketSize, streamBacktestResData)
+	// ret := BacktestResFile{
+	// 	Ticker:               rawRes.Ticker,
+	// 	Period:               rawRes.Period,
+	// 	Start:                rawRes.Start,
+	// 	End:                  rawRes.End,
+	// 	ModifiedCandlesticks: candles,
+	// 	ProfitCurve:          profitCurve,
+	// 	SimulatedTrades:      simTrades,
+	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -315,6 +331,9 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal([]byte(splitData[4]), &profitData)
 	json.Unmarshal([]byte(splitData[5]), &simData)
 
+	fmt.Printf("\nrisk: %v\n", splitData[0])
+	fmt.Printf("\nrisk: %v\n", risk)
+	fmt.Printf("\nprofitData: %v\n", profitData)
 	streamBacktestResData(userID, rid, candleData, profitData, simData)
 
 	//rehydrate backtest results
