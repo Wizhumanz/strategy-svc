@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -208,7 +207,8 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	defer rc.Close()
 
 	backtestResByteArr, _ := ioutil.ReadAll(rc)
-	var rawString string
+
+	var rawHistory historyResFile
 	var risk float64
 	var lev float64
 	var accSize float64
@@ -216,31 +216,19 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	var profitData []ProfitCurveData
 	var simData []SimulatedTradeData
 
-	json.Unmarshal(backtestResByteArr, &rawString)
-	fmt.Printf("\nLen of share: %v\n", len(rawString))
+	json.Unmarshal(backtestResByteArr, &rawHistory)
+	fmt.Printf("\nLen of share: %v\n", len(rawHistory.Candlestick))
 
-	splitData := strings.Split(rawString, "/")
-	json.Unmarshal([]byte(splitData[0]), &risk)
-	json.Unmarshal([]byte(splitData[1]), &lev)
-	json.Unmarshal([]byte(splitData[2]), &accSize)
-	json.Unmarshal([]byte(splitData[3]), &candleData)
-	json.Unmarshal([]byte(splitData[4]), &profitData)
-	json.Unmarshal([]byte(splitData[5]), &simData)
+	risk = rawHistory.Risk
+	lev = rawHistory.Leverage
+	accSize = rawHistory.AccountSize
+	json.Unmarshal([]byte(rawHistory.Candlestick), &candleData)
+	json.Unmarshal([]byte(rawHistory.ProfitCurve), &profitData)
+	json.Unmarshal([]byte(rawHistory.SimulatedTrades), &simData)
 
+	// Send history data to frontend
 	streamBacktestResData(userID, rid, candleData, profitData, simData)
 	ret := []float64{risk, lev, accSize}
-
-	//rehydrate backtest results
-	// candles, profitCurve, simTrades := completeBacktestResFile(rawRes, userID, rid, candlePacketSize, streamBacktestResData)
-	// ret := BacktestResFile{
-	// 	Ticker:               rawRes.Ticker,
-	// 	Period:               rawRes.Period,
-	// 	Start:                rawRes.Start,
-	// 	End:                  rawRes.End,
-	// 	ModifiedCandlesticks: candles,
-	// 	ProfitCurve:          profitCurve,
-	// 	SimulatedTrades:      simTrades,
-	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -330,9 +318,9 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal([]byte(rawHistory.ProfitCurve), &profitData)
 	json.Unmarshal([]byte(rawHistory.SimulatedTrades), &simData)
 
+	// Send history data to frontend
 	streamBacktestResData(userID, rid, candleData, profitData, simData)
 
-	//rehydrate backtest results
 	ret := []float64{risk, lev, accSize}
 
 	w.Header().Set("Content-Type", "application/json")
