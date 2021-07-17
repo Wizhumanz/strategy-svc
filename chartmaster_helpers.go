@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"net/http"
 	"os"
 	"runtime"
 	"sort"
@@ -153,7 +155,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 var totalCandles []CandlestickChartData
 var previousEquity float64
 
-func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
+func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, smas []float64, emas []float64) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
 
 	//candlestick
@@ -166,8 +168,8 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 		Close:          c.Close,
 		StratExitPrice: []float64{},
 	}
-	smas, emas := calcIndicators(allCandles, relIndex)
 
+	fmt.Printf("\ndisplay: %v\n", emas)
 	// if relIndex < 200 {
 	// 	fmt.Printf("<%v> %v\n", relIndex, emas)
 	// }
@@ -728,7 +730,7 @@ func computeBacktest(
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot) (map[string]map[int]string, int),
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, []float64) (map[string]map[int]string, int),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 	chunksArr *[]*[]Candlestick,
 	c chan time.Time,
@@ -792,11 +794,14 @@ func computeBacktest(
 				allCandles = append(allCandles, candle)
 				//TODO: build results and run for different param sets
 				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
-				labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{})
+				smas, emas := calcIndicators(allCandles, relIndex)
+
+				labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
-				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles)
+
+				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles, smas, emas)
 
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
@@ -946,8 +951,10 @@ func computeScan(
 				var pivotScanData StrategyDataPoint
 				labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
 
+				smas, emas := calcIndicators(allCandles, relIndex)
+
 				//save res data
-				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles)
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas)
 				duplicateFound := false
 				for _, v := range chunkAddedScanData {
 					if v.EntryLastPLIndex == pivotScanData.EntryLastPLIndex {
@@ -1640,4 +1647,39 @@ func generateRandomProfitCurve() {
 			retData[j].Data = append(retData[j].Data, new)
 		}
 	}
+}
+
+func machineLearningModel(ema1, ema2, ema3, ema4 float64) (int, int, float64, int, float64) {
+	requestBody, err := json.Marshal(map[string]float64{
+		// 	"ema1": ema1,
+		// 	"ema2": ema2,
+		// 	"ema3": ema3,
+		// 	"ema4": ema4,
+		// })
+		"ema1": 45957.8191963809,
+		"ema2": 46120.7766334909,
+		"ema3": 46244.93240234,
+		"ema4": 46297.619363374,
+	})
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	resp, err := http.Post("http://localhost:8000/send-input/", "application/json", bytes.NewBuffer(requestBody))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Println(string(body))
+
+	return 4, 500, 1.0, 35, 1.5
 }

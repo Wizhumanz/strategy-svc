@@ -14,23 +14,48 @@ import (
 func strat1(
 	candles []Candlestick, risk, lev, accSz float64,
 	open, high, low, close []float64,
+	// ema1, ema2, ema3, ema4 float64,
 	relCandleIndex int,
 	strategy *StrategyExecutor,
-	storage *interface{}, bot Bot) (map[string]map[int]string, int) {
+	storage *interface{}, bot Bot,
+	emas []float64) (map[string]map[int]string, int) {
 	//TODO: pass these 2 from frontend
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
-	tpMap := map[float64]float64{
-		1.5: 20,
-		3.0: 10,
-		3.5: 70,
+	var ema1 float64
+	var ema2 float64
+	var ema3 float64
+	var ema4 float64
+	if len(emas) >= 1 {
+		ema1 = emas[0]
+	}
+	if len(emas) >= 2 {
+		ema2 = emas[1]
+		// fmt.Printf(colorGreen+"%v - "+colorReset, newCandleD.EMA2)
+	}
+	if len(emas) >= 3 {
+		ema3 = emas[2]
+		// fmt.Printf(colorYellow+"%v - "+colorReset, newCandleD.EMA3)
+	}
+	if len(emas) >= 4 {
+		ema4 = emas[3]
+		// fmt.Printf(colorCyan+"%v - "+colorReset, newCandleD.EMA4)
 	}
 
-	pivotLowsToEnter := 4
-	maxDurationCandles := 480
-	slPerc := 1.0
-	slCooldownCandles := 35
+	pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle := machineLearningModel(ema1, ema2, ema3, ema4)
+
+	tpMap := map[float64]float64{
+		// 1.5: 20,
+		// 3.0: 10,
+		// 3.5: 70,
+		tpSingle: 100,
+	}
+
+	// pivotLowsToEnter := 4
+	// maxDurationCandles := 480
+	// slPerc := 1.0
+	// slCooldownCandles := 35
 	tpCooldownCandles := 0
 
 	tradeWindows := []ValRange{
