@@ -169,7 +169,6 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 		StratExitPrice: []float64{},
 	}
 
-	fmt.Printf("\ndisplay: %v\n", emas)
 	// if relIndex < 200 {
 	// 	fmt.Printf("<%v> %v\n", relIndex, emas)
 	// }
@@ -1651,16 +1650,16 @@ func generateRandomProfitCurve() {
 
 func machineLearningModel(ema1, ema2, ema3, ema4 float64) (int, int, float64, int, float64) {
 	requestBody, err := json.Marshal(map[string]float64{
-		// 	"ema1": ema1,
-		// 	"ema2": ema2,
-		// 	"ema3": ema3,
-		// 	"ema4": ema4,
-		// })
-		"ema1": 45957.8191963809,
-		"ema2": 46120.7766334909,
-		"ema3": 46244.93240234,
-		"ema4": 46297.619363374,
+		"ema1": ema1,
+		"ema2": ema2,
+		"ema3": ema3,
+		"ema4": ema4,
 	})
+	// 	"ema1": 45957.8191963809,
+	// 	"ema2": 46120.7766334909,
+	// 	"ema3": 46244.93240234,
+	// 	"ema4": 46297.619363374,
+	// })
 
 	if err != nil {
 		log.Fatalln(err)
@@ -1679,7 +1678,15 @@ func machineLearningModel(ema1, ema2, ema3, ema4 float64) (int, int, float64, in
 		log.Fatalln(err)
 	}
 
-	fmt.Println(string(body))
+	// fmt.Println(string(body))
 
-	return 4, 500, 1.0, 35, 1.5
+	var objmap []float64
+	if err := json.Unmarshal(body, &objmap); err != nil {
+		log.Fatal(err)
+	}
+
+	// fmt.Println(objmap)
+
+	// return 4, 500, 1.0, 35, 1.5
+	return int(math.Round(objmap[0])), int(math.Round(objmap[1])), objmap[2], int(math.Round(objmap[3])), objmap[4]
 }
