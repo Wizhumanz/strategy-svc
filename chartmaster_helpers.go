@@ -724,6 +724,8 @@ func sendPacketScan(packetSender func(string, string, []CandlestickChartData, []
 	}
 }
 
+var candlesSkipNum int = 0
+
 func computeBacktest(
 	risk, lev, accSz float64,
 	packetSize int,
@@ -794,9 +796,15 @@ func computeBacktest(
 				//TODO: build results and run for different param sets
 				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
 				smas, emas := calcIndicators(allCandles, relIndex)
-				var candlesSkipNum int
-				labels, candlesSkipNum = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
-				fmt.Printf("\nSkip: %v\n", candlesSkipNum)
+
+				if len(emas) >= 4 {
+					if candlesSkipNum == 0 {
+						labels, candlesSkipNum = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
+						fmt.Printf("\nSkip: %v\n", candlesSkipNum)
+					} else {
+						candlesSkipNum--
+					}
+				}
 
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint

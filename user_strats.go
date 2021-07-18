@@ -13,7 +13,7 @@ import (
 //return signature: (label, bars back to add label, storage obj to pass to next func call/iteration)
 var pivotLowsToEnter, maxDurationCandles, slCooldownCandles int
 var slPerc, tpSingle float64
-var runMLPeriod int = 5
+var runMLPeriod int = 11
 var prevEma1, prevEma2, prevEma3, prevEma4 float64
 var firstTime bool = true
 
@@ -29,53 +29,54 @@ func strat1(
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
-	var ema1 float64
-	var ema2 float64
-	var ema3 float64
-	var ema4 float64
-	if len(emas) >= 1 {
-		ema1 = emas[0]
-	}
-	if len(emas) >= 2 {
-		ema2 = emas[1]
-		// fmt.Printf(colorGreen+"%v - "+colorReset, newCandleD.EMA2)
-	}
-	if len(emas) >= 3 {
-		ema3 = emas[2]
-		// fmt.Printf(colorYellow+"%v - "+colorReset, newCandleD.EMA3)
-	}
-	if len(emas) >= 4 {
-		ema4 = emas[3]
-		// fmt.Printf(colorCyan+"%v - "+colorReset, newCandleD.EMA4)
-	}
-	fmt.Printf("\nemas: %v\n", emas)
-	if runMLPeriod == 11 {
-		if firstTime {
-			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
-			firstTime = false
-		} else {
-			min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
-			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min)
-			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
-		}
+	// var ema1 float64
+	// var ema2 float64
+	// var ema3 float64
+	// var ema4 float64
+	// if len(emas) >= 1 {
+	// 	ema1 = emas[0]
+	// }
+	// if len(emas) >= 2 {
+	// 	ema2 = emas[1]
+	// 	// fmt.Printf(colorGreen+"%v - "+colorReset, newCandleD.EMA2)
+	// }
+	// if len(emas) >= 3 {
+	// 	ema3 = emas[2]
+	// 	// fmt.Printf(colorYellow+"%v - "+colorReset, newCandleD.EMA3)
+	// }
+	// if len(emas) >= 4 {
+	// 	ema4 = emas[3]
+	// 	// fmt.Printf(colorCyan+"%v - "+colorReset, newCandleD.EMA4)
+	// }
+	// if runMLPeriod == 11 {
+	// 	if firstTime {
+	// 		fmt.Printf("\nemas: %v\n", emas)
+	// 		prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+	// 		firstTime = false
+	// 	} else {
+	// 		min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
+	// 		pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min)
+	// 		prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+	// 		fmt.Printf("\npivotLowsToEnter: %v\n", pivotLowsToEnter)
+	// 	}
 
-		runMLPeriod = 0
-	} else {
-		runMLPeriod += 1
-	}
+	// 	runMLPeriod = 0
+	// } else {
+	// 	runMLPeriod += 1
+	// }
 	// fmt.Println(pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
 
 	tpMap := map[float64]float64{
-		// 1.5: 100,
+		1.5: 100,
 		// 3.0: 10,
 		// 3.5: 70,
-		tpSingle: 100,
+		// tpSingle: 100,
 	}
 
-	// pivotLowsToEnter := 4
-	// maxDurationCandles := 500
-	// slPerc := 1.0
-	// slCooldownCandles := 35
+	pivotLowsToEnter := 4
+	maxDurationCandles := 500
+	slPerc := 1.0
+	slCooldownCandles := 35
 	tpCooldownCandles := 0
 
 	tradeWindows := []ValRange{
@@ -354,5 +355,7 @@ func strat1(
 	// 	fmt.Printf(colorRed+"<%v> pl=%v\nph=%v\n"+colorReset, relCandleIndex, stored.PivotLows, stored.PivotHighs)
 	// }
 	*storage = stored
-	return newLabels, pivotLowsToEnter*2 - len(stored.PivotHighs) - len(stored.PivotLows)
+	fmt.Println(len(stored.PivotHighs) % (pivotLowsToEnter + 1))
+	fmt.Println(len(stored.PivotLows) % (pivotLowsToEnter + 1))
+	return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - (len(stored.PivotLows) % (pivotLowsToEnter + 1))
 }
