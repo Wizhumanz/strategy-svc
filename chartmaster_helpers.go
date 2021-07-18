@@ -794,8 +794,10 @@ func computeBacktest(
 				//TODO: build results and run for different param sets
 				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
 				smas, emas := calcIndicators(allCandles, relIndex)
+				var candlesSkipNum int
+				labels, candlesSkipNum = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
+				fmt.Printf("\nSkip: %v\n", candlesSkipNum)
 
-				labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
@@ -1648,12 +1650,13 @@ func generateRandomProfitCurve() {
 	}
 }
 
-func machineLearningModel(ema1, ema2, ema3, ema4 float64) (int, int, float64, int, float64) {
+func machineLearningModel(ema1, ema2, ema3, ema4, diff float64) (int, int, float64, int, float64) {
 	requestBody, err := json.Marshal(map[string]float64{
 		"ema1": ema1,
 		"ema2": ema2,
 		"ema3": ema3,
 		"ema4": ema4,
+		"diff": diff,
 	})
 	// 	"ema1": 45957.8191963809,
 	// 	"ema2": 46120.7766334909,
@@ -1689,4 +1692,18 @@ func machineLearningModel(ema1, ema2, ema3, ema4 float64) (int, int, float64, in
 
 	// return 4, 500, 1.0, 35, 1.5
 	return int(math.Round(objmap[0])), int(math.Round(objmap[1])), objmap[2], int(math.Round(objmap[3])), objmap[4]
+}
+
+func findMinAndMax(a []float64) (min float64, max float64) {
+	min = a[0]
+	max = a[0]
+	for _, value := range a {
+		if value < min {
+			min = value
+		}
+		if value > max {
+			max = value
+		}
+	}
+	return min, max
 }
