@@ -39,7 +39,7 @@ func runBacktest(
 	// var allCandles []Candlestick
 
 	// Create csv file
-	csvData := []string{"EMA1", "EMA2", "EMA3", "EMA4", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle", "Profit Perc"}
+	csvData := []string{"Slope_EMA1", "Slope_EMA2", "Slope_EMA3", "Slope_EMA4", "Distance_Btwn_Emas", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
 	csvWrite(csvData)
 
 	// pivotLowsNum := 5
@@ -48,6 +48,8 @@ func runBacktest(
 	tpCooldown := 0
 	// slPercent := 1.5
 	// tpSingle := 1.5
+
+	var prevEma1, prevEma2, prevEma3, prevEma4 float64
 
 	for pivotLowsNum := 3; pivotLowsNum <= 5; pivotLowsNum++ {
 		for maxDurationNum := 800; maxDurationNum <= 1000; maxDurationNum += 100 {
@@ -75,8 +77,16 @@ func runBacktest(
 
 								layout := "2006-01-02T15:04:05"
 								time, _ := time.Parse(layout, retSimTrades[0].Data[i-1].EntryDateTime)
-								csvAdd := []string{fmt.Sprint(ema1), fmt.Sprint(ema2), fmt.Sprint(ema3), fmt.Sprint(ema4), strconv.Itoa(time.Hour()*60 + time.Minute()), strconv.Itoa(int(time.Weekday())), strconv.Itoa(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle), fmt.Sprint(s.RawProfitPerc)}
-								csvAppend(csvAdd)
+
+								min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
+
+								if i == 0 {
+									prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+								} else {
+									csvAdd := []string{fmt.Sprint(ema1 - prevEma1), fmt.Sprint(ema2 - prevEma2), fmt.Sprint(ema3 - prevEma3), fmt.Sprint(ema4 - prevEma4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(time.Weekday()), strconv.Itoa(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+									csvAppend(csvAdd)
+									prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+								}
 							}
 						}
 					}
@@ -139,4 +149,18 @@ func runScan(
 	// Show progress bar as finish
 	progressBar(userID, rid, len(retCandles), startTime, endTime, true)
 	return retCandles, retScanRes
+}
+
+func findMinAndMax(a []float64) (min float64, max float64) {
+	min = a[0]
+	max = a[0]
+	for _, value := range a {
+		if value < min {
+			min = value
+		}
+		if value > max {
+			max = value
+		}
+	}
+	return min, max
 }
