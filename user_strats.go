@@ -14,6 +14,8 @@ import (
 var pivotLowsToEnter, maxDurationCandles, slCooldownCandles int
 var slPerc, tpSingle float64
 var runMLPeriod int = 5
+var prevEma1, prevEma2, prevEma3, prevEma4 float64
+var firstTime bool = true
 
 func strat1(
 	candles []Candlestick, risk, lev, accSz float64,
@@ -46,9 +48,17 @@ func strat1(
 		ema4 = emas[3]
 		// fmt.Printf(colorCyan+"%v - "+colorReset, newCandleD.EMA4)
 	}
-
+	fmt.Printf("\nemas: %v\n", emas)
 	if runMLPeriod == 11 {
-		pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1, ema2, ema3, ema4)
+		if firstTime {
+			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+			firstTime = false
+		} else {
+			min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
+			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min)
+			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+		}
+
 		runMLPeriod = 0
 	} else {
 		runMLPeriod += 1
@@ -344,5 +354,5 @@ func strat1(
 	// 	fmt.Printf(colorRed+"<%v> pl=%v\nph=%v\n"+colorReset, relCandleIndex, stored.PivotLows, stored.PivotHighs)
 	// }
 	*storage = stored
-	return newLabels, 0
+	return newLabels, pivotLowsToEnter*2 - len(stored.PivotHighs) - len(stored.PivotLows)
 }
