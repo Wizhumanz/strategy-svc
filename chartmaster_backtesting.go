@@ -83,7 +83,7 @@ func runBacktest(
 								if i == 0 {
 									prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
 								} else {
-									csvAdd := []string{fmt.Sprint(ema1 - prevEma1), fmt.Sprint(ema2 - prevEma2), fmt.Sprint(ema3 - prevEma3), fmt.Sprint(ema4 - prevEma4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(time.Weekday()), strconv.Itoa(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+									csvAdd := []string{fmt.Sprint(ema1 - prevEma1), fmt.Sprint(ema2 - prevEma2), fmt.Sprint(ema3 - prevEma3), fmt.Sprint(ema4 - prevEma4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(time.Weekday()), fmt.Sprint(time.Month()), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
 									csvAppend(csvAdd)
 									prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
 								}
