@@ -800,7 +800,6 @@ func computeBacktest(
 				if len(emas) >= 4 {
 					if candlesSkipNum == 0 {
 						labels, candlesSkipNum = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
-						fmt.Printf("\nSkip: %v\n", candlesSkipNum)
 					} else {
 						candlesSkipNum--
 					}
@@ -1658,13 +1657,15 @@ func generateRandomProfitCurve() {
 	}
 }
 
-func machineLearningModel(ema1, ema2, ema3, ema4, diff float64) (int, int, float64, int, float64) {
-	requestBody, err := json.Marshal(map[string]float64{
-		"ema1": ema1,
-		"ema2": ema2,
-		"ema3": ema3,
-		"ema4": ema4,
-		"diff": diff,
+func machineLearningModel(ema1, ema2, ema3, ema4, diff float64, days, months string) (int, int, float64, int, float64) {
+	requestBody, err := json.Marshal(map[string]string{
+		"ema1":   fmt.Sprint(ema1),
+		"ema2":   fmt.Sprint(ema2),
+		"ema3":   fmt.Sprint(ema3),
+		"ema4":   fmt.Sprint(ema4),
+		"diff":   fmt.Sprint(diff),
+		"days":   days,
+		"months": months,
 	})
 	// 	"ema1": 45957.8191963809,
 	// 	"ema2": 46120.7766334909,
