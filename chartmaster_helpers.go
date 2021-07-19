@@ -1651,15 +1651,15 @@ func generateRandomProfitCurve() {
 	}
 }
 
-func machineLearningModel(ema1, ema2, ema3, ema4, diff float64) (int, int, float64, int, float64) {
+func machineLearningModel(ema1, ema2, ema3, ema4, diff float64, days, months string) (int, int, float64, int, float64) {
 	requestBody, err := json.Marshal(map[string]string{
-		"ema1": fmt.Sprint(ema1),
-		"ema2": fmt.Sprint(ema2),
-		"ema3": fmt.Sprint(ema3),
-		"ema4": fmt.Sprint(ema4),
-		"diff": fmt.Sprint(diff),
-		// "days":   days,
-		// "months": months,
+		"ema1":   fmt.Sprint(ema1),
+		"ema2":   fmt.Sprint(ema2),
+		"ema3":   fmt.Sprint(ema3),
+		"ema4":   fmt.Sprint(ema4),
+		"diff":   fmt.Sprint(diff),
+		"days":   days,
+		"months": months,
 	})
 	// 	"ema1": 45957.8191963809,
 	// 	"ema2": 46120.7766334909,
