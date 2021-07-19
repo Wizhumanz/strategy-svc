@@ -700,6 +700,8 @@ func sendPacketScan(packetSender func(string, string, []CandlestickChartData, []
 	}
 }
 
+var candlesSkipNum int = 0
+
 func computeBacktest(
 	risk, lev, accSz float64,
 	packetSize int,
@@ -770,7 +772,17 @@ func computeBacktest(
 				allCandles = append(allCandles, candle)
 				//TODO: build results and run for different param sets
 				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
-				labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
+
+				emas := calcIndicators(allCandles, relIndex)
+
+				if len(emas) >= 4 {
+					if candlesSkipNum == 0 {
+						labels, candlesSkipNum = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
+					} else {
+						candlesSkipNum--
+					}
+				}
+
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
@@ -1516,8 +1528,13 @@ func generateRandomProfitCurve() {
 	}
 }
 
+var count int = 1
+var name string
+
 func csvWrite(data []string) {
-	file, err := os.Create("TradingData.csv")
+	name = "TradingData" + fmt.Sprint(count) + ".csv"
+
+	file, err := os.Create(name)
 	checkError("Cannot create file", err)
 	defer file.Close()
 
@@ -1526,6 +1543,7 @@ func csvWrite(data []string) {
 
 	error := writer.Write(data)
 	checkError("Cannot write to file", error)
+	count++
 }
 
 func checkError(message string, err error) {
@@ -1536,7 +1554,7 @@ func checkError(message string, err error) {
 
 //csvWriter appends a slice of strings to a CSV file
 func csvAppend(data []string) {
-	f, err := os.OpenFile("TradingData.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println("Error: ", err)
 		return

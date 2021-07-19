@@ -22,7 +22,6 @@ func runBacktest(
 	var chunksArr []*[]Candlestick
 
 	totalCandles = nil
-
 	// Channel to get timestamps for empty candles
 	c := make(chan time.Time)
 
