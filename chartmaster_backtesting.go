@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+var createNewCSV int = 0
+
 func runBacktest(
 	risk, lev, accSz float64,
 	userID, rid, ticker, period string,
@@ -52,15 +54,16 @@ func runBacktest(
 	var prevEma1, prevEma2, prevEma3, prevEma4 float64
 
 	for pivotLowsNum := 3; pivotLowsNum <= 5; pivotLowsNum++ {
-		for maxDurationNum := 800; maxDurationNum <= 1000; maxDurationNum += 100 {
-			for slCooldown := 5; slCooldown <= 85; slCooldown += 20 {
-				for _, slPercent := range []float64{0.5, 0.7, 1.0, 1.5, 2.0} {
-					for _, tpSingle := range []float64{1.5, 2.5, 2.75} {
-						fmt.Printf("\npivotLowsNum: %v\n", pivotLowsNum)
-						fmt.Printf("\nmaxDurationNum: %v\n", maxDurationNum)
-						fmt.Printf("\nslCooldown: %v\n", slCooldown)
-						fmt.Printf("\nslPercent: %v\n", slPercent)
-						fmt.Printf("\ntpSingle: %v\n", tpSingle)
+		for maxDurationNum := 600; maxDurationNum <= 1000; maxDurationNum += 200 {
+			for slCooldown := 5; slCooldown <= 45; slCooldown += 20 {
+				for _, slPercent := range []float64{1.0, 2.0, 3.0} {
+					for _, tpSingle := range []float64{1.75, 2.6, 3.6} {
+						// fmt.Printf("\npivotLowsNum: %v\n", pivotLowsNum)
+						// fmt.Printf("\nmaxDurationNum: %v\n", maxDurationNum)
+						// fmt.Printf("\nslCooldown: %v\n", slCooldown)
+						// fmt.Printf("\nslPercent: %v\n", slPercent)
+						// fmt.Printf("\ntpSingle: %v\n", tpSingle)
+
 						//run strat on all candles in chunk, stream each chunk to client
 						retCandles, retProfitCurve, retSimTrades, _ = computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c, retrieveCandles, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
 
@@ -83,9 +86,19 @@ func runBacktest(
 								if i == 0 {
 									prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
 								} else {
-									csvAdd := []string{fmt.Sprint(ema1 - prevEma1), fmt.Sprint(ema2 - prevEma2), fmt.Sprint(ema3 - prevEma3), fmt.Sprint(ema4 - prevEma4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(time.Weekday()), fmt.Sprint(time.Month()), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
-									csvAppend(csvAdd)
-									prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+									if createNewCSV != 50000 {
+										csvAdd := []string{fmt.Sprint(ema1 - prevEma1), fmt.Sprint(ema2 - prevEma2), fmt.Sprint(ema3 - prevEma3), fmt.Sprint(ema4 - prevEma4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+										csvAppend(csvAdd)
+										prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+										createNewCSV++
+									} else {
+										csvData := []string{"Slope_EMA1", "Slope_EMA2", "Slope_EMA3", "Slope_EMA4", "Distance_Btwn_Emas", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
+										csvWrite(csvData)
+										csvAdd := []string{fmt.Sprint(ema1 - prevEma1), fmt.Sprint(ema2 - prevEma2), fmt.Sprint(ema3 - prevEma3), fmt.Sprint(ema4 - prevEma4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+										csvAppend(csvAdd)
+										prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+										createNewCSV = 0
+									}
 								}
 							}
 						}
