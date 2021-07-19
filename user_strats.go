@@ -48,21 +48,25 @@ func strat1(
 		ema4 = emas[3]
 		// fmt.Printf(colorCyan+"%v - "+colorReset, newCandleD.EMA4)
 	}
-	fmt.Printf("\nemas: %v\n", emas)
-	if runMLPeriod == 11 {
-		if firstTime {
-			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
-			firstTime = false
-		} else {
+
+	if firstTime {
+		prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+		firstTime = false
+	} else {
+		if runMLPeriod == 11 {
 			min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
+			// layout := "2006-01-02T15:04:05"
+			// time, _ := time.Parse(layout, candles[len(candles)-1].PeriodStart)
+			// , days, months string
 			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min)
 			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
-		}
 
-		runMLPeriod = 0
-	} else {
-		runMLPeriod += 1
+			runMLPeriod = 0
+		} else {
+			runMLPeriod += 1
+		}
 	}
+
 	// fmt.Println(pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
 
 	tpMap := map[float64]float64{
@@ -354,5 +358,5 @@ func strat1(
 	// 	fmt.Printf(colorRed+"<%v> pl=%v\nph=%v\n"+colorReset, relCandleIndex, stored.PivotLows, stored.PivotHighs)
 	// }
 	*storage = stored
-	return newLabels, pivotLowsToEnter*2 - len(stored.PivotHighs) - len(stored.PivotLows)
+	return newLabels, 0
 }
