@@ -342,6 +342,8 @@ func strat1(
 					// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
 					// }
 
+					// fmt.Printf("\npivotLowsToEnter: %v / maxDurationCandles: %v / slPerc: %v / slCooldownCandles: %v / tpSingle: %v", pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
+
 					//enter long
 					completedMultiTPs := (*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, newEntryData.MultiTPs, candles[len(candles)-1], true, bot)
 					newEntryData.MultiTPs = completedMultiTPs
