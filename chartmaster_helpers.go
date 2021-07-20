@@ -798,11 +798,11 @@ func computeBacktest(
 				smas, emas := calcIndicators(allCandles, relIndex)
 
 				if len(emas) >= 4 {
-					if candlesSkipNum == 0 {
-						labels, candlesSkipNum = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
-					} else {
-						candlesSkipNum--
-					}
+					// if candlesSkipNum == 0 {
+					labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
+					// } else {
+					// 	candlesSkipNum--
+					// }
 				}
 
 				//build display data using strategySim
