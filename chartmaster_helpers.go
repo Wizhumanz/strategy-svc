@@ -154,7 +154,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 var totalCandles []CandlestickChartData
 var previousEquity float64
 
-func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
+func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, emas []float64) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
 
 	//candlestick
@@ -167,7 +167,6 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 		Close:          c.Close,
 		StratExitPrice: []float64{},
 	}
-	emas := calcIndicators(allCandles, relIndex)
 
 	// if relIndex < 200 {
 	// 	fmt.Printf("<%v> %v\n", relIndex, emas)
@@ -786,7 +785,7 @@ func computeBacktest(
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
-				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles)
+				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles, emas)
 
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
@@ -937,7 +936,7 @@ func computeScan(
 				labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
 
 				//save res data
-				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles)
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, nil)
 				duplicateFound := false
 				for _, v := range chunkAddedScanData {
 					if v.EntryLastPLIndex == pivotScanData.EntryLastPLIndex {
