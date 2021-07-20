@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"runtime"
 	"strconv"
@@ -51,8 +50,6 @@ func runBacktest(
 	// slPercent := 1.5
 	// tpSingle := 1.5
 
-	var prevEma1, prevEma2, prevEma3, prevEma4 float64
-
 	for pivotLowsNum := 3; pivotLowsNum <= 5; pivotLowsNum++ {
 		for maxDurationNum := 600; maxDurationNum <= 1000; maxDurationNum += 200 {
 			for slCooldown := 5; slCooldown <= 45; slCooldown += 20 {
@@ -68,16 +65,16 @@ func runBacktest(
 						retCandles, retProfitCurve, retSimTrades, _ = computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c, retrieveCandles, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
 						// out, _ := json.Marshal(retSimTrades[0].Data)
 						// fmt.Printf("\nretSimTrades: %v\n", string(out))
-						var firstTime bool = true
 
 						for i, s := range retSimTrades[0].Data {
 							if s.ExitDateTime != "" && s.RawProfitPerc > 0 {
-								out, _ := json.Marshal(retSimTrades[0].Data[i-1])
-								fmt.Printf("\nindividual: %v\n", string(out))
+								// out, _ := json.Marshal(retSimTrades[0].Data[i-1])
+								// fmt.Printf("\nindividual: %v\n", string(out))
 								ema1 := retSimTrades[0].Data[i-1].EMA1
 								ema2 := retSimTrades[0].Data[i-1].EMA2
 								ema3 := retSimTrades[0].Data[i-1].EMA3
 								ema4 := retSimTrades[0].Data[i-1].EMA4
+								previousCandle := retSimTrades[0].Data[i-1].PreviousCandle
 
 								if ema1 == 0 || ema2 == 0 || ema3 == 0 || ema4 == 0 {
 									continue
@@ -88,24 +85,17 @@ func runBacktest(
 
 								min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
 
-								if firstTime {
-									prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
-									firstTime = false
-								} else {
-									if createNewCSV != 50000 {
-										csvAdd := []string{fmt.Sprint(ema1 - prevEma1), fmt.Sprint(ema2 - prevEma2), fmt.Sprint(ema3 - prevEma3), fmt.Sprint(ema4 - prevEma4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
-										csvAppend(csvAdd)
-										prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+								if createNewCSV != 50000 {
+									csvAdd := []string{fmt.Sprint(ema1 - previousCandle.EMA1), fmt.Sprint(ema2 - previousCandle.EMA2), fmt.Sprint(ema3 - previousCandle.EMA3), fmt.Sprint(ema4 - previousCandle.EMA4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+									csvAppend(csvAdd)
 
-										createNewCSV++
-									} else {
-										csvData := []string{"Slope_EMA1", "Slope_EMA2", "Slope_EMA3", "Slope_EMA4", "Distance_Btwn_Emas", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
-										csvWrite(csvData)
-										csvAdd := []string{fmt.Sprint(ema1 - prevEma1), fmt.Sprint(ema2 - prevEma2), fmt.Sprint(ema3 - prevEma3), fmt.Sprint(ema4 - prevEma4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
-										csvAppend(csvAdd)
-										prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
-										createNewCSV = 0
-									}
+									createNewCSV++
+								} else {
+									csvData := []string{"Slope_EMA1", "Slope_EMA2", "Slope_EMA3", "Slope_EMA4", "Distance_Btwn_Emas", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
+									csvWrite(csvData)
+									csvAdd := []string{fmt.Sprint(ema1 - previousCandle.EMA1), fmt.Sprint(ema2 - previousCandle.EMA2), fmt.Sprint(ema3 - previousCandle.EMA3), fmt.Sprint(ema4 - previousCandle.EMA4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+									csvAppend(csvAdd)
+									createNewCSV = 0
 								}
 							}
 						}

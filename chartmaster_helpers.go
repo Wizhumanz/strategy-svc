@@ -153,6 +153,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 
 var totalCandles []CandlestickChartData
 var previousEquity float64
+var previousCandle CandlestickChartData
 
 func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, emas []float64) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
@@ -329,6 +330,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 				// fmt.Printf(colorCyan+"<%v> a.PosSize= %v / a.Price= %v / entryPrice= %v\n"+colorReset, relIndex, a.PosSize, a.Price, entryPrice)
 			} else if a.Action == "ENTER" {
 				//only ENTER action
+				sd.PreviousCandle = previousCandle
 				sd.EntryPrice = a.Price
 				sd.PosSize = a.PosSize
 				sd.RiskedEquity = a.RiskedEquity
@@ -355,6 +357,8 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 			retSimData = append(retSimData, sd)
 		}
 	}
+	// Set Previous Candle for calculation slope for csv
+	previousCandle = newCandleD
 
 	return retCandlesArr, pd, retSimData
 }
@@ -775,16 +779,17 @@ func computeBacktest(
 				emas := calcIndicators(allCandles, relIndex)
 
 				if len(emas) >= 4 {
-					if candlesSkipNum == 0 {
-						labels, candlesSkipNum = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
-					} else {
-						candlesSkipNum--
-					}
+					// if candlesSkipNum == 0 {
+					labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
+					// } else {
+					// 	candlesSkipNum--
+					// }
 				}
 
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
+
 				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles, emas)
 
 				if pcData.Equity > 0 {

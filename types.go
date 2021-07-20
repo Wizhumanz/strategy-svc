@@ -221,20 +221,21 @@ type ProfitCurveData struct {
 }
 
 type SimulatedTradeDataPoint struct {
-	EntryDateTime string  `json:"EntryDateTime"`
-	ExitDateTime  string  `json:"ExitDateTime"`
-	Direction     string  `json:"Direction"`
-	EntryPrice    float64 `json:"EntryPrice"`
-	ExitPrice     float64 `json:"ExitPrice"`
-	PosSize       float64 `json:"PosSize"`
-	RiskedEquity  float64 `json:"RiskedEquity"`
-	Profit        float64 `json:"Profit"`
-	RawProfitPerc float64 `json:"RawProfitPerc"`
-	TotalFees     float64 `json:"TotalFees"`
-	EMA1          float64 `json:"ema1"`
-	EMA2          float64 `json:"ema2"`
-	EMA3          float64 `json:"ema3"`
-	EMA4          float64 `json:"ema4"`
+	PreviousCandle CandlestickChartData `json:"PreviousCandle"`
+	EntryDateTime  string               `json:"EntryDateTime"`
+	ExitDateTime   string               `json:"ExitDateTime"`
+	Direction      string               `json:"Direction"`
+	EntryPrice     float64              `json:"EntryPrice"`
+	ExitPrice      float64              `json:"ExitPrice"`
+	PosSize        float64              `json:"PosSize"`
+	RiskedEquity   float64              `json:"RiskedEquity"`
+	Profit         float64              `json:"Profit"`
+	RawProfitPerc  float64              `json:"RawProfitPerc"`
+	TotalFees      float64              `json:"TotalFees"`
+	EMA1           float64              `json:"ema1"`
+	EMA2           float64              `json:"ema2"`
+	EMA3           float64              `json:"ema3"`
+	EMA4           float64              `json:"ema4"`
 }
 
 type SimulatedTradeData struct {
