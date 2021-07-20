@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"strconv"
@@ -57,17 +58,22 @@ func runBacktest(
 			for slCooldown := 5; slCooldown <= 45; slCooldown += 20 {
 				for _, slPercent := range []float64{1.0, 2.0, 3.0} {
 					for _, tpSingle := range []float64{1.75, 2.6, 3.6} {
-						// fmt.Printf("\npivotLowsNum: %v\n", pivotLowsNum)
-						// fmt.Printf("\nmaxDurationNum: %v\n", maxDurationNum)
-						// fmt.Printf("\nslCooldown: %v\n", slCooldown)
-						// fmt.Printf("\nslPercent: %v\n", slPercent)
-						// fmt.Printf("\ntpSingle: %v\n", tpSingle)
+						fmt.Printf("\npivotLowsNum: %v\n", pivotLowsNum)
+						fmt.Printf("\nmaxDurationNum: %v\n", maxDurationNum)
+						fmt.Printf("\nslCooldown: %v\n", slCooldown)
+						fmt.Printf("\nslPercent: %v\n", slPercent)
+						fmt.Printf("\ntpSingle: %v\n", tpSingle)
 
 						//run strat on all candles in chunk, stream each chunk to client
 						retCandles, retProfitCurve, retSimTrades, _ = computeBacktest(risk, lev, accSz, packetSize, userID, rid, startTime, endTime, userStrat, packetSender, &chunksArr, c, retrieveCandles, pivotLowsNum, maxDurationNum, slCooldown, tpCooldown, slPercent, tpSingle)
+						// out, _ := json.Marshal(retSimTrades[0].Data)
+						// fmt.Printf("\nretSimTrades: %v\n", string(out))
+						var firstTime bool = true
 
 						for i, s := range retSimTrades[0].Data {
-							if s.ExitDateTime != "" && s.Profit > 0 {
+							if s.ExitDateTime != "" && s.RawProfitPerc > 0 {
+								out, _ := json.Marshal(retSimTrades[0].Data[i-1])
+								fmt.Printf("\nindividual: %v\n", string(out))
 								ema1 := retSimTrades[0].Data[i-1].EMA1
 								ema2 := retSimTrades[0].Data[i-1].EMA2
 								ema3 := retSimTrades[0].Data[i-1].EMA3
@@ -82,13 +88,15 @@ func runBacktest(
 
 								min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
 
-								if i == 0 {
+								if firstTime {
 									prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+									firstTime = false
 								} else {
 									if createNewCSV != 50000 {
 										csvAdd := []string{fmt.Sprint(ema1 - prevEma1), fmt.Sprint(ema2 - prevEma2), fmt.Sprint(ema3 - prevEma3), fmt.Sprint(ema4 - prevEma4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
 										csvAppend(csvAdd)
 										prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+
 										createNewCSV++
 									} else {
 										csvData := []string{"Slope_EMA1", "Slope_EMA2", "Slope_EMA3", "Slope_EMA4", "Distance_Btwn_Emas", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
