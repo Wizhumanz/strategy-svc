@@ -1511,7 +1511,7 @@ func listBuckets() ([]string, error) {
 }
 
 // listFiles lists objects within specified bucket.
-func listFiles(bucket string) []string {
+func listFiles(bucket string) []*storage.ObjectAttrs {
 	// bucket := "bucket-name"
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
@@ -1523,7 +1523,7 @@ func listFiles(bucket string) []string {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	var buckets []string
+	var buckets []*storage.ObjectAttrs
 	it := client.Bucket(bucket).Objects(ctx, nil)
 	for {
 		attrs, err := it.Next()
@@ -1531,7 +1531,7 @@ func listFiles(bucket string) []string {
 			break
 		}
 		if err == nil {
-			buckets = append(buckets, attrs.Name)
+			buckets = append(buckets, attrs)
 		}
 	}
 	return buckets
