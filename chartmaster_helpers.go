@@ -644,7 +644,7 @@ func retrieveJsonFromStorage(userID, fileName string, chunksArr *[]*[]Candlestic
 	//get candles json files
 	storageClient, _ := storage.NewClient(ctx)
 	defer storageClient.Close()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*1000)
 	defer cancel()
 	bucketName := "saved_candles-" + userID
 	rc, err := storageClient.Bucket(bucketName).Object(fileName).NewReader(ctx)
@@ -1358,7 +1358,7 @@ func saveCandlesBucket(
 
 	storageClient, _ := storage.NewClient(ctx)
 	defer storageClient.Close()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*1000)
 	defer cancel()
 
 	//if bucket doesn't exist, create new

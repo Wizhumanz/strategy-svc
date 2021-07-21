@@ -214,7 +214,7 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	//get backtest hist file
 	storageClient, _ := storage.NewClient(ctx)
 	defer storageClient.Close()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*1000)
 	defer cancel()
 	userID := shareResult.UserID
 	bucketName := "res-" + userID
