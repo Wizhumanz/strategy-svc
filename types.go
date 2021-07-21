@@ -225,16 +225,17 @@ type ProfitCurveData struct {
 }
 
 type SimulatedTradeDataPoint struct {
-	EntryDateTime string  `json:"EntryDateTime"`
-	ExitDateTime  string  `json:"ExitDateTime"`
-	Direction     string  `json:"Direction"`
-	EntryPrice    float64 `json:"EntryPrice"`
-	ExitPrice     float64 `json:"ExitPrice"`
-	PosSize       float64 `json:"PosSize"`
-	RiskedEquity  float64 `json:"RiskedEquity"`
-	Profit        float64 `json:"Profit"`
-	RawProfitPerc float64 `json:"RawProfitPerc"`
-	TotalFees     float64 `json:"TotalFees"`
+	EntryDateTime string            `json:"EntryDateTime"`
+	ExitDateTime  string            `json:"ExitDateTime"`
+	Direction     string            `json:"Direction"`
+	EntryPrice    float64           `json:"EntryPrice"`
+	ExitPrice     float64           `json:"ExitPrice"`
+	PosSize       float64           `json:"PosSize"`
+	RiskedEquity  float64           `json:"RiskedEquity"`
+	Profit        float64           `json:"Profit"`
+	RawProfitPerc float64           `json:"RawProfitPerc"`
+	TotalFees     float64           `json:"TotalFees"`
+	Settings      map[string]string `json:"Settings"`
 }
 
 type SimulatedTradeData struct {

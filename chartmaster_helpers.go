@@ -155,7 +155,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 var totalCandles []CandlestickChartData
 var previousEquity float64
 
-func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, smas []float64, emas []float64) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
+func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, smas []float64, emas []float64, settings map[string]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
 
 	//candlestick
@@ -343,6 +343,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 				sd.RawProfitPerc = ((a.Price - entryPrice) / entryPrice) * 100
 				sd.TotalFees = a.ExchangeFee
 				sd.Profit = (a.PosSize * a.Price) - (a.PosSize * entryPrice)
+				sd.Settings = settings
 				// fmt.Printf(colorCyan+"<%v> a.PosSize= %v / a.Price= %v / entryPrice= %v\n"+colorReset, relIndex, a.PosSize, a.Price, entryPrice)
 			} else if a.Action == "ENTER" {
 				//only ENTER action
@@ -352,6 +353,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 				sd.TotalFees = a.ExchangeFee
 				sd.EntryDateTime = a.DateTime
 				sd.Direction = "LONG" //TODO: fix later when strategy changes
+				sd.Settings = settings
 			}
 
 			retSimData = append(retSimData, sd)
@@ -731,7 +733,7 @@ func computeBacktest(
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, []float64) (map[string]map[int]string, int),
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, []float64) (map[string]map[int]string, int, map[string]string),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 	chunksArr *[]*[]Candlestick,
 	c chan time.Time,
@@ -796,10 +798,11 @@ func computeBacktest(
 				//TODO: build results and run for different param sets
 				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
 				smas, emas := calcIndicators(allCandles, relIndex)
+				settings := make(map[string]string)
 
 				if len(emas) >= 4 {
 					// if candlesSkipNum == 0 {
-					labels, _ = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
+					labels, _, settings = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
 					// } else {
 					// 	candlesSkipNum--
 					// }
@@ -809,7 +812,7 @@ func computeBacktest(
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
 
-				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles, smas, emas)
+				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles, smas, emas, settings)
 
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
@@ -962,7 +965,7 @@ func computeScan(
 				smas, emas := calcIndicators(allCandles, relIndex)
 
 				//save res data
-				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas)
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, nil)
 				duplicateFound := false
 				for _, v := range chunkAddedScanData {
 					if v.EntryLastPLIndex == pivotScanData.EntryLastPLIndex {

@@ -24,11 +24,12 @@ func strat1(
 	relCandleIndex int,
 	strategy *StrategyExecutor,
 	storage *interface{}, bot Bot,
-	emas []float64) (map[string]map[int]string, int) {
+	emas []float64) (map[string]map[int]string, int, map[string]string) {
 	//TODO: pass these 2 from frontend
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
+	settings := make(map[string]string)
 	var ema1 float64
 	var ema2 float64
 	var ema3 float64
@@ -58,14 +59,19 @@ func strat1(
 			layout := "2006-01-02T15:04:05.0000000Z"
 			time, _ := time.Parse(layout, candles[len(candles)-1].PeriodStart)
 
-			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min, fmt.Sprint(time.Weekday()), fmt.Sprint(time.Month()))
+			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min, fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
+
 			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
 			runMLPeriod = 0
 		} else {
 			runMLPeriod += 1
 		}
 	}
-
+	settings["pivotLowsToEnter"] = fmt.Sprint(pivotLowsToEnter)
+	settings["maxDurationCandles"] = fmt.Sprint(maxDurationCandles)
+	settings["slPerc"] = fmt.Sprint(slPerc)
+	settings["slCooldownCandles"] = fmt.Sprint(slCooldownCandles)
+	settings["tpSingle"] = fmt.Sprint(tpSingle)
 	// fmt.Println(pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
 
 	tpMap := map[float64]float64{
@@ -361,7 +367,7 @@ func strat1(
 	*storage = stored
 
 	if len(stored.PivotHighs)%(pivotLowsToEnter+1) == 0 && len(stored.PivotLows)%(pivotLowsToEnter+1) != 0 {
-		return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - 0
+		return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - 0, settings
 	}
-	return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - (len(stored.PivotLows) % (pivotLowsToEnter + 1))
+	return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - (len(stored.PivotLows) % (pivotLowsToEnter + 1)), settings
 }
