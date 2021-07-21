@@ -1208,7 +1208,7 @@ func saveSharableResult(
 
 	storageClient, _ := storage.NewClient(ctx)
 	defer storageClient.Close()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*1000)
 	defer cancel()
 
 	//if bucket doesn't exist, create new
@@ -1235,7 +1235,7 @@ func saveSharableResult(
 		fmt.Printf("os.Open: %v", err)
 	}
 	defer f.Close()
-	ctx2, cancel := context.WithTimeout(ctx, time.Second*50)
+	ctx2, cancel := context.WithTimeout(ctx, time.Second*1000)
 	defer cancel()
 	// upload object with storage.Writer
 	wc := storageClient.Bucket(bucketName).Object(object).NewWriter(ctx2)
