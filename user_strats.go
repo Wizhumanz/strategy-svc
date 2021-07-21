@@ -58,7 +58,7 @@ func strat1(
 			layout := "2006-01-02T15:04:05.0000000Z"
 			time, _ := time.Parse(layout, candles[len(candles)-1].PeriodStart)
 
-			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min, fmt.Sprint(time.Weekday()), fmt.Sprint(time.Month()))
+			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min, fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
 			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
 			runMLPeriod = 0
 		} else {
