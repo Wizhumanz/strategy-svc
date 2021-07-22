@@ -1535,8 +1535,8 @@ func generateRandomProfitCurve() {
 var count int = 1
 var name string
 
-func csvWrite(data []string) {
-	name = "TradingData" + fmt.Sprint(count) + ".csv"
+func csvWrite(data []string, fileName string) {
+	name = fileName + fmt.Sprint(count) + ".csv"
 
 	file, err := os.Create(name)
 	checkError("Cannot create file", err)

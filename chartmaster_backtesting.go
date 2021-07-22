@@ -41,7 +41,8 @@ func runBacktest(
 
 	// Create csv file
 	csvData := []string{"Slope_EMA1", "Slope_EMA2", "Slope_EMA3", "Slope_EMA4", "Distance_Btwn_Emas", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
-	csvWrite(csvData)
+	csvFileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")"
+	csvWrite(csvData, csvFileName)
 
 	// pivotLowsNum := 5
 	// maxDurationNum := 1000
@@ -92,7 +93,9 @@ func runBacktest(
 									createNewCSV++
 								} else {
 									csvData := []string{"Slope_EMA1", "Slope_EMA2", "Slope_EMA3", "Slope_EMA4", "Distance_Btwn_Emas", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
-									csvWrite(csvData)
+									csvFileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")"
+
+									csvWrite(csvData, csvFileName)
 									csvAdd := []string{fmt.Sprint(ema1 - previousCandle.EMA1), fmt.Sprint(ema2 - previousCandle.EMA2), fmt.Sprint(ema3 - previousCandle.EMA3), fmt.Sprint(ema4 - previousCandle.EMA4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
 									csvAppend(csvAdd)
 									createNewCSV = 0
