@@ -91,15 +91,20 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 		bucketName := "res-" + userID
 		bucketData := listFiles(bucketName)
 		if len(bucketData) >= 10+len(shareResult) {
+			var EarliestFile storage.ObjectAttrs
 			for i, file := range bucketData {
 				// fmt.Println(file)
 				// fmt.Println(shareResult)
 				// fmt.Println(contains(shareResult, strings.Split(file, ".")[0]))
-				if !contains(shareResult, strings.Split(file, ".")[0]) {
-					deleteFile(bucketName, bucketData[i])
-					break
+				if i == 0 {
+					EarliestFile = *file
+				} else {
+					if file.Created.Before(EarliestFile.Created) && !contains(shareResult, strings.Split(file.Name, ".")[0]) {
+						EarliestFile = *file
+					}
 				}
 			}
+			deleteFile(bucketName, EarliestFile.Name)
 		}
 
 		//save result to bucket
@@ -209,7 +214,7 @@ func getShareResultHandler(w http.ResponseWriter, r *http.Request) {
 	//get backtest hist file
 	storageClient, _ := storage.NewClient(ctx)
 	defer storageClient.Close()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*1000)
 	defer cancel()
 	userID := shareResult.UserID
 	bucketName := "res-" + userID
@@ -287,9 +292,14 @@ func getBacktestHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query()["user"][0]
 	bucketData := listFiles("res-" + userID)
 
+	var listName []string
+	for _, l := range bucketData {
+		listName = append(listName, l.Name)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(bucketData)
+	json.NewEncoder(w).Encode(listName)
 }
 
 func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
@@ -312,7 +322,7 @@ func getBacktestResHandler(w http.ResponseWriter, r *http.Request) {
 	//get backtest hist file
 	storageClient, _ := storage.NewClient(ctx)
 	defer storageClient.Close()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*1000)
 	defer cancel()
 	userID := r.URL.Query()["user"][0]
 	bucketName := "res-" + userID
@@ -390,9 +400,14 @@ func getSavedCandlesHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query()["user"][0]
 	bucketData := listFiles("saved_candles-" + userID)
 
+	var listName []string
+	for _, l := range bucketData {
+		listName = append(listName, l.Name)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(bucketData)
+	json.NewEncoder(w).Encode(listName)
 }
 
 func saveCandlesPrepared(startTime, endTime time.Time, period, ticker string, allCandles []Candlestick, userID string) {
