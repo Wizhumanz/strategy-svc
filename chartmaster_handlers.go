@@ -108,7 +108,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//save result to bucket
-		go saveSharableResult(totalCandles, profitCurve, simTrades, bucketName, ticker, period, req.TimeStart, req.TimeEnd, rF, lF, szF)
+		go saveSharableResult(totalCandles, profitCurve, simTrades, bucketName, ticker, period, req.TimeStart, req.TimeEnd, rF, lF, szF, rid)
 	}
 
 	// return

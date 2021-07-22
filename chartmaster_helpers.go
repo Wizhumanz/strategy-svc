@@ -1203,8 +1203,8 @@ func saveSharableResult(
 	c []CandlestickChartData,
 	p []ProfitCurveData,
 	s []SimulatedTradeData,
-	reqBucketname, ticker, period, start, end string, risk, lev, accSize float64) {
-	resFileName := sharableResFile(c, p, s, ticker, period, start, end, risk, lev, accSize)
+	reqBucketname, ticker, period, start, end string, risk, lev, accSize float64, rid string) {
+	resFileName := sharableResFile(c, p, s, ticker, period, start, end, risk, lev, accSize, rid)
 
 	storageClient, _ := storage.NewClient(ctx)
 	defer storageClient.Close()
@@ -1228,7 +1228,7 @@ func saveSharableResult(
 	}
 
 	//create obj
-	object := start + "~" + end + "(" + period + ", " + ticker + ")" + ".json"
+	object := start + "~" + end + "(" + period + ", " + ticker + ")" + rid + ".json"
 	// Open local file
 	f, err := os.Open(resFileName)
 	if err != nil {
@@ -1305,7 +1305,7 @@ func saveBacktestRes(
 	_ = os.Remove(resFileName)
 }
 
-func sharableResFile(c []CandlestickChartData, p []ProfitCurveData, s []SimulatedTradeData, ticker, period, start, end string, risk, lev, accSize float64) string {
+func sharableResFile(c []CandlestickChartData, p []ProfitCurveData, s []SimulatedTradeData, ticker, period, start, end string, risk, lev, accSize float64, rid string) string {
 	//convert candlestick struct to string in order to decrease file size
 	// var fileString string
 	var historyData historyResFile
@@ -1346,7 +1346,7 @@ func sharableResFile(c []CandlestickChartData, p []ProfitCurveData, s []Simulate
 
 	//save candlesticks
 	file, _ := json.MarshalIndent(historyData, "", " ")
-	fileName := fmt.Sprintf("%v.json", start+"~"+end+"("+period+", "+ticker+")")
+	fileName := fmt.Sprintf("%v.json", start+"~"+end+"("+period+", "+ticker+")"+rid)
 	_ = ioutil.WriteFile(fileName, file, 0644)
 
 	return fileName
