@@ -58,10 +58,10 @@ func strat1(
 			min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
 			layout := "2006-01-02T15:04:05.0000000Z"
 			time, _ := time.Parse(layout, candles[len(candles)-1].PeriodStart)
-
-			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min, fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
-			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
-
+			if strategy.GetPosLongSize() == 0 {
+				pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min, fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
+				prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+			}
 			runMLPeriod = 0
 		} else {
 			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
@@ -75,7 +75,7 @@ func strat1(
 	settings["slCooldownCandles"] = fmt.Sprint(slCooldownCandles)
 	settings["tpSingle"] = fmt.Sprint(tpSingle)
 	// fmt.Println(pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
-
+	// fmt.Println(candles[len(candles)-1].PeriodStart, strategy.GetPosLongSize())
 	tpMap := map[float64]float64{
 		// 1.5: 100,
 		// 3.0: 10,
