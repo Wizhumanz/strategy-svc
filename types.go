@@ -189,6 +189,7 @@ type CandlestickChartData struct {
 	SMA2            float64   `json:"sma2"`
 	SMA3            float64   `json:"sma3"`
 	SMA4            float64   `json:"sma4"`
+	VolumeAverage   []float64 `json:"VolumeAverage"`
 }
 
 type ComputeRequest struct {
