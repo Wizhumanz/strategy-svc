@@ -372,8 +372,10 @@ func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, 
 	smas := []float64{}
 	emaPeriods := []int{21, 55, 200, 377}
 	emas := []float64{}
-	volumePeriods := []int{21, 55, 200}
+	volumePeriods := []int{10, 55, 200}
 	volumeAverage := []float64{}
+	volatilityPeriods := []int{10, 55, 200}
+	volatility := []float64{}
 
 	runningTotal := 0.0
 	breakAll := false
@@ -435,6 +437,30 @@ func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, 
 		}
 		volumeAverage = append(volumeAverage, totalSum/float64(a))
 	}
+
+	// CALCULATE VOLATILITY
+	for _, a := range volatilityPeriods {
+		var totalSum float64
+		var totalVariance float64
+		if relIndex < a {
+			break
+		}
+
+		for c := relIndex - a; c < relIndex; c++ {
+			totalSum += candles[c].Close
+			// fmt.Println(candles[c].PeriodStart, candles[c].Volume)
+		}
+
+		mean := totalSum / float64(a)
+		for c := relIndex - a; c < relIndex; c++ {
+			totalVariance += math.Pow((candles[c].Close - mean), 2)
+			// fmt.Println(candles[c].PeriodStart, candles[c].Volume)
+		}
+		totalVariance = totalVariance / float64(a)
+		standardDeviation := math.Sqrt(totalVariance)
+		volatility = append(volumeAverage, standardDeviation)
+	}
+	fmt.Println(volatility)
 
 	return smas, emas, volumeAverage
 }
