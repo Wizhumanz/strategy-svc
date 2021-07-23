@@ -91,17 +91,14 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 		bucketName := "res-" + userID
 		bucketData := listFiles(bucketName)
 		if len(bucketData) >= 10+len(shareResult) {
+			var firstLoop bool = true
 			var EarliestFile storage.ObjectAttrs
-			for i, file := range bucketData {
-				// fmt.Println(file)
-				// fmt.Println(shareResult)
-				// fmt.Println(contains(shareResult, strings.Split(file, ".")[0]))
-				if i == 0 {
+			for _, file := range bucketData {
+				if firstLoop && !contains(shareResult, strings.Split(file.Name, ".")[0]) {
 					EarliestFile = *file
-				} else {
-					if file.Created.Before(EarliestFile.Created) && !contains(shareResult, strings.Split(file.Name, ".")[0]) {
-						EarliestFile = *file
-					}
+					firstLoop = false
+				} else if !firstLoop && file.Created.Before(EarliestFile.Created) && !contains(shareResult, strings.Split(file.Name, ".")[0]) {
+					EarliestFile = *file
 				}
 			}
 			deleteFile(bucketName, EarliestFile.Name)
