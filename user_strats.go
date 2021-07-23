@@ -182,7 +182,7 @@ func strat1(
 
 	//calculate pivots
 	newLabels, _ = findPivots(open, high, low, close, relCandleIndex, &(stored.PivotHighs), &(stored.PivotLows), newLabels)
-
+	// fmt.Println(newLabels, relCandleIndex)
 	latestActions := []StrategyExecutorAction{}
 	for k := 1; k < relCandleIndex; k++ {
 		checkIndex := relCandleIndex - k
