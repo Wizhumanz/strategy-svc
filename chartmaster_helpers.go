@@ -167,6 +167,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 		Low:            c.Low,
 		Close:          c.Close,
 		StratExitPrice: []float64{},
+		Volume:         c.Volume,
 	}
 
 	newCandleD.VolumeAverage = volumeAverage
@@ -689,6 +690,7 @@ func retrieveJsonFromStorage(userID, fileName string, chunksArr *[]*[]Candlestic
 		tempCandle.High, _ = strconv.ParseFloat(tempString[5], 64)
 		tempCandle.Low, _ = strconv.ParseFloat(tempString[6], 64)
 		tempCandle.Close, _ = strconv.ParseFloat(tempString[7], 64)
+		tempCandle.Volume, _ = strconv.ParseFloat(tempString[8], 64)
 		rawRes = append(rawRes, tempCandle)
 	}
 
@@ -1420,12 +1422,13 @@ func saveCandlesBucket(
 
 func candlePeriodResFile(c []Candlestick, ticker, period, start, end string) string {
 	//convert candlestick struct to string in order to decrease file size
+
 	var fileString string
 	for i, cand := range c {
 		if i == 0 {
-			fileString = cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
+			fileString = cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close) + "/" + fmt.Sprintf("%f", cand.Volume)
 		} else {
-			fileString = fileString + ">" + cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
+			fileString = fileString + ">" + cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close) + "/" + fmt.Sprintf("%f", cand.Volume)
 		}
 	}
 
