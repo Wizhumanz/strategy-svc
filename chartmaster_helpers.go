@@ -155,7 +155,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 var totalCandles []CandlestickChartData
 var previousEquity float64
 
-func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, smas []float64, emas []float64, volumeAverage []float64, volatility []float64, settings map[string]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
+func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, smas []float64, emas []float64, volumeAverage []float64, volatility float64, settings map[string]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
 
 	//candlestick
@@ -368,7 +368,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 
 var previousEmas []float64
 
-func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, []float64, []float64) {
+func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, []float64, float64) {
 	smaPeriods := []int{10, 21, 50, 200}
 	smas := []float64{}
 	emaPeriods := []int{21, 55, 200, 377}
@@ -376,7 +376,7 @@ func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, 
 	volumePeriods := []int{10, 55, 200}
 	volumeAverage := []float64{}
 	volatilityPeriods := []int{21}
-	volatility := []float64{}
+	var volatility float64
 
 	runningTotal := 0.0
 	breakAll := false
@@ -459,7 +459,7 @@ func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, 
 		}
 		totalVariance = totalVariance / float64(a)
 		standardDeviation := math.Sqrt(totalVariance)
-		volatility = append(volatility, standardDeviation)
+		volatility = standardDeviation
 	}
 
 	return smas, emas, volumeAverage, volatility
@@ -1010,7 +1010,7 @@ func computeScan(
 				smas, emas, _, _ := calcIndicators(allCandles, relIndex)
 
 				//save res data
-				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, nil, nil, nil)
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, nil, 0, nil)
 				duplicateFound := false
 				for _, v := range chunkAddedScanData {
 					if v.EntryLastPLIndex == pivotScanData.EntryLastPLIndex {
