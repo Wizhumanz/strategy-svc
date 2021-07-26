@@ -373,7 +373,7 @@ func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, 
 	smas := []float64{}
 	emaPeriods := []int{21, 55, 200, 377}
 	emas := []float64{}
-	volumePeriods := []int{10, 55, 200}
+	volumePeriods := []int{10, 21, 55}
 	volumeAverage := []float64{}
 	volatilityPeriods := []int{21}
 	var volatility float64
