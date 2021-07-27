@@ -1007,10 +1007,10 @@ func computeScan(
 				var pivotScanData StrategyDataPoint
 				labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
 
-				smas, emas, _, _ := calcIndicators(allCandles, relIndex)
+				smas, emas, volumeAverage, volatility := calcIndicators(allCandles, relIndex)
 
 				//save res data
-				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, nil, 0, nil)
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, nil)
 				duplicateFound := false
 				for _, v := range chunkAddedScanData {
 					if v.EntryLastPLIndex == pivotScanData.EntryLastPLIndex {
