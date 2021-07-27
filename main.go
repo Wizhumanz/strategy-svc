@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 	"log"
 	"net/http"
 	"runtime"
+	"strings"
 	"time"
 
 	"os"
@@ -133,6 +135,29 @@ func main() {
 		return doContinue
 	}
 
+	fmt.Println("Running...")
+	// data, _ := rdbChartmaster.Do(ctx, "keys", "BINANCEFTS_PERP_BTC_USDT:1MIN:202*").Result()
+	// fmt.Println(strings.Split(data.([]interface{})[1].(string), "N:")[1])
+	// fmt.Println(data.([]interface{}))
+	// earliest, latest := FindMaxAndMin(data)
+	// fmt.Println(earliest, latest)
+
+	var data = [][]string{{"day", "count"}}
+
+	file, errors := os.Create("calendarData.csv")
+	checkError("Cannot create file", errors)
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	for _, value := range data {
+		err := writer.Write(value)
+		checkError("Cannot write to file", err)
+	}
+
+	csvDate()
+
 	//create new redis consumer group for webhookTrades stream
 	_, err := msngr.CreateNewConsumerGroup(newCmdStream, svcConsumerGroupName, "0")
 	if err != nil {
@@ -180,4 +205,59 @@ func main() {
 	port := os.Getenv("PORT")
 	fmt.Println("strategy-svc listening on port " + port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
+}
+
+func FindMaxAndMin(redisDates interface{}) (earliest time.Time, latest time.Time) {
+	layout := "2006-01-02T15:04:05.0000000Z"
+	date := redisDates.([]interface{})[0]
+	if date != nil {
+		earliest, _ = time.Parse(layout, strings.Split(date.(string), "N:")[1])
+		latest = earliest
+	} else {
+		return
+	}
+
+	fmt.Println("kms")
+	for _, rDate := range redisDates.([]interface{}) {
+		if rDate != nil {
+			dateTime := strings.Split(rDate.(string), "N:")[1]
+			layout := "2006-01-02T15:04:05.0000000Z"
+			formattedTime, _ := time.Parse(layout, dateTime)
+			if formattedTime.Before(latest) {
+				latest = formattedTime
+			}
+			if formattedTime.After(earliest) {
+				earliest = formattedTime
+			}
+		}
+	}
+	return earliest, latest
+}
+
+func csvDate() {
+	startDate := "2020-05-01T00:00:00.0000000Z"
+	endDate := "2021-07-04T00:00:00.0000000Z"
+	for {
+		data, _ := rdbChartmaster.Do(ctx, "keys", "BINANCEFTS_PERP_BTC_USDT:1MIN:"+strings.Split(startDate, "T")[0]+"*").Result()
+		if len(data.([]interface{})) == 1440 {
+			// fmt.Println("Whole Day")
+		} else if len(data.([]interface{})) != 0 {
+			// fmt.Println("Incomplete")
+		}
+
+		layout := "2006-01-02T15:04:05.0000000Z"
+		formattedTime, _ := time.Parse(layout, startDate)
+		formattedTime = formattedTime.AddDate(0, 0, 1)
+		startDate = formattedTime.Format(layout)
+
+		if startDate == endDate {
+			break
+		}
+	}
+}
+
+func checkError(message string, err error) {
+	if err != nil {
+		log.Fatal(message, err)
+	}
 }
