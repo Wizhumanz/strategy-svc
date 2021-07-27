@@ -155,7 +155,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 var totalCandles []CandlestickChartData
 var previousEquity float64
 
-func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, smas []float64, emas []float64, settings map[string]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
+func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, smas []float64, emas []float64, volumeAverage []float64, volatility float64, settings map[string]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
 
 	//candlestick
@@ -167,6 +167,9 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 		Low:            c.Low,
 		Close:          c.Close,
 		StratExitPrice: []float64{},
+		Volume:         c.Volume,
+		VolumeAverage:  volumeAverage,
+		Volatility:     volatility,
 	}
 
 	// if relIndex < 200 {
@@ -365,16 +368,20 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 
 var previousEmas []float64
 
-func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64) {
+func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, []float64, float64) {
 	smaPeriods := []int{10, 21, 50, 200}
 	smas := []float64{}
-	emaperiods := []int{21, 55, 200, 377}
+	emaPeriods := []int{21, 55, 200, 377}
 	emas := []float64{}
+	volumePeriods := []int{10, 21, 55}
+	volumeAverage := []float64{}
+	volatilityPeriods := []int{21}
+	var volatility float64
 
 	runningTotal := 0.0
 	breakAll := false
 
-	// fmt.Printf("candles= %v, periods= %v\n", len(candles), periods)
+	// CALCULATE SMAS
 	for i := 0; i < smaPeriods[len(smaPeriods)-1]; i++ {
 		if len(candles) < smaPeriods[0] || breakAll {
 			break
@@ -400,7 +407,8 @@ func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64) 
 		}
 	}
 
-	for i, p := range emaperiods {
+	// CALCULATE EMAS
+	for i, p := range emaPeriods {
 		var totalSum float64
 		if relIndex < p-1 {
 			break
@@ -415,10 +423,46 @@ func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64) 
 			emas = append(emas, (2.0/float64(p+1))*(candles[len(candles)-1].Close-previousEmas[i])+previousEmas[i])
 		}
 	}
-
 	previousEmas = emas
 
-	return smas, emas
+	// CALCULATE AVERAGE VOLUME
+	for _, a := range volumePeriods {
+		var totalSum float64
+		if relIndex < a {
+			break
+		}
+
+		for c := relIndex - a; c < relIndex; c++ {
+			totalSum += candles[c].Volume
+			// fmt.Println(candles[c].PeriodStart, candles[c].Volume)
+		}
+		volumeAverage = append(volumeAverage, totalSum/float64(a))
+	}
+
+	// CALCULATE VOLATILITY
+	for _, a := range volatilityPeriods {
+		var totalSum float64
+		var totalVariance float64
+		if relIndex < a {
+			break
+		}
+
+		for c := relIndex - a; c < relIndex; c++ {
+			totalSum += candles[c].Close
+			// fmt.Println(candles[c].PeriodStart, candles[c].Volume)
+		}
+
+		mean := totalSum / float64(a)
+		for c := relIndex - a; c < relIndex; c++ {
+			totalVariance += math.Pow((candles[c].Close - mean), 2)
+			// fmt.Println(candles[c].PeriodStart, candles[c].Volume)
+		}
+		totalVariance = totalVariance / float64(a)
+		standardDeviation := math.Sqrt(totalVariance)
+		volatility = standardDeviation
+	}
+
+	return smas, emas, volumeAverage, volatility
 }
 
 func getChunkCandleDataAll(chunkSlice *[]Candlestick, packetSize int, ticker, period string,
@@ -672,6 +716,7 @@ func retrieveJsonFromStorage(userID, fileName string, chunksArr *[]*[]Candlestic
 		tempCandle.High, _ = strconv.ParseFloat(tempString[5], 64)
 		tempCandle.Low, _ = strconv.ParseFloat(tempString[6], 64)
 		tempCandle.Close, _ = strconv.ParseFloat(tempString[7], 64)
+		tempCandle.Volume, _ = strconv.ParseFloat(tempString[8], 64)
 		rawRes = append(rawRes, tempCandle)
 	}
 
@@ -767,7 +812,6 @@ func computeBacktest(
 	relIndex := 0
 	requiredTime := startTime
 	for {
-
 		if !retrieveCandles {
 			// Check for all empty candle start time
 			allEmptyCandles = append(allEmptyCandles, <-c)
@@ -797,22 +841,23 @@ func computeBacktest(
 				allCandles = append(allCandles, candle)
 				//TODO: build results and run for different param sets
 				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
-				smas, emas := calcIndicators(allCandles, relIndex)
+				smas, emas, volumeAverage, volatility := calcIndicators(allCandles, relIndex)
+
 				settings := make(map[string]string)
 
-				if len(emas) >= 4 {
-					// if candlesSkipNum == 0 {
-					labels, _, settings = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
-					// } else {
-					// 	candlesSkipNum--
-					// }
-				}
+				// if len(emas) >= 4 {
+				// if candlesSkipNum == 0 {
+				labels, _, settings = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
+				// } else {
+				// 	candlesSkipNum--
+				// }
+				// }
 
 				//build display data using strategySim
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
 
-				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles, smas, emas, settings)
+				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, settings)
 
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
@@ -962,10 +1007,10 @@ func computeScan(
 				var pivotScanData StrategyDataPoint
 				labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
 
-				smas, emas := calcIndicators(allCandles, relIndex)
+				smas, emas, volumeAverage, volatility := calcIndicators(allCandles, relIndex)
 
 				//save res data
-				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, nil)
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, nil)
 				duplicateFound := false
 				for _, v := range chunkAddedScanData {
 					if v.EntryLastPLIndex == pivotScanData.EntryLastPLIndex {
@@ -1402,12 +1447,13 @@ func saveCandlesBucket(
 
 func candlePeriodResFile(c []Candlestick, ticker, period, start, end string) string {
 	//convert candlestick struct to string in order to decrease file size
+
 	var fileString string
 	for i, cand := range c {
 		if i == 0 {
-			fileString = cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
+			fileString = cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close) + "/" + fmt.Sprintf("%f", cand.Volume)
 		} else {
-			fileString = fileString + ">" + cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close)
+			fileString = fileString + ">" + cand.PeriodStart + "/" + cand.PeriodEnd + "/" + cand.TimeOpen + "/" + cand.TimeClose + "/" + fmt.Sprintf("%f", cand.Open) + "/" + fmt.Sprintf("%f", cand.High) + "/" + fmt.Sprintf("%f", cand.Low) + "/" + fmt.Sprintf("%f", cand.Close) + "/" + fmt.Sprintf("%f", cand.Volume)
 		}
 	}
 
