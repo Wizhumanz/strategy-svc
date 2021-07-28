@@ -577,15 +577,33 @@ func getChunkCandleDataOne(chunkSlice *[]Candlestick, packetSize int, ticker, pe
 			candlesInCache = append(candlesInCache, retCandles[0])
 		}
 	}
-	// Fetching candles from COIN API in 300s
-	for i := 0; i < len(candlesNotInCache); i += chunkSize {
-		m.Lock()
-		if len(candlesNotInCache) > i+chunkSize {
-			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
-		} else {
-			chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[len(candlesNotInCache)-1])...)
+
+	// Get all missing candles from redis
+	ctx := context.Background()
+	key := ticker + ":" + period
+	missingCandlesRedis, err := rdbChartmaster.SMembers(ctx, key).Result()
+	if err != nil {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("redis cache candlestick data err: %v\n", err),
+			fmt.Sprintf("<%v> %v", line, file))
+		return
+	}
+
+	// If all candles are missing candles, then don't fetch from COIN API. Otherwise, fetch.
+	for _, c := range candlesNotInCache {
+		if !contains(missingCandlesRedis, c.Format("2006-01-02T15:04:05.0000000Z")) {
+			// Fetching candles from COIN API in 300s
+			for i := 0; i < len(candlesNotInCache); i += chunkSize {
+				m.Lock()
+				if len(candlesNotInCache) > i+chunkSize {
+					chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[i+299])...)
+				} else {
+					chunkCandles = append(chunkCandles, fetchCandleData(ticker, period, candlesNotInCache[i], candlesNotInCache[len(candlesNotInCache)-1])...)
+				}
+				m.Unlock()
+			}
+			break
 		}
-		m.Unlock()
 	}
 
 	// // Fetching candles from Redis cache
