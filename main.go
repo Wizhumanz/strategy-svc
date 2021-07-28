@@ -241,8 +241,15 @@ func csvDate() {
 		data, _ := rdbChartmaster.Do(ctx, "keys", "BINANCEFTS_PERP_BTC_USDT:1MIN:"+strings.Split(startDate, "T")[0]+"*").Result()
 		if len(data.([]interface{})) == 1440 {
 			// fmt.Println("Whole Day")
+			csvData := []string{strings.Split(startDate, "T")[0], "2"}
+			csvAppend(csvData)
 		} else if len(data.([]interface{})) != 0 {
 			// fmt.Println("Incomplete")
+			csvData := []string{strings.Split(startDate, "T")[0], "1"}
+			csvAppend(csvData)
+		} else {
+			csvData := []string{strings.Split(startDate, "T")[0], "0"}
+			csvAppend(csvData)
 		}
 
 		layout := "2006-01-02T15:04:05.0000000Z"
@@ -260,4 +267,15 @@ func checkError(message string, err error) {
 	if err != nil {
 		log.Fatal(message, err)
 	}
+}
+
+func csvAppend(data []string) {
+	f, err := os.OpenFile("calendarData.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	w := csv.NewWriter(f)
+	w.Write(data)
+	w.Flush()
 }
