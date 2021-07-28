@@ -57,55 +57,74 @@ func cacheCandleData(candles []Candlestick, ticker, period string) {
 	}
 }
 
+func cacheMissingCandles(dateTime []string, ticker, period string) {
+	key := ticker + ":" + period
+
+	for _, d := range dateTime {
+		// fmt.Println(c)
+		ctx := context.Background()
+		_, err := rdbChartmaster.SAdd(ctx, key, d).Result()
+		if err != nil {
+			_, file, line, _ := runtime.Caller(0)
+			go Log(fmt.Sprintf("redis cache candlestick data err: %v\n", err),
+				fmt.Sprintf("<%v> %v", line, file))
+			return
+		}
+	}
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf("Saving %v missing candles", len(dateTime)),
+		fmt.Sprintf("<%v> %v", line, file))
+}
+
 func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick {
-	// fetchEndTime := end.Add(1 * periodDurationMap[period])
-	// _, file, line, _ := runtime.Caller(0)
-	// go Log(fmt.Sprintf("FETCHING new candles %v -> %v", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
-	// 	fmt.Sprintf("<%v> %v", line, file))
+	fetchEndTime := end.Add(1 * periodDurationMap[period])
+	_, file, line, _ := runtime.Caller(0)
+	go Log(fmt.Sprintf("FETCHING new candles %v -> %v", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
+		fmt.Sprintf("<%v> %v", line, file))
 
-	// //send request
-	// base := "https://rest.coinapi.io/v1/ohlcv/BINANCEFTS_PERP_BTC_USDT/history" //TODO: build dynamically based on ticker
-	// full := fmt.Sprintf("%s?period_id=%s&time_start=%s&time_end=%s",
-	// 	base,
-	// 	period,
-	// 	start.Format(httpTimeFormat),
-	// 	fetchEndTime.Format(httpTimeFormat))
+	//send request
+	base := "https://rest.coinapi.io/v1/ohlcv/BINANCEFTS_PERP_BTC_USDT/history" //TODO: build dynamically based on ticker
+	full := fmt.Sprintf("%s?period_id=%s&time_start=%s&time_end=%s",
+		base,
+		period,
+		start.Format(httpTimeFormat),
+		fetchEndTime.Format(httpTimeFormat))
 
-	// req, _ := http.NewRequest("GET", full, nil)
-	// req.Header.Add("X-CoinAPI-Key", "170F2DBA-F62F-4649-857C-2A2A5A6C62A1")
-	// client := &http.Client{}
-	// response, err := client.Do(req)
+	req, _ := http.NewRequest("GET", full, nil)
+	req.Header.Add("X-CoinAPI-Key", "170F2DBA-F62F-4649-857C-2A2A5A6C62A1")
+	client := &http.Client{}
+	response, err := client.Do(req)
 
-	// if err != nil {
-	// 	_, file, line, _ := runtime.Caller(0)
-	// 	go Log(fmt.Sprintf("GET candle data err %v\n", err), fmt.Sprintf("<%v> %v", line, file))
-	// 	return nil
-	// }
+	if err != nil {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("GET candle data err %v\n", err), fmt.Sprintf("<%v> %v", line, file))
+		return nil
+	}
 
-	// //parse data
-	// body, _ := ioutil.ReadAll(response.Body)
-	// // fmt.Println(string(body))
-	// var jStruct []Candlestick
-	// errJson := json.Unmarshal(body, &jStruct)
-	// if errJson != nil {
-	// 	_, file, line, _ := runtime.Caller(0)
-	// 	go Log(fmt.Sprintf("JSON unmarshall candle data err %v\n", errJson),
-	// 		fmt.Sprintf("<%v> %v", line, file))
-	// }
-	// //save data to cache so don't have to fetch again
-	// if len(jStruct) > 0 && jStruct[0].Open != 0 {
-	// 	go cacheCandleData(jStruct, ticker, period)
+	//parse data
+	body, _ := ioutil.ReadAll(response.Body)
+	// fmt.Println(string(body))
+	var jStruct []Candlestick
+	errJson := json.Unmarshal(body, &jStruct)
+	if errJson != nil {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("JSON unmarshall candle data err %v\n", errJson),
+			fmt.Sprintf("<%v> %v", line, file))
+	}
+	//save data to cache so don't have to fetch again
+	if len(jStruct) > 0 && jStruct[0].Open != 0 {
+		go cacheCandleData(jStruct, ticker, period)
 
-	// 	//temp save to loval file to preserve CoinAPI credits
-	// 	fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
-	// 	file, _ := json.MarshalIndent(jStruct, "", " ")
-	// 	_ = ioutil.WriteFile(fileName, file, 0644)
-	// } else {
-	// 	_, file, line, _ := runtime.Caller(0)
-	// 	go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
-	// }
-	// return jStruct
-	return nil
+		//temp save to loval file to preserve CoinAPI credits
+		fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
+		file, _ := json.MarshalIndent(jStruct, "", " ")
+		_ = ioutil.WriteFile(fileName, file, 0644)
+	} else {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
+	}
+	return jStruct
+	// return nil
 }
 
 func getCachedCandleData(ticker, period string, start, end time.Time) []Candlestick {
@@ -544,6 +563,7 @@ func getChunkCandleDataOne(chunkSlice *[]Candlestick, packetSize int, ticker, pe
 	var candlesInCache []Candlestick
 	var eachTime time.Time
 	eachTime = fetchCandlesStart
+	var missingCandles []string
 	// WaitGroup used to show that a thread has finished processing
 	defer wg.Done()
 	//check if candles exist in cache
@@ -586,6 +606,7 @@ func getChunkCandleDataOne(chunkSlice *[]Candlestick, packetSize int, ticker, pe
 	if len(chunkCandles) == 0 {
 		for i := 0; i < chunkSize; i += 1 {
 			c <- eachTime
+			missingCandles = append(missingCandles, eachTime.Format("2006-01-02T15:04:05.0000000Z"))
 			eachTime = eachTime.Add(time.Minute * 1)
 			// fmt.Printf("\nchannelB: %v\n", eachTime)
 		}
@@ -602,6 +623,7 @@ func getChunkCandleDataOne(chunkSlice *[]Candlestick, packetSize int, ticker, pe
 
 					// Send missing time through channels
 					c <- eachTime
+					missingCandles = append(missingCandles, eachTime.Format("2006-01-02T15:04:05.0000000Z"))
 
 					// fmt.Printf("\nchannelB: %v\n", eachTime)
 
@@ -611,6 +633,8 @@ func getChunkCandleDataOne(chunkSlice *[]Candlestick, packetSize int, ticker, pe
 
 						if candle.PeriodStart != eachTime.Format(httpTimeFormat)+".0000000Z" {
 							c <- eachTime
+							missingCandles = append(missingCandles, eachTime.Format("2006-01-02T15:04:05.0000000Z"))
+
 							// fmt.Printf("\nchannelC: %v\n", eachTime)
 
 						} else if fetchCandlesEnd == eachTime {
@@ -627,6 +651,8 @@ func getChunkCandleDataOne(chunkSlice *[]Candlestick, packetSize int, ticker, pe
 					for {
 						eachTime = eachTime.Add(time.Minute * 1)
 						c <- eachTime
+						missingCandles = append(missingCandles, eachTime.Format("2006-01-02T15:04:05.0000000Z"))
+
 						// fmt.Printf("\nchannelA: %v\n", eachTime)
 
 						if eachTime == fetchCandlesEnd {
@@ -638,6 +664,11 @@ func getChunkCandleDataOne(chunkSlice *[]Candlestick, packetSize int, ticker, pe
 				eachTime = eachTime.Add(time.Minute * 1)
 			}
 		}
+	}
+
+	// Store all missing candles as a set in redis
+	if len(missingCandles) > 0 {
+		cacheMissingCandles(missingCandles, ticker, period)
 	}
 
 	// Checking for error
