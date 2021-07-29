@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"cloud.google.com/go/datastore"
 	"cloud.google.com/go/storage"
 	"github.com/gorilla/websocket"
 	"google.golang.org/api/iterator"
@@ -77,54 +78,101 @@ func cacheMissingCandles(dateTime []string, ticker, period string) {
 }
 
 func fetchCandleData(ticker, period string, start, end time.Time) []Candlestick {
-	fetchEndTime := end.Add(1 * periodDurationMap[period])
-	_, file, line, _ := runtime.Caller(0)
-	go Log(fmt.Sprintf("FETCHING new candles %v -> %v", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
-		fmt.Sprintf("<%v> %v", line, file))
 
-	//send request
-	base := "https://rest.coinapi.io/v1/ohlcv/BINANCEFTS_PERP_BTC_USDT/history" //TODO: build dynamically based on ticker
-	full := fmt.Sprintf("%s?period_id=%s&time_start=%s&time_end=%s",
-		base,
-		period,
-		start.Format(httpTimeFormat),
-		fetchEndTime.Format(httpTimeFormat))
+	// fetchEndTime := end.Add(1 * periodDurationMap[period])
+	// _, file, line, _ := runtime.Caller(0)
+	// go Log(fmt.Sprintf("FETCHING new candles %v -> %v", start.Format(httpTimeFormat), fetchEndTime.Format(httpTimeFormat)),
+	// 	fmt.Sprintf("<%v> %v", line, file))
 
-	req, _ := http.NewRequest("GET", full, nil)
-	req.Header.Add("X-CoinAPI-Key", "170F2DBA-F62F-4649-857C-2A2A5A6C62A1")
-	client := &http.Client{}
-	response, err := client.Do(req)
+	// //send request
+	// base := "https://rest.coinapi.io/v1/ohlcv/BINANCEFTS_PERP_BTC_USDT/history" //TODO: build dynamically based on ticker
+	// full := fmt.Sprintf("%s?period_id=%s&time_start=%s&time_end=%s",
+	// 	base,
+	// 	period,
+	// 	start.Format(httpTimeFormat),
+	// 	fetchEndTime.Format(httpTimeFormat))
 
-	if err != nil {
+	// req, _ := http.NewRequest("GET", full, nil)
+	// req.Header.Add("X-CoinAPI-Key", "170F2DBA-F62F-4649-857C-2A2A5A6C62A1")
+	// client := &http.Client{}
+	// response, err := client.Do(req)
+
+	// if err != nil {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprintf("GET candle data err %v\n", err), fmt.Sprintf("<%v> %v", line, file))
+	// 	return nil
+	// }
+
+	// //parse data
+	// body, _ := ioutil.ReadAll(response.Body)
+	// // fmt.Println(string(body))
+	// var jStruct []Candlestick
+	// errJson := json.Unmarshal(body, &jStruct)
+	// if errJson != nil {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprintf("JSON unmarshall candle data err %v\n", errJson),
+	// 		fmt.Sprintf("<%v> %v", line, file))
+	// }
+	// //save data to cache so don't have to fetch again
+	// if len(jStruct) > 0 && jStruct[0].Open != 0 {
+	// 	go cacheCandleData(jStruct, ticker, period)
+
+	// 	//temp save to loval file to preserve CoinAPI credits
+	// 	fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
+	// 	file, _ := json.MarshalIndent(jStruct, "", " ")
+	// 	_ = ioutil.WriteFile(fileName, file, 0644)
+	// } else {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
+	// }
+	// return jStruct
+	return nil
+}
+
+func addNewRangeForCalendar(ticker, period string, start, end time.Time) {
+	var calendarData Calendar
+	query := datastore.NewQuery("Calendar").Filter("Ticker =", ticker).Filter("Period =", period)
+	t := dsClient.Run(ctx, query)
+	_, error := t.Next(&calendarData)
+	if error != nil {
 		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("GET candle data err %v\n", err), fmt.Sprintf("<%v> %v", line, file))
-		return nil
+		Log(error.Error(), fmt.Sprintf("<%v> %v", line, file))
 	}
 
-	//parse data
-	body, _ := ioutil.ReadAll(response.Body)
-	// fmt.Println(string(body))
-	var jStruct []Candlestick
-	errJson := json.Unmarshal(body, &jStruct)
-	if errJson != nil {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprintf("JSON unmarshall candle data err %v\n", errJson),
-			fmt.Sprintf("<%v> %v", line, file))
-	}
-	//save data to cache so don't have to fetch again
-	if len(jStruct) > 0 && jStruct[0].Open != 0 {
-		go cacheCandleData(jStruct, ticker, period)
+	var addCalendarData Calendar
+	addCalendarData.Period = calendarData.Period
+	addCalendarData.Ticker = calendarData.Ticker
 
-		//temp save to loval file to preserve CoinAPI credits
-		fileName := fmt.Sprintf("%v,%v,%v,%v|%v.json", ticker, period, start, end, time.Now().Unix())
-		file, _ := json.MarshalIndent(jStruct, "", " ")
-		_ = ioutil.WriteFile(fileName, file, 0644)
-	} else {
-		_, file, line, _ := runtime.Caller(0)
-		go Log(fmt.Sprint(string(body)), fmt.Sprintf("<%v> %v", line, file))
+	for _, c := range calendarData.DateRange {
+		dateRange := strings.Split(c, "~")
+		layout := "2006-01-02T15:04:05.0000000Z"
+		startRange, _ := time.Parse(layout, dateRange[0])
+		endRange, _ := time.Parse(layout, dateRange[1])
+
+		if startRange.After(start) && endRange.After(end) && startRange.After(end) || startRange.Before(start) && endRange.Before(end) && end.Before(start) {
+			// Add new range
+			addCalendarData.DateRange = append(addCalendarData.DateRange, start.Format("2006-01-02T15:04:05.0000000Z")+"~"+end.Format("2006-01-02T15:04:05.0000000Z"))
+			fmt.Println("1")
+		} else if startRange.After(start) && endRange.After(start) && startRange.Before(end) && endRange.After(end) {
+			// Change beginning range
+			addCalendarData.DateRange = append(addCalendarData.DateRange, start.Format("2006-01-02T15:04:05.0000000Z")+"~"+endRange.Format("2006-01-02T15:04:05.0000000Z"))
+			fmt.Println("2")
+
+		} else if startRange.Before(start) && endRange.After(start) && startRange.Before(end) && endRange.Before(end) {
+			// Change end range
+			addCalendarData.DateRange = append(addCalendarData.DateRange, startRange.Format("2006-01-02T15:04:05.0000000Z")+"~"+end.Format("2006-01-02T15:04:05.0000000Z"))
+			fmt.Println("3")
+
+		} else {
+			addCalendarData.DateRange = append(addCalendarData.DateRange, c)
+			fmt.Println("4")
+		}
 	}
-	return jStruct
-	// return nil
+
+	// newKey := datastore.NewUpdate(calendarData.K, kind)
+	if _, err := dsClient.Put(ctx, calendarData.K, &addCalendarData); err != nil {
+		log.Fatalf("Failed to add range to calendar: %v", err)
+	}
 }
 
 func getCachedCandleData(ticker, period string, start, end time.Time) []Candlestick {
@@ -725,6 +773,8 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 		//increment
 		fetchCandlesStart = fetchCandlesEnd
 	}
+
+	addNewRangeForCalendar("BINANCEFTS_PERP_BTC_USDT", "1MIN", startTime, endTime)
 
 	// Close channel afterwards. Otherwise, the program will get stuck
 	go func() {
@@ -1446,8 +1496,7 @@ func sharableResFile(c []CandlestickChartData, p []ProfitCurveData, s []Simulate
 	return fileName
 }
 
-func saveCandlesBucket(
-	c []Candlestick, reqBucketname, ticker, period, start, end string) {
+func saveCandlesBucket(c []Candlestick, reqBucketname, ticker, period, start, end string) {
 	resFileName := candlePeriodResFile(c, ticker, period, start, end)
 
 	storageClient, _ := storage.NewClient(ctx)

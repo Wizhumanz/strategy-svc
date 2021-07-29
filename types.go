@@ -217,6 +217,13 @@ type ShareResult struct {
 	UserID         string `json:"userID"`
 }
 
+type Calendar struct {
+	K         *datastore.Key `datastore:"__key__"`
+	Ticker    string         `json:"Ticker"`
+	Period    string         `json:"Period"`
+	DateRange []string       `json:"DateRange"`
+}
+
 type ProfitCurveDataPoint struct {
 	DateTime string  `json:"DateTime"`
 	Equity   float64 `json:"Equity"`

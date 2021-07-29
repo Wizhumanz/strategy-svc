@@ -102,6 +102,48 @@ func main() {
 	periodDurationMap["1DAY"] = 24 * time.Hour
 	periodDurationMap["2DAY"] = 48 * time.Hour
 
+	// cam := []string{"2020-01-01T00:00:00.0000000Z~2020-03-30T23:59:00.0000000Z", "2020-05-01T00:00:00.0000000Z~2021-06-30T23:59:00.0000000Z", "2021-11-01T00:00:00.0000000Z~2021-12-01T23:59:00.0000000Z"}
+
+	// var asdf []string
+	// for _, c := range cam {
+	// 	dateRange := strings.Split(c, "~")
+	// 	layout := "2006-01-02T15:04:05.0000000Z"
+	// 	startRange, _ := time.Parse(layout, dateRange[0])
+	// 	endRange, _ := time.Parse(layout, dateRange[1])
+	// 	fmt.Printf("\nstartRange: %v\n", startRange)
+	// 	fmt.Printf("\nendRange: %v\n", endRange)
+
+	// 	start, _ := time.Parse(layout, "2020-01-30T00:00:00.0000000Z")
+	// 	end, _ := time.Parse(layout, "2020-04-02T00:00:00.0000000Z")
+	// 	fmt.Printf("\nstart: %v\n", start)
+	// 	fmt.Printf("\nend: %v\n", end)
+
+	// 	if startRange.After(start) && endRange.After(end) && startRange.After(end) || startRange.Before(start) && endRange.Before(end) && end.Before(start) {
+	// 		// Add new range
+	// 		asdf = append(asdf, start.Format("2006-01-02T15:04:05.0000000Z")+"~"+end.Format("2006-01-02T15:04:05.0000000Z"))
+
+	// 		fmt.Println("1")
+	// 	} else if startRange.After(start) && endRange.After(start) && startRange.Before(end) && endRange.After(end) {
+	// 		// Change beginning range
+	// 		asdf = append(asdf, start.Format("2006-01-02T15:04:05.0000000Z")+"~"+endRange.Format("2006-01-02T15:04:05.0000000Z"))
+
+	// 		fmt.Println("2")
+
+	// 	} else if startRange.Before(start) && endRange.After(start) && startRange.Before(end) && endRange.Before(end) {
+	// 		// Change end range
+	// 		asdf = append(asdf, startRange.Format("2006-01-02T15:04:05.0000000Z")+"~"+end.Format("2006-01-02T15:04:05.0000000Z"))
+
+	// 		fmt.Println("3")
+
+	// 	} else {
+	// 		asdf = append(asdf, c)
+
+	// 		fmt.Println("4")
+	// 	}
+	// }
+
+	// fmt.Println(asdf)
+
 	//note: stream listening pause + continue handlers in StatusActivateHandler
 	botStatusChangeHandlers := []msngr.CommandHandler{
 		{
