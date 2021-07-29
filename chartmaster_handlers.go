@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -414,4 +416,138 @@ func saveCandlesPrepared(startTime, endTime time.Time, period, ticker string, al
 	tickerSave = ticker
 	allCandlesSave = allCandles
 	userIDSave = userID
+}
+
+func availableCandlesInRedis(w http.ResponseWriter, r *http.Request) {
+	setupCORS(&w, r)
+	if (*r).Method == "OPTIONS" {
+		return
+	}
+
+	ticker := r.URL.Query()["ticker"][0]
+	period := r.URL.Query()["period"][0]
+
+	fmt.Println(ticker, period)
+
+	var calendar Calendar
+	query := datastore.NewQuery("Calendar").Filter("Ticker =", ticker).Filter("Period =", period)
+	t := dsClient.Run(ctx, query)
+	_, error := t.Next(&calendar)
+	if error != nil {
+		_, file, line, _ := runtime.Caller(0)
+		Log(error.Error(), fmt.Sprintf("<%v> %v", line, file))
+	}
+
+	var calendarData []CalendarData
+	for _, c := range calendar.DateRange {
+		dateRange := strings.Split(c, "~")
+		layout := "2006-01-02T15:04:05.0000000Z"
+		startRange, _ := time.Parse(layout, dateRange[0])
+		endRange, _ := time.Parse(layout, dateRange[1])
+
+		for i := startRange; i.Before(endRange); i = i.AddDate(0, 0, 1) {
+			var x CalendarData
+			x.Count = "2"
+			x.Day = i.Format("2006-01-02")
+			calendarData = append(calendarData, x)
+		}
+	}
+	// createCSVForAvailableCandles(ticker, period, calendar.DateRange)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(calendarData)
+}
+
+func createCSVForAvailableCandles(ticker, period string, dateRange []string) {
+	resFileName := candlesAvailabilityResFile(ticker, period, dateRange)
+	reqBucketname := "candles_availability"
+	storageClient, _ := storage.NewClient(ctx)
+	defer storageClient.Close()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*1000)
+	defer cancel()
+
+	//if bucket doesn't exist, create new
+	buckets, _ := listBuckets()
+	var bucketName string
+	for _, bn := range buckets {
+		if bn == reqBucketname {
+			bucketName = bn
+		}
+	}
+	if bucketName == "" {
+		bucket := storageClient.Bucket(reqBucketname)
+		if err := bucket.Create(ctx, googleProjectID, nil); err != nil {
+			fmt.Printf("Failed to create bucket: %v", err)
+		}
+		bucketName = reqBucketname
+	}
+
+	//create obj
+	object := ticker + ":" + period + ".csv"
+	// Open local file
+	f, err := os.Open(resFileName)
+	if err != nil {
+		fmt.Printf("os.Open: %v", err)
+	}
+	defer f.Close()
+	ctx2, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
+	// upload object with storage.Writer
+	wc := storageClient.Bucket(bucketName).Object(object).NewWriter(ctx2)
+	if _, err = io.Copy(wc, f); err != nil {
+		fmt.Printf("io.Copy: %v", err)
+	}
+	if err := wc.Close(); err != nil {
+		fmt.Printf("Writer.Close: %v", err)
+	}
+
+	//remove local file
+	_ = os.Remove(resFileName)
+}
+
+func candlesAvailabilityResFile(ticker, period string, dateRange []string) string {
+	var fileString string
+
+	// Get all missing candles from redis
+	// ctx := context.Background()
+	// key := ticker + ":" + period
+	// missingCandlesRedis, err := rdbChartmaster.SMembers(ctx, key).Result()
+	// if err != nil {
+	// 	_, file, line, _ := runtime.Caller(0)
+	// 	go Log(fmt.Sprintf("redis cache candlestick data err: %v\n", err),
+	// 		fmt.Sprintf("<%v> %v", line, file))
+	// }
+	// firstRow := []string{"day", "count"}
+	// fileString = "day + count"
+
+	// csvWrite(firstRow, ticker+":"+period+".csv")
+	first := true
+	for _, c := range dateRange {
+		dateRange := strings.Split(c, "~")
+		layout := "2006-01-02T15:04:05.0000000Z"
+		startRange, _ := time.Parse(layout, dateRange[0])
+		endRange, _ := time.Parse(layout, dateRange[1])
+
+		for i := startRange; i.Before(endRange); i = i.AddDate(0, 0, 1) {
+			// row := []string{i.Format("2006-01-02"), "2"}
+			// fileString = append(fileString, row...)
+
+			if first {
+				fileString = i.Format("2006-01-02") + "+" + "2"
+				first = false
+			} else {
+				fileString = fileString + "=" + i.Format("2006-01-02") + "+" + "2"
+			}
+
+			// csvAppend(row, ticker+":"+period+".csv")
+		}
+	}
+
+	//save candlesticks
+	file, _ := json.Marshal(fileString)
+	fileName := fmt.Sprintf("%v.csv", ticker+":"+period)
+	_ = ioutil.WriteFile(fileName, file, 0644)
+
+	return fileName
 }

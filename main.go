@@ -102,8 +102,11 @@ func main() {
 	periodDurationMap["1DAY"] = 24 * time.Hour
 	periodDurationMap["2DAY"] = 48 * time.Hour
 
-	// cam := []string{"2020-01-01T00:00:00.0000000Z~2020-03-30T23:59:00.0000000Z", "2020-05-01T00:00:00.0000000Z~2021-06-30T23:59:00.0000000Z", "2021-11-01T00:00:00.0000000Z~2021-12-01T23:59:00.0000000Z"}
-
+	// cal := []string{"2020-01-01T00:00:00.0000000Z~2020-03-30T23:59:00.0000000Z", "2020-05-01T00:00:00.0000000Z~2021-06-30T23:59:00.0000000Z", "2021-11-01T00:00:00.0000000Z~2021-12-01T23:59:00.0000000Z"}
+	// ticker := "BINANCEFTS_PERP_BTC_USDT"
+	// period := "1MIN"
+	// createCSVForAvailableCandles(ticker, period, cal)
+	fmt.Println("DONE")
 	// var asdf []string
 	// for _, c := range cam {
 	// 	dateRange := strings.Split(c, "~")
@@ -218,6 +221,8 @@ func main() {
 
 	router.Methods("GET", "OPTIONS").Path("/savedCandlesHistory").HandlerFunc(getSavedCandlesHandler)
 	router.Methods("POST", "OPTIONS").Path("/saveCandlesToJson").HandlerFunc(saveCandlesToJson)
+
+	router.Methods("GET", "OPTIONS").Path("/availableCandlesInRedis").HandlerFunc(availableCandlesInRedis)
 
 	port := os.Getenv("PORT")
 	fmt.Println("strategy-svc listening on port " + port)

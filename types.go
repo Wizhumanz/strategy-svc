@@ -224,6 +224,11 @@ type Calendar struct {
 	DateRange []string       `json:"DateRange"`
 }
 
+type CalendarData struct {
+	Count string `json:"Count"`
+	Day   string `json:"Day"`
+}
+
 type ProfitCurveDataPoint struct {
 	DateTime string  `json:"DateTime"`
 	Equity   float64 `json:"Equity"`

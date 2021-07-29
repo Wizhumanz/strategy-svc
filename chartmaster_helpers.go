@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -1862,4 +1864,51 @@ func findMinAndMax(a []float64) (min float64, max float64) {
 		}
 	}
 	return min, max
+}
+
+func csvWrite(data []string, fileName string) {
+	file, err := os.Create(fileName)
+	checkError("Cannot create file", err)
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	error := writer.Write(data)
+	checkError("Cannot write to file", error)
+}
+
+func checkError(message string, err error) {
+	if err != nil {
+		log.Fatal(message, err)
+	}
+}
+
+//csvWriter appends a slice of strings to a CSV file
+func csvAppend(data []string, fileName string) {
+	f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	w := csv.NewWriter(f)
+	w.Write(data)
+	w.Flush()
+}
+
+func WriteAll(records [][]string) ([]byte, error) {
+	if records == nil || len(records) == 0 {
+		return nil, errors.New("records cannot be nil or empty")
+	}
+	var buf bytes.Buffer
+	csvWriter := csv.NewWriter(&buf)
+	err := csvWriter.WriteAll(records)
+	if err != nil {
+		return nil, err
+	}
+	csvWriter.Flush()
+	if err := csvWriter.Error(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
