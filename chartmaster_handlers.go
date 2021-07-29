@@ -427,8 +427,7 @@ func availableCandlesInRedis(w http.ResponseWriter, r *http.Request) {
 	ticker := r.URL.Query()["ticker"][0]
 	period := r.URL.Query()["period"][0]
 
-	fmt.Println(ticker, period)
-
+	// Get calendar range from datastore
 	var calendar Calendar
 	query := datastore.NewQuery("Calendar").Filter("Ticker =", ticker).Filter("Period =", period)
 	t := dsClient.Run(ctx, query)
@@ -438,6 +437,27 @@ func availableCandlesInRedis(w http.ResponseWriter, r *http.Request) {
 		Log(error.Error(), fmt.Sprintf("<%v> %v", line, file))
 	}
 
+	// Get all missing candles from redis
+	ctx := context.Background()
+	key := ticker + ":" + period
+	missingCandlesRedis, err := rdbChartmaster.SMembers(ctx, key).Result()
+	if err != nil {
+		_, file, line, _ := runtime.Caller(0)
+		go Log(fmt.Sprintf("redis cache candlestick data err: %v\n", err),
+			fmt.Sprintf("<%v> %v", line, file))
+		return
+	}
+
+	// Remove specific time and only store year, month, and day
+	var missingCandlesOnlyDate []string
+	for _, m := range missingCandlesRedis {
+		onlyDate := strings.Split(m, "T")[0]
+		if !contains(missingCandlesOnlyDate, onlyDate) {
+			missingCandlesOnlyDate = append(missingCandlesOnlyDate, strings.Split(m, "T")[0])
+		}
+	}
+
+	// Create data that has all days and counts
 	var calendarData []CalendarData
 	for _, c := range calendar.DateRange {
 		dateRange := strings.Split(c, "~")
@@ -447,7 +467,12 @@ func availableCandlesInRedis(w http.ResponseWriter, r *http.Request) {
 
 		for i := startRange; i.Before(endRange); i = i.AddDate(0, 0, 1) {
 			var x CalendarData
-			x.Count = "2"
+
+			if contains(missingCandlesOnlyDate, i.Format("2006-01-02")) {
+				x.Count = "1"
+			} else {
+				x.Count = "2"
+			}
 			x.Day = i.Format("2006-01-02")
 			calendarData = append(calendarData, x)
 		}
