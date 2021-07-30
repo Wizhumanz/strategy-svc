@@ -102,50 +102,6 @@ func main() {
 	periodDurationMap["1DAY"] = 24 * time.Hour
 	periodDurationMap["2DAY"] = 48 * time.Hour
 
-	// cal := []string{"2020-01-30T00:00:00.0000000Z~2020-03-30T23:59:00.0000000Z"}
-	// layout := "2006-01-02T15:04:05.0000000Z"
-	// start, _ := time.Parse(layout, "2019-10-01T00:00:00.0000000Z")
-	// end, _ := time.Parse(layout, "2019-11-14T00:00:00.0000000Z")
-
-	// var addCalendarData Calendar
-	// var saveStartRange time.Time = start
-	// var saveEndRange time.Time = end
-
-	// for _, c := range cal {
-	// 	dateRange := strings.Split(c, "~")
-	// 	layout := "2006-01-02T15:04:05.0000000Z"
-	// 	startRange, _ := time.Parse(layout, dateRange[0])
-	// 	endRange, _ := time.Parse(layout, dateRange[1])
-	// 	samePeriod := false
-	// 	secondPeriodActivated := false
-
-	// 	if start.After(startRange) && start.Before(endRange) {
-	// 		saveStartRange = startRange
-	// 		samePeriod = true
-	// 	}
-
-	// 	if end.After(startRange) && end.Before(endRange) {
-	// 		saveEndRange = endRange
-	// 		secondPeriodActivated = true
-	// 		// If both start and end are inside the same range, we don't save that range because it already exists.
-	// 		if samePeriod {
-	// 			saveStartRange = time.Time{}
-	// 			saveEndRange = time.Time{}
-	// 			addCalendarData.DateRange = append(addCalendarData.DateRange, c)
-	// 		}
-	// 	}
-
-	// 	if (!samePeriod && !secondPeriodActivated) && !(start.Before(startRange) && start.Before(endRange) && end.After(startRange) && end.After(endRange)) {
-	// 		addCalendarData.DateRange = append(addCalendarData.DateRange, c)
-	// 	}
-	// }
-
-	// if !saveStartRange.Equal(time.Time{}) && !saveEndRange.Equal(time.Time{}) {
-	// 	addCalendarData.DateRange = append(addCalendarData.DateRange, saveStartRange.Format("2006-01-02T15:04:05.0000000Z")+"~"+saveEndRange.Format("2006-01-02T15:04:05.0000000Z"))
-	// }
-
-	// fmt.Println(addCalendarData.DateRange)
-
 	//note: stream listening pause + continue handlers in StatusActivateHandler
 	botStatusChangeHandlers := []msngr.CommandHandler{
 		{
