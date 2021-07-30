@@ -144,31 +144,41 @@ func addNewRangeForCalendar(ticker, period string, start, end time.Time) {
 	var addCalendarData Calendar
 	addCalendarData.Period = calendarData.Period
 	addCalendarData.Ticker = calendarData.Ticker
+	var saveStartRange time.Time = start
+	var saveEndRange time.Time = end
 
 	for _, c := range calendarData.DateRange {
+		fmt.Println(c)
 		dateRange := strings.Split(c, "~")
 		layout := "2006-01-02T15:04:05.0000000Z"
 		startRange, _ := time.Parse(layout, dateRange[0])
 		endRange, _ := time.Parse(layout, dateRange[1])
+		samePeriod := false
+		secondPeriodActivated := false
 
-		if startRange.After(start) && endRange.After(end) && startRange.After(end) || startRange.Before(start) && endRange.Before(end) && end.Before(start) {
-			// Add new range
-			addCalendarData.DateRange = append(addCalendarData.DateRange, start.Format("2006-01-02T15:04:05.0000000Z")+"~"+end.Format("2006-01-02T15:04:05.0000000Z"))
-			fmt.Println("1")
-		} else if startRange.After(start) && endRange.After(start) && startRange.Before(end) && endRange.After(end) {
-			// Change beginning range
-			addCalendarData.DateRange = append(addCalendarData.DateRange, start.Format("2006-01-02T15:04:05.0000000Z")+"~"+endRange.Format("2006-01-02T15:04:05.0000000Z"))
-			fmt.Println("2")
-
-		} else if startRange.Before(start) && endRange.After(start) && startRange.Before(end) && endRange.Before(end) {
-			// Change end range
-			addCalendarData.DateRange = append(addCalendarData.DateRange, startRange.Format("2006-01-02T15:04:05.0000000Z")+"~"+end.Format("2006-01-02T15:04:05.0000000Z"))
-			fmt.Println("3")
-
-		} else {
-			addCalendarData.DateRange = append(addCalendarData.DateRange, c)
-			fmt.Println("4")
+		if start.After(startRange) && start.Before(endRange) {
+			saveStartRange = startRange
+			samePeriod = true
 		}
+
+		if end.After(startRange) && end.Before(endRange) {
+			saveEndRange = endRange
+			secondPeriodActivated = true
+			// If both start and end are inside the same range, we don't save that range because it already exists.
+			if samePeriod {
+				saveStartRange = time.Time{}
+				saveEndRange = time.Time{}
+				addCalendarData.DateRange = append(addCalendarData.DateRange, c)
+			}
+		}
+
+		if (!samePeriod && !secondPeriodActivated) && !(start.Before(startRange) && start.Before(endRange) && end.After(startRange) && end.After(endRange)) {
+			addCalendarData.DateRange = append(addCalendarData.DateRange, c)
+		}
+	}
+
+	if !saveStartRange.Equal(time.Time{}) && !saveEndRange.Equal(time.Time{}) {
+		addCalendarData.DateRange = append(addCalendarData.DateRange, saveStartRange.Format("2006-01-02T15:04:05.0000000Z")+"~"+saveEndRange.Format("2006-01-02T15:04:05.0000000Z"))
 	}
 
 	// newKey := datastore.NewUpdate(calendarData.K, kind)
@@ -764,7 +774,6 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 			fetchCandlesEnd = endTime
 		}
 		var chunkSlice []Candlestick
-
 		*chunksArr = append(*chunksArr, &chunkSlice)
 		if processOption == "RAINDROPS" {
 			go getChunkCandleDataOne(&chunkSlice, chunkSize, ticker, period, startTime, endTime, fetchCandlesStart, fetchCandlesEnd, c, &wg, &m)
@@ -776,8 +785,8 @@ func concFetchCandleData(startTime, endTime time.Time, period, ticker string, pa
 		fetchCandlesStart = fetchCandlesEnd
 	}
 
+	// Add new ranges to datastore
 	addNewRangeForCalendar("BINANCEFTS_PERP_BTC_USDT", "1MIN", startTime, endTime)
-
 	// Close channel afterwards. Otherwise, the program will get stuck
 	go func() {
 		wg.Wait()

@@ -477,6 +477,7 @@ func availableCandlesInRedis(w http.ResponseWriter, r *http.Request) {
 			calendarData = append(calendarData, x)
 		}
 	}
+
 	// createCSVForAvailableCandles(ticker, period, calendar.DateRange)
 
 	w.Header().Set("Content-Type", "application/json")

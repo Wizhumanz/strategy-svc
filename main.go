@@ -102,50 +102,49 @@ func main() {
 	periodDurationMap["1DAY"] = 24 * time.Hour
 	periodDurationMap["2DAY"] = 48 * time.Hour
 
-	// cal := []string{"2020-01-01T00:00:00.0000000Z~2020-03-30T23:59:00.0000000Z", "2020-05-01T00:00:00.0000000Z~2021-06-30T23:59:00.0000000Z", "2021-11-01T00:00:00.0000000Z~2021-12-01T23:59:00.0000000Z"}
-	// ticker := "BINANCEFTS_PERP_BTC_USDT"
-	// period := "1MIN"
-	// createCSVForAvailableCandles(ticker, period, cal)
-	fmt.Println("DONE")
-	// var asdf []string
-	// for _, c := range cam {
+	// cal := []string{"2020-01-30T00:00:00.0000000Z~2020-03-30T23:59:00.0000000Z"}
+	// layout := "2006-01-02T15:04:05.0000000Z"
+	// start, _ := time.Parse(layout, "2019-10-01T00:00:00.0000000Z")
+	// end, _ := time.Parse(layout, "2019-11-14T00:00:00.0000000Z")
+
+	// var addCalendarData Calendar
+	// var saveStartRange time.Time = start
+	// var saveEndRange time.Time = end
+
+	// for _, c := range cal {
 	// 	dateRange := strings.Split(c, "~")
 	// 	layout := "2006-01-02T15:04:05.0000000Z"
 	// 	startRange, _ := time.Parse(layout, dateRange[0])
 	// 	endRange, _ := time.Parse(layout, dateRange[1])
-	// 	fmt.Printf("\nstartRange: %v\n", startRange)
-	// 	fmt.Printf("\nendRange: %v\n", endRange)
+	// 	samePeriod := false
+	// 	secondPeriodActivated := false
 
-	// 	start, _ := time.Parse(layout, "2020-01-30T00:00:00.0000000Z")
-	// 	end, _ := time.Parse(layout, "2020-04-02T00:00:00.0000000Z")
-	// 	fmt.Printf("\nstart: %v\n", start)
-	// 	fmt.Printf("\nend: %v\n", end)
+	// 	if start.After(startRange) && start.Before(endRange) {
+	// 		saveStartRange = startRange
+	// 		samePeriod = true
+	// 	}
 
-	// 	if startRange.After(start) && endRange.After(end) && startRange.After(end) || startRange.Before(start) && endRange.Before(end) && end.Before(start) {
-	// 		// Add new range
-	// 		asdf = append(asdf, start.Format("2006-01-02T15:04:05.0000000Z")+"~"+end.Format("2006-01-02T15:04:05.0000000Z"))
+	// 	if end.After(startRange) && end.Before(endRange) {
+	// 		saveEndRange = endRange
+	// 		secondPeriodActivated = true
+	// 		// If both start and end are inside the same range, we don't save that range because it already exists.
+	// 		if samePeriod {
+	// 			saveStartRange = time.Time{}
+	// 			saveEndRange = time.Time{}
+	// 			addCalendarData.DateRange = append(addCalendarData.DateRange, c)
+	// 		}
+	// 	}
 
-	// 		fmt.Println("1")
-	// 	} else if startRange.After(start) && endRange.After(start) && startRange.Before(end) && endRange.After(end) {
-	// 		// Change beginning range
-	// 		asdf = append(asdf, start.Format("2006-01-02T15:04:05.0000000Z")+"~"+endRange.Format("2006-01-02T15:04:05.0000000Z"))
-
-	// 		fmt.Println("2")
-
-	// 	} else if startRange.Before(start) && endRange.After(start) && startRange.Before(end) && endRange.Before(end) {
-	// 		// Change end range
-	// 		asdf = append(asdf, startRange.Format("2006-01-02T15:04:05.0000000Z")+"~"+end.Format("2006-01-02T15:04:05.0000000Z"))
-
-	// 		fmt.Println("3")
-
-	// 	} else {
-	// 		asdf = append(asdf, c)
-
-	// 		fmt.Println("4")
+	// 	if (!samePeriod && !secondPeriodActivated) && !(start.Before(startRange) && start.Before(endRange) && end.After(startRange) && end.After(endRange)) {
+	// 		addCalendarData.DateRange = append(addCalendarData.DateRange, c)
 	// 	}
 	// }
 
-	// fmt.Println(asdf)
+	// if !saveStartRange.Equal(time.Time{}) && !saveEndRange.Equal(time.Time{}) {
+	// 	addCalendarData.DateRange = append(addCalendarData.DateRange, saveStartRange.Format("2006-01-02T15:04:05.0000000Z")+"~"+saveEndRange.Format("2006-01-02T15:04:05.0000000Z"))
+	// }
+
+	// fmt.Println(addCalendarData.DateRange)
 
 	//note: stream listening pause + continue handlers in StatusActivateHandler
 	botStatusChangeHandlers := []msngr.CommandHandler{
