@@ -349,6 +349,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 				// fmt.Printf(colorCyan+"<%v> a.PosSize= %v / a.Price= %v / entryPrice= %v\n"+colorReset, relIndex, a.PosSize, a.Price, entryPrice)
 			} else if a.Action == "ENTER" {
 				//only ENTER action
+				sd.PreviousCandle = previousCandle
 				sd.EntryPrice = a.Price
 				sd.PosSize = a.PosSize
 				sd.RiskedEquity = a.RiskedEquity
@@ -360,6 +361,9 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 			retSimData = append(retSimData, sd)
 		}
 	}
+
+	// Set Previous Candle for calculation slope for csv
+	previousCandle = newCandleD
 
 	return retCandlesArr, pd, retSimData
 }
