@@ -51,11 +51,11 @@ func runBacktest(
 	// slPercent := 1.5
 	// tpSingle := 1.5
 
-	for pivotLowsNum := 3; pivotLowsNum <= 5; pivotLowsNum++ {
-		for maxDurationNum := 600; maxDurationNum <= 1000; maxDurationNum += 200 {
-			for slCooldown := 5; slCooldown <= 45; slCooldown += 20 {
-				for _, slPercent := range []float64{1.0, 2.0, 3.0} {
-					for _, tpSingle := range []float64{1.75, 2.6, 3.6} {
+	for pivotLowsNum := 6; pivotLowsNum <= 6; pivotLowsNum++ {
+		for maxDurationNum := range []float64{1500, 2000, 2500} {
+			for slCooldown := range []int{10, 35} {
+				for _, slPercent := range []float64{4.0, 5.0} {
+					for _, tpSingle := range []float64{4.0, 6.0} {
 						fmt.Printf("\npivotLowsNum: %v\n", pivotLowsNum)
 						fmt.Printf("\nmaxDurationNum: %v\n", maxDurationNum)
 						fmt.Printf("\nslCooldown: %v\n", slCooldown)
