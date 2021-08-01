@@ -92,7 +92,7 @@ func runBacktest(
 
 									createNewCSV++
 								} else {
-									csvData := []string{"Slope_EMA1", "Slope_EMA2", "Slope_EMA3", "Slope_EMA4", "Distance_Btwn_Emas", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
+									csvData := []string{"Slope_Volume1", "Slope_Volume2", "Slope_Volume3", "Slope_Volume4", "Volatility", "VolumeIndex", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
 									csvFileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")"
 
 									csvWrite(csvData, csvFileName)
