@@ -772,6 +772,7 @@ func retrieveJsonFromStorage(userID, fileName string, chunksArr *[]*[]Candlestic
 		tempCandle.High, _ = strconv.ParseFloat(tempString[5], 64)
 		tempCandle.Low, _ = strconv.ParseFloat(tempString[6], 64)
 		tempCandle.Close, _ = strconv.ParseFloat(tempString[7], 64)
+		tempCandle.Volume, _ = strconv.ParseFloat(tempString[8], 64)
 		rawRes = append(rawRes, tempCandle)
 	}
 
