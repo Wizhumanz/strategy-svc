@@ -14,7 +14,7 @@ import (
 var pivotLowsToEnter, maxDurationCandles, slCooldownCandles int
 var slPerc, tpSingle float64
 var runMLPeriod int = 11
-var prevEma1, prevEma2, prevEma3, prevEma4 float64
+var preVolume1, preVolume2, preVolume3 float64
 var firstTime bool = true
 
 func strat1(
@@ -24,47 +24,45 @@ func strat1(
 	relCandleIndex int,
 	strategy *StrategyExecutor,
 	storage *interface{}, bot Bot,
-	emas []float64) (map[string]map[int]string, int, map[string]string) {
+	emas []float64,
+	volumeAverage []float64,
+	volatility, volumeIndex float64,
+) (map[string]map[int]string, int, map[string]string) {
 	//TODO: pass these 2 from frontend
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
 	settings := make(map[string]string)
-	var ema1 float64
-	var ema2 float64
-	var ema3 float64
-	var ema4 float64
+	var volume1 float64
+	var volume2 float64
+	var volume3 float64
 	if len(emas) >= 1 {
-		ema1 = emas[0]
+		volume1 = volumeAverage[0]
 	}
 	if len(emas) >= 2 {
-		ema2 = emas[1]
+		volume2 = volumeAverage[1]
 		// fmt.Printf(colorGreen+"%v - "+colorReset, newCandleD.EMA2)
 	}
 	if len(emas) >= 3 {
-		ema3 = emas[2]
+		volume3 = volumeAverage[2]
 		// fmt.Printf(colorYellow+"%v - "+colorReset, newCandleD.EMA3)
-	}
-	if len(emas) >= 4 {
-		ema4 = emas[3]
-		// fmt.Printf(colorCyan+"%v - "+colorReset, newCandleD.EMA4)
 	}
 
 	if firstTime {
-		prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+		preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
 		firstTime = false
 	} else {
 		if runMLPeriod == 11 {
-			min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
+			// min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
 			layout := "2006-01-02T15:04:05.0000000Z"
 			time, _ := time.Parse(layout, candles[len(candles)-1].PeriodStart)
 			if strategy.GetPosLongSize() == 0 {
-				pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(ema1-prevEma1, ema2-prevEma2, ema3-prevEma3, ema4-prevEma4, max-min, fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
-				prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+				pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(volume1-preVolume1, volume2-preVolume2, volume3-preVolume3, volatility, volumeIndex, fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
+				preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
 			}
 			runMLPeriod = 0
 		} else {
-			prevEma1, prevEma2, prevEma3, prevEma4 = ema1, ema2, ema3, ema4
+			preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
 
 			runMLPeriod += 1
 		}

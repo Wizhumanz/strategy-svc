@@ -446,7 +446,7 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 
 var previousEmas []float64
 
-func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, []float64, float64) {
+func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, []float64, float64, float64) {
 	smaPeriods := []int{10, 21, 50, 200}
 	smas := []float64{}
 	emaPeriods := []int{21, 55, 200, 377}
@@ -455,6 +455,8 @@ func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, 
 	volumeAverage := []float64{}
 	volatilityPeriods := []int{21}
 	var volatility float64
+	volumeIndexPeriod := []int{21}
+	var volumeIndex float64
 
 	runningTotal := 0.0
 	breakAll := false
@@ -537,10 +539,33 @@ func calcIndicators(candles []Candlestick, relIndex int) ([]float64, []float64, 
 		}
 		totalVariance = totalVariance / float64(a)
 		standardDeviation := math.Sqrt(totalVariance)
+		volumeIndex = standardDeviation
+	}
+
+	// CALCULATE VOLATILITY
+	for _, a := range volumeIndexPeriod {
+		var totalSum float64
+		var totalVariance float64
+		if relIndex < a {
+			break
+		}
+
+		for c := relIndex - a; c < relIndex; c++ {
+			totalSum += candles[c].Volume
+			// fmt.Println(candles[c].PeriodStart, candles[c].Volume)
+		}
+
+		mean := totalSum / float64(a)
+		for c := relIndex - a; c < relIndex; c++ {
+			totalVariance += math.Pow((candles[c].Volume - mean), 2)
+			// fmt.Println(candles[c].PeriodStart, candles[c].Volume)
+		}
+		totalVariance = totalVariance / float64(a)
+		standardDeviation := math.Sqrt(totalVariance)
 		volatility = standardDeviation
 	}
 
-	return smas, emas, volumeAverage, volatility
+	return smas, emas, volumeAverage, volatility, volumeIndex
 }
 
 func getChunkCandleDataAll(chunkSlice *[]Candlestick, packetSize int, ticker, period string,
@@ -889,7 +914,7 @@ func computeBacktest(
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, []float64) (map[string]map[int]string, int, map[string]string),
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, []float64, []float64, float64, float64) (map[string]map[int]string, int, map[string]string),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 	chunksArr *[]*[]Candlestick,
 	c chan time.Time,
@@ -952,13 +977,13 @@ func computeBacktest(
 				allCandles = append(allCandles, candle)
 				//TODO: build results and run for different param sets
 				// fmt.Printf(colorWhite+"<<%v>> len(allCandles)= %v\n", relIndex, len(allCandles))
-				smas, emas, volumeAverage, volatility := calcIndicators(allCandles, relIndex)
+				smas, emas, volumeAverage, volatility, volumeIndex := calcIndicators(allCandles, relIndex)
 
 				settings := make(map[string]string)
 
 				// if len(emas) >= 4 {
 				// if candlesSkipNum == 0 {
-				labels, _, settings = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas)
+				labels, _, settings = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas, volumeAverage, volatility, volumeIndex)
 				// } else {
 				// 	candlesSkipNum--
 				// }
@@ -1118,7 +1143,7 @@ func computeScan(
 				var pivotScanData StrategyDataPoint
 				labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
 
-				smas, emas, volumeAverage, volatility := calcIndicators(allCandles, relIndex)
+				smas, emas, volumeAverage, volatility, _ := calcIndicators(allCandles, relIndex)
 
 				//save res data
 				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, nil)
@@ -1816,13 +1841,13 @@ func generateRandomProfitCurve() {
 	}
 }
 
-func machineLearningModel(ema1, ema2, ema3, ema4, diff float64, days, months string) (int, int, float64, int, float64) {
+func machineLearningModel(volume1, volume2, volume3, volatility, volumeIndex float64, days, months string) (int, int, float64, int, float64) {
 	requestBody, err := json.Marshal(map[string]string{
-		"ema1":   fmt.Sprint(ema1),
-		"ema2":   fmt.Sprint(ema2),
-		"ema3":   fmt.Sprint(ema3),
-		"ema4":   fmt.Sprint(ema4),
-		"diff":   fmt.Sprint(diff),
+		"ema1":   fmt.Sprint(volume1),
+		"ema2":   fmt.Sprint(volume2),
+		"ema3":   fmt.Sprint(volume3),
+		"ema4":   fmt.Sprint(volatility),
+		"diff":   fmt.Sprint(volumeIndex),
 		"days":   days,
 		"months": months,
 	})
