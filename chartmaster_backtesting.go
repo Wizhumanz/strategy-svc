@@ -42,7 +42,7 @@ func runBacktest(
 	// Create csv file
 	csvData := []string{"Slope_Volume1", "Slope_Volume2", "Slope_Volume3", "Volatility", "VolumeIndex", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
 
-	csvFileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")"
+	csvFileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")" + rid
 	csvWrite(csvData, csvFileName)
 
 	// pivotLowsNum := 5
@@ -104,7 +104,7 @@ func runBacktest(
 									createNewCSV++
 								} else {
 									csvData := []string{"Slope_Volume1", "Slope_Volume2", "Slope_Volume3", "Volatility", "VolumeIndex", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
-									csvFileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")"
+									csvFileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")" + rid
 
 									csvWrite(csvData, csvFileName)
 									csvAdd := []string{fmt.Sprint(volume1 - previousCandle.VolumeAverage[0]), fmt.Sprint(volume2 - previousCandle.VolumeAverage[1]), fmt.Sprint(volume3 - previousCandle.VolumeAverage[2]), fmt.Sprint(volatility), fmt.Sprint(volumeIndex), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
