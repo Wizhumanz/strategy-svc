@@ -57,7 +57,7 @@ func strat1(
 			layout := "2006-01-02T15:04:05.0000000Z"
 			time, _ := time.Parse(layout, candles[len(candles)-1].PeriodStart)
 			if strategy.GetPosLongSize() == 0 {
-				pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(volume1-preVolume1, volume2-preVolume2, volume3-preVolume3, volatility, volumeIndex, fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
+				pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(volume1-preVolume1, volume2-preVolume2, volume3-preVolume3, volatility, volumeIndex, fmt.Sprint(time.Hour()*60+time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
 				preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
 			}
 			runMLPeriod = 0

@@ -1841,15 +1841,16 @@ func generateRandomProfitCurve() {
 	}
 }
 
-func machineLearningModel(volume1, volume2, volume3, volatility, volumeIndex float64, days, months string) (int, int, float64, int, float64) {
+func machineLearningModel(volume1, volume2, volume3, volatility, volumeIndex float64, time, days, months string) (int, int, float64, int, float64) {
 	requestBody, err := json.Marshal(map[string]string{
-		"ema1":   fmt.Sprint(volume1),
-		"ema2":   fmt.Sprint(volume2),
-		"ema3":   fmt.Sprint(volume3),
-		"ema4":   fmt.Sprint(volatility),
-		"diff":   fmt.Sprint(volumeIndex),
-		"days":   days,
-		"months": months,
+		"volume1":     fmt.Sprint(volume1),
+		"volume2":     fmt.Sprint(volume2),
+		"volume3":     fmt.Sprint(volume3),
+		"volatility":  fmt.Sprint(volatility),
+		"volumeIndex": fmt.Sprint(volumeIndex),
+		"time":        time,
+		"days":        days,
+		"months":      months,
 	})
 	// 	"ema1": 45957.8191963809,
 	// 	"ema2": 46120.7766334909,
