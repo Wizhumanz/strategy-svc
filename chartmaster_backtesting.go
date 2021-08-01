@@ -40,7 +40,8 @@ func runBacktest(
 	// var allCandles []Candlestick
 
 	// Create csv file
-	csvData := []string{"Slope_EMA1", "Slope_EMA2", "Slope_EMA3", "Slope_EMA4", "Distance_Btwn_Emas", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
+	csvData := []string{"Slope_Volume1", "Slope_Volume2", "Slope_Volume3", "Volatility", "VolumeIndex", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
+
 	csvFileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")"
 	csvWrite(csvData, csvFileName)
 
@@ -52,8 +53,8 @@ func runBacktest(
 	// tpSingle := 1.5
 
 	for pivotLowsNum := 6; pivotLowsNum <= 6; pivotLowsNum++ {
-		for maxDurationNum := range []float64{1500, 2000, 2500} {
-			for slCooldown := range []int{10, 35} {
+		for _, maxDurationNum := range []int{1500, 2000, 2500} {
+			for _, slCooldown := range []int{10, 35} {
 				for _, slPercent := range []float64{4.0, 5.0} {
 					for _, tpSingle := range []float64{4.0, 6.0} {
 						fmt.Printf("\npivotLowsNum: %v\n", pivotLowsNum)
@@ -77,6 +78,13 @@ func runBacktest(
 								ema4 := retSimTrades[0].Data[i-1].EMA4
 								previousCandle := retSimTrades[0].Data[i-1].PreviousCandle
 
+								volume1 := retSimTrades[0].Data[i-1].VolumeAverage1
+								volume2 := retSimTrades[0].Data[i-1].VolumeAverage2
+								volume3 := retSimTrades[0].Data[i-1].VolumeAverage3
+
+								volatility := retSimTrades[0].Data[i-1].Volatility
+								volumeIndex := retSimTrades[0].Data[i-1].VolumeIndex
+
 								if ema1 == 0 || ema2 == 0 || ema3 == 0 || ema4 == 0 {
 									continue
 								}
@@ -84,19 +92,22 @@ func runBacktest(
 								layout := "2006-01-02T15:04:05"
 								time, _ := time.Parse(layout, retSimTrades[0].Data[i-1].EntryDateTime)
 
-								min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
+								// min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
 
 								if createNewCSV != 50000 {
-									csvAdd := []string{fmt.Sprint(ema1 - previousCandle.EMA1), fmt.Sprint(ema2 - previousCandle.EMA2), fmt.Sprint(ema3 - previousCandle.EMA3), fmt.Sprint(ema4 - previousCandle.EMA4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+									// csvAdd := []string{fmt.Sprint(ema1 - previousCandle.EMA1), fmt.Sprint(ema2 - previousCandle.EMA2), fmt.Sprint(ema3 - previousCandle.EMA3), fmt.Sprint(ema4 - previousCandle.EMA4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+									csvAdd := []string{fmt.Sprint(volume1 - previousCandle.VolumeAverage[0]), fmt.Sprint(volume2 - previousCandle.VolumeAverage[1]), fmt.Sprint(volume3 - previousCandle.VolumeAverage[2]), fmt.Sprint(volatility), fmt.Sprint(volumeIndex), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+									// fmt.Printf("\nvolume1: %v\n", volume1)
+									// fmt.Printf("\npreCandle1: %v\n", previousCandle.VolumeAverage[0])
+									// fmt.Printf("\nvolumeIndex: %v\n", volumeIndex)
 									csvAppend(csvAdd)
-
 									createNewCSV++
 								} else {
-									csvData := []string{"Slope_Volume1", "Slope_Volume2", "Slope_Volume3", "Slope_Volume4", "Volatility", "VolumeIndex", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
+									csvData := []string{"Slope_Volume1", "Slope_Volume2", "Slope_Volume3", "Volatility", "VolumeIndex", "Time", "DayOfWeek", "Month", "PivotLows", "MaxDuration", "SlPerc", "SlCooldown", "TpSingle"}
 									csvFileName := startTime.Format("2006-01-02_15:04:05") + "~" + endTime.Format("2006-01-02_15:04:05") + "(" + period + ", " + ticker + ")"
 
 									csvWrite(csvData, csvFileName)
-									csvAdd := []string{fmt.Sprint(ema1 - previousCandle.EMA1), fmt.Sprint(ema2 - previousCandle.EMA2), fmt.Sprint(ema3 - previousCandle.EMA3), fmt.Sprint(ema4 - previousCandle.EMA4), fmt.Sprint(max - min), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
+									csvAdd := []string{fmt.Sprint(volume1 - previousCandle.VolumeAverage[0]), fmt.Sprint(volume2 - previousCandle.VolumeAverage[1]), fmt.Sprint(volume3 - previousCandle.VolumeAverage[2]), fmt.Sprint(volatility), fmt.Sprint(volumeIndex), strconv.Itoa(time.Hour()*60 + time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())), fmt.Sprint(pivotLowsNum), strconv.Itoa(maxDurationNum), fmt.Sprint(slPercent), strconv.Itoa(slCooldown), fmt.Sprint(tpSingle)}
 									csvAppend(csvAdd)
 									createNewCSV = 0
 								}

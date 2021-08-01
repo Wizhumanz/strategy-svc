@@ -192,6 +192,7 @@ type CandlestickChartData struct {
 	VolumeAverage   []float64 `json:"VolumeAverage"`
 	Volume          float64   `json:"Volume"`
 	Volatility      float64   `json:"Volatility"`
+	VolumeIndex     float64   `json:"VolumeIndex"`
 }
 
 type ComputeRequest struct {
@@ -243,6 +244,11 @@ type SimulatedTradeDataPoint struct {
 	EMA2           float64              `json:"ema2"`
 	EMA3           float64              `json:"ema3"`
 	EMA4           float64              `json:"ema4"`
+	Volatility     float64              `json:"Volatility"`
+	VolumeIndex    float64              `json:"VolumeIndex"`
+	VolumeAverage1 float64              `json:"VolumeAverage1"`
+	VolumeAverage2 float64              `json:"VolumeAverage2"`
+	VolumeAverage3 float64              `json:"VolumeAverage3"`
 }
 
 type SimulatedTradeData struct {
