@@ -181,10 +181,17 @@ type CandlestickChartData struct {
 	LabelTop        string    `json:"LabelTop"`
 	LabelMiddle     string    `json:"LabelMiddle"`
 	LabelBottom     string    `json:"LabelBottom"`
+	SMA1            float64   `json:"sma1"`
+	SMA2            float64   `json:"sma2"`
+	SMA3            float64   `json:"sma3"`
+	SMA4            float64   `json:"sma4"`
 	EMA1            float64   `json:"ema1"`
 	EMA2            float64   `json:"ema2"`
 	EMA3            float64   `json:"ema3"`
 	EMA4            float64   `json:"ema4"`
+	VolumeAverage   []float64 `json:"VolumeAverage"`
+	Volume          float64   `json:"Volume"`
+	Volatility      float64   `json:"Volatility"`
 }
 
 type ComputeRequest struct {
