@@ -113,7 +113,7 @@ func backtestHandler(w http.ResponseWriter, r *http.Request) {
 	// return
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	// json.NewEncoder(w).Encode(finalRet)
+	json.NewEncoder(w).Encode(rid)
 }
 
 func getAllShareResult(userID string) []string {
