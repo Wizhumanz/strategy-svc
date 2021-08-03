@@ -11,11 +11,11 @@ import (
 )
 
 //return signature: (label, bars back to add label, storage obj to pass to next func call/iteration)
-var pivotLowsToEnter, maxDurationCandles, slCooldownCandles int
-var slPerc, tpSingle float64
-var runMLPeriod int = 11
-var preVolume1, preVolume2, preVolume3 float64
-var firstTime bool = true
+// var pivotLowsToEnter, maxDurationCandles, slCooldownCandles int
+// var slPerc, tpSingle float64
+// var runMLPeriod int = 11
+// var preVolume1, preVolume2, preVolume3 float64
+// var firstTime bool = true
 
 func strat1(
 	candles []Candlestick, risk, lev, accSz float64,
@@ -33,59 +33,63 @@ func strat1(
 	strategy.ExchangeTradeFeePerc = 0.075
 
 	settings := make(map[string]string)
-	var volume1 float64
-	var volume2 float64
-	var volume3 float64
-	if len(emas) >= 1 {
-		volume1 = volumeAverage[0]
-	}
-	if len(emas) >= 2 {
-		volume2 = volumeAverage[1]
-		// fmt.Printf(colorGreen+"%v - "+colorReset, newCandleD.EMA2)
-	}
-	if len(emas) >= 3 {
-		volume3 = volumeAverage[2]
-		// fmt.Printf(colorYellow+"%v - "+colorReset, newCandleD.EMA3)
+	// var volume1 float64
+	// var volume2 float64
+	// var volume3 float64
+	// if len(emas) >= 1 {
+	// 	volume1 = volumeAverage[0]
+	// }
+	// if len(emas) >= 2 {
+	// 	volume2 = volumeAverage[1]
+	// 	// fmt.Printf(colorGreen+"%v - "+colorReset, newCandleD.EMA2)
+	// }
+	// if len(emas) >= 3 {
+	// 	volume3 = volumeAverage[2]
+	// 	// fmt.Printf(colorYellow+"%v - "+colorReset, newCandleD.EMA3)
+	// }
+
+	// if firstTime {
+	// 	preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
+	// 	firstTime = false
+	// } else {
+	// 	if runMLPeriod == 11 {
+	// 		// min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
+	// 		layout := "2006-01-02T15:04:05.0000000Z"
+	// 		time, _ := time.Parse(layout, candles[len(candles)-1].PeriodStart)
+	// 		if strategy.GetPosLongSize() == 0 {
+	// 			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(volume1-preVolume1, volume2-preVolume2, volume3-preVolume3, volatility, volumeIndex, fmt.Sprint(time.Hour()*60+time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
+	// 			preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
+	// 		}
+	// 		runMLPeriod = 0
+	// 	} else {
+	// 		preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
+	// 		runMLPeriod += 1
+	// 	}
+	// }
+	tpSingle := 2.0
+	// fmt.Println(pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
+	// fmt.Println(candles[len(candles)-1].PeriodStart, strategy.GetPosLongSize())
+	tpMap := map[float64]float64{
+		// 1.0: 20,
+		// 1.5: 20,
+		// 2.0: 20,
+		// 3.0: 100,
+		// 4.0: 40,
+		// 5.0: 20,
+		tpSingle: 100,
 	}
 
-	if firstTime {
-		preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
-		firstTime = false
-	} else {
-		if runMLPeriod == 11 {
-			// min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
-			layout := "2006-01-02T15:04:05.0000000Z"
-			time, _ := time.Parse(layout, candles[len(candles)-1].PeriodStart)
-			if strategy.GetPosLongSize() == 0 {
-				pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(volume1-preVolume1, volume2-preVolume2, volume3-preVolume3, volatility, volumeIndex, fmt.Sprint(time.Hour()*60+time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
-				preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
-			}
-			runMLPeriod = 0
-		} else {
-			preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
+	pivotLowsToEnter := 4
+	maxDurationCandles := 1000
+	slPerc := 3.0
+	slCooldownCandles := 35
+	tpCooldownCandles := 0
 
-			runMLPeriod += 1
-		}
-	}
 	settings["pivotLowsToEnter"] = fmt.Sprint(pivotLowsToEnter)
 	settings["maxDurationCandles"] = fmt.Sprint(maxDurationCandles)
 	settings["slPerc"] = fmt.Sprint(slPerc)
 	settings["slCooldownCandles"] = fmt.Sprint(slCooldownCandles)
 	settings["tpSingle"] = fmt.Sprint(tpSingle)
-	// fmt.Println(pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
-	// fmt.Println(candles[len(candles)-1].PeriodStart, strategy.GetPosLongSize())
-	tpMap := map[float64]float64{
-		// 1.5: 100,
-		// 3.0: 10,
-		// 3.5: 70,
-		tpSingle: 100,
-	}
-
-	// pivotLowsToEnter := 4
-	// maxDurationCandles := 500
-	// slPerc := 1.0
-	// slCooldownCandles := 35
-	tpCooldownCandles := 0
 
 	tradeWindows := []ValRange{
 		// {
@@ -93,12 +97,12 @@ func strat1(
 		// 	End:   "00:00:48",
 		// },
 		// {
-		// 	Start: "00:04:48",
-		// 	End:   "00:06:24",
+		// 	Start: "4:00:00",
+		// 	End:   "6:24:00",
 		// },
 		// {
-		// 	Start: "00:08:48",
-		// 	End:   "00:10:24",
+		// 	Start: "16:00:00",
+		// 	End:   "20:00:00",
 		// },
 		// {
 		// 	Start: "00:16:00",
