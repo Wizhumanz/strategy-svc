@@ -30,7 +30,7 @@ func strat1(
 ) (map[string]map[int]string, int, map[string]string, bool) {
 	//TODO: pass these 2 from frontend
 
-	tradeIsLong := true
+	tradeIsLong := false
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
@@ -230,10 +230,7 @@ func strat1(
 
 			if breakIndex > 0 && breakPrice > 0 && action != "MULTI-TP" {
 				// fmt.Printf(colorYellow+"%v %v (%v)\n"+colorReset, action, breakPrice, breakIndex)
-				// fmt.Printf("\nbreakPrice: %v\n", breakPrice)
-
 				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action, tradeIsLong)
-				// fmt.Println("1")
 				stored.Trades = append(stored.Trades, latestEntryData)
 				(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot, tradeIsLong)
 			} else if breakIndex > 0 && action == "MULTI-TP" {
@@ -242,24 +239,20 @@ func strat1(
 				// 		fmt.Printf(colorYellow+"<%v> MULTI-TP %+v\n"+colorReset, relCandleIndex, p)
 				// 	}
 				// }
-				// fmt.Println(multiTPs)
 
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 					for _, tpPoint := range multiTPs {
 						if tpPoint.Order == tpPoint.TotalPointsInSet {
 							// fmt.Printf(colorGreen+"<%v> BREAK TREND point= %+v\n latestEntry= %+v\n", relCandleIndex, tpPoint, latestEntryData)
 							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action, tradeIsLong)
-							// fmt.Println("2")
 							stored.Trades = append(stored.Trades, latestEntryData) //TODO: how to append trade when not all TPs hit?
 						}
-						// fmt.Printf("\ntpPoint.Price: %v\n", tpPoint.Price)
 						(*strategy).CloseLong(tpPoint.Price, -1, tpPoint.CloseSize, relCandleIndex, action, candles[len(candles)-1], bot, tradeIsLong)
 					}
 				}
 			}
 
 			if len(updatedEntryData.MultiTPs) > 0 && updatedEntryData.MultiTPs[0].Price > 0.0 {
-				// fmt.Println("3")
 				stored.Trades[len(stored.Trades)-1] = latestEntryData //entry data will be updated if multi TP
 			}
 		} else {
@@ -270,8 +263,6 @@ func strat1(
 			} else {
 				possibleEntryIndexes = pivotWatchEntryCheck(high, stored.PivotHighs, pivotLowsToEnter, 0, tradeIsLong)
 			}
-			// fmt.Printf("\npossibleEntryIndexes: %v\n", possibleEntryIndexes)
-
 			if len(possibleEntryIndexes) > 0 {
 				//check if latest possible entry eligible
 				var lastTradeExitIndex int

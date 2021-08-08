@@ -54,7 +54,7 @@ func runScan(
 	userID, rid, ticker, period string,
 	startTime, endTime time.Time,
 	packetSize int,
-	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, StrategyDataPoint),
+	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, StrategyDataPoint, bool),
 	packetSender func(string, string, []CandlestickChartData, []StrategyDataPoint),
 	processOption string,
 	retrieveCandles bool,

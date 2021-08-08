@@ -1097,7 +1097,7 @@ func computeScan(
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
-	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, StrategyDataPoint),
+	scannerFunc func([]Candlestick, []float64, []float64, []float64, []float64, int, *interface{}) (map[string]map[int]string, StrategyDataPoint, bool),
 	packetSender func(string, string, []CandlestickChartData, []StrategyDataPoint),
 	chunksArr *[]*[]Candlestick,
 	c chan time.Time,
@@ -1146,12 +1146,13 @@ func computeScan(
 				allLows = append(allLows, candle.Low)
 				allCloses = append(allCloses, candle.Close)
 				var pivotScanData StrategyDataPoint
-				labels, pivotScanData = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
+				var tradeIsLong bool
+				labels, pivotScanData, tradeIsLong = scannerFunc(allCandles, allOpens, allHighs, allLows, allCloses, relIndex, &store)
 
 				smas, emas, volumeAverage, volatility, _ := calcIndicators(allCandles, relIndex)
 
 				//save res data
-				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, nil, true)
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, nil, tradeIsLong)
 				duplicateFound := false
 				for _, v := range chunkAddedScanData {
 					if v.EntryLastPLIndex == pivotScanData.EntryLastPLIndex {

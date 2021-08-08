@@ -12,13 +12,13 @@ func calcEntry(entryPrice, slPrice, accPercRisk, accSz float64, leverage int, di
 	var rawRiskPerc float64
 	if directionIsLong {
 		rawRiskPerc = (entryPrice - slPrice) / entryPrice
-		if rawRiskPerc < 0 {
-			return -1, -1
-		}
-	} else {
-		rawRiskPerc = math.Abs((entryPrice - slPrice) / entryPrice)
-	}
 
+	} else {
+		rawRiskPerc = -(entryPrice - slPrice) / entryPrice
+	}
+	if rawRiskPerc < 0 {
+		return -1, -1
+	}
 	accRisk := (accPercRisk / 100) * accSz
 	posRisk := (rawRiskPerc)
 	leveragedPosEquity := accRisk / posRisk
@@ -145,7 +145,7 @@ func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candle
 				// }
 
 				retData.FirstToLastEntryPivotDuration = lastEntryPivotIndex - firstEntryPivotIndex
-				retData.FirstLastEntryPivotPriceDiffPerc = ((firstEntryPivot - lastEntryPivot) / firstEntryPivot) * 100
+				retData.FirstLastEntryPivotPriceDiffPerc = math.Abs((firstEntryPivot-lastEntryPivot)/firstEntryPivot) * 100
 
 				priceDiffPercTotal := 0.0
 				for i := 0; i < pivotLowsToEnter-1; i++ {
@@ -159,7 +159,7 @@ func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candle
 					} else {
 						pl1 := candles[allPivotLows[plSliIndexOfEntryPL-i]].High
 						pl2 := candles[allPivotLows[plSliIndexOfEntryPL-i-1]].High
-						priceDiffPercTotal = priceDiffPercTotal + math.Abs(((pl1-pl2)/pl1)*100)
+						priceDiffPercTotal = priceDiffPercTotal + math.Abs(((pl2-pl1)/pl2)*100)
 					}
 				}
 				retData.AveragePriceDiffPercEntryPivots = priceDiffPercTotal / float64(pivotLowsToEnter)
@@ -433,8 +433,8 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 		startTrailPrice = (1 + (retData.StartTrailPerc / 100)) * candles[retData.ActualEntryIndex].Close
 		trailingMaxDrawdownPerc = -1.0
 	} else {
-		(*retData).MaxDrawdownPerc = ((candles[retData.ActualEntryIndex].Close - candles[maxDrawdownIndex].High) / candles[retData.ActualEntryIndex].Close) * 100
-		(*retData).Growth = ((candles[trendExtentIndex].Low - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
+		(*retData).MaxDrawdownPerc = -((candles[retData.ActualEntryIndex].Close - candles[maxDrawdownIndex].High) / candles[retData.ActualEntryIndex].Close) * 100
+		(*retData).Growth = -((candles[trendExtentIndex].Low - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
 		//trailing tp data log
 		startTrailPrice = (1 - (retData.StartTrailPerc / 100)) * candles[retData.ActualEntryIndex].Close
 		trailingMaxDrawdownPerc = 1.0

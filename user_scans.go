@@ -11,17 +11,17 @@ func scanPivotTrends(
 	candles []Candlestick,
 	open, high, low, close []float64,
 	relCandleIndex int,
-	storage *interface{}) (map[string]map[int]string, StrategyDataPoint) {
+	storage *interface{}) (map[string]map[int]string, StrategyDataPoint, bool) {
 
 	//NOTE: tp map not used in scanning
 	tpMap := map[float64]float64{
 		99.0: 100,
 	}
 
-	tradeIsLong := true
-	pivotLowsToEnter := 4
-	maxDurationCandles := 1000
-	slPerc := 3.0
+	tradeIsLong := false
+	pivotLowsToEnter := 6
+	maxDurationCandles := 500
+	slPerc := 1.0
 	slCooldownCandles := 35
 	// tpCooldownCandles := 35
 
@@ -46,7 +46,7 @@ func scanPivotTrends(
 			stored.PivotLows = []int{}
 		} else {
 			fmt.Printf("storage obj assertion fail\n")
-			return nil, StrategyDataPoint{}
+			return nil, StrategyDataPoint{}, tradeIsLong
 		}
 	}
 
@@ -71,7 +71,6 @@ func scanPivotTrends(
 			//manage pos
 			// fmt.Printf(colorYellow+"checking existing trend %v %v\n"+colorReset, relCandleIndex, candles[len(candles)-1].DateTime)
 			latestEntryData := stored.ScanPoints[len(stored.ScanPoints)-1]
-
 			//check sl + tp + max duration
 			breakIndex, breakPrice, action, _, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles, tradeIsLong)
 
@@ -95,7 +94,12 @@ func scanPivotTrends(
 			}
 		} else {
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
-			possibleEntryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, pivotLowsToEnter, 0, tradeIsLong)
+			var possibleEntryIndexes []int
+			if tradeIsLong {
+				possibleEntryIndexes = pivotWatchEntryCheck(low, stored.PivotLows, pivotLowsToEnter, 0, tradeIsLong)
+			} else {
+				possibleEntryIndexes = pivotWatchEntryCheck(high, stored.PivotHighs, pivotLowsToEnter, 0, tradeIsLong)
+			}
 
 			if len(possibleEntryIndexes) > 0 {
 				//check if latest possible entry eligible
@@ -159,9 +163,20 @@ func scanPivotTrends(
 				//entry pivots price diff cannot be within block windows
 				entryPivotsDiffOK := true
 				lastPLIndex := latestPossibleEntry
-				lastPL := candles[lastPLIndex].Low
-				firstPLIndex := stored.PivotLows[len(stored.PivotLows)-1-(pivotLowsToEnter-1)]
-				firstPL := candles[firstPLIndex].Low
+
+				var lastPL float64
+				var firstPLIndex int
+				var firstPL float64
+				if tradeIsLong {
+					lastPL = candles[lastPLIndex].Low
+					firstPLIndex = stored.PivotLows[len(stored.PivotLows)-1-(pivotLowsToEnter-1)]
+					firstPL = candles[firstPLIndex].Low
+				} else {
+					lastPL = candles[lastPLIndex].High
+					firstPLIndex = stored.PivotHighs[len(stored.PivotHighs)-1-(pivotLowsToEnter-1)]
+					firstPL = candles[firstPLIndex].High
+				}
+
 				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
 				for _, window := range entryPivotNoTradeZones {
 					if entryPivotsPriceDiffPerc > (window.Start.(float64)/100) && entryPivotsPriceDiffPerc < (window.End.(float64)/100) {
@@ -170,21 +185,35 @@ func scanPivotTrends(
 					}
 				}
 
-				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK {
-					newEntryData := StrategyDataPoint{}
-					newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.ScanPoints, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap, tradeIsLong)
-					newEntryData.ActualEntryIndex = relCandleIndex
-					stored.ScanPoints = append(stored.ScanPoints, newEntryData)
-					stored.WatchingTrend = true
+				if tradeIsLong {
+					if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK {
+						newEntryData := StrategyDataPoint{}
+						newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.ScanPoints, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap, tradeIsLong)
+						newEntryData.ActualEntryIndex = relCandleIndex
+						stored.ScanPoints = append(stored.ScanPoints, newEntryData)
+						stored.WatchingTrend = true
 
-					// if relCandleIndex < 300 {
-					// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
-					// }
+						// if relCandleIndex < 300 {
+						// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
+						// }
+					}
+				} else {
+					if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotHighs[len(stored.PivotHighs)-1] && timeOK && entryPivotsDiffOK {
+						newEntryData := StrategyDataPoint{}
+						newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotHighs, stored.ScanPoints, &newEntryData, &newLabels, maxDurationCandles, 1+(slPerc/100), -1, -1, -1, tpMap, tradeIsLong)
+						newEntryData.ActualEntryIndex = relCandleIndex
+						stored.ScanPoints = append(stored.ScanPoints, newEntryData)
+						stored.WatchingTrend = true
+
+						// if relCandleIndex < 300 {
+						// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
+						// }
+					}
 				}
 			}
 		}
 	}
 
 	*storage = stored
-	return newLabels, retData
+	return newLabels, retData, tradeIsLong
 }
