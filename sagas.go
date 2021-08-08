@@ -78,7 +78,9 @@ func calcPosSize(allArgs ...interface{}) (interface{}, error) {
 
 	//calc pos size
 	accBal, _ := strconv.ParseFloat(bal, 32)
-	_, posSize := calcEntry(funcArgs["latestClosePrice"].(float64), funcArgs["slPrice"].(float64), funcArgs["accRisk"].(float64), accBal, funcArgs["leverage"].(int))
+
+	// Set to long by default
+	_, posSize := calcEntry(funcArgs["latestClosePrice"].(float64), funcArgs["slPrice"].(float64), funcArgs["accRisk"].(float64), accBal, funcArgs["leverage"].(int), true)
 
 	return posSize, nil
 }

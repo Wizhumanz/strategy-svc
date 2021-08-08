@@ -8,10 +8,15 @@ import (
 )
 
 // calcEntry returns (posCap, posSize) so that SL only loses fixed percentage of account
-func calcEntry(entryPrice, slPrice, accPercRisk, accSz float64, leverage int) (float64, float64) {
-	rawRiskPerc := (entryPrice - slPrice) / entryPrice
-	if rawRiskPerc < 0 {
-		return -1, -1
+func calcEntry(entryPrice, slPrice, accPercRisk, accSz float64, leverage int, directionIsLong bool) (float64, float64) {
+	var rawRiskPerc float64
+	if directionIsLong {
+		rawRiskPerc = (entryPrice - slPrice) / entryPrice
+		if rawRiskPerc < 0 {
+			return -1, -1
+		}
+	} else {
+		rawRiskPerc = math.Abs((entryPrice - slPrice) / entryPrice)
 	}
 
 	accRisk := (accPercRisk / 100) * accSz
@@ -29,12 +34,12 @@ func calcEntry(entryPrice, slPrice, accPercRisk, accSz float64, leverage int) (f
 }
 
 // pivotWatchEntryCheck returns a slice of indexes where entry conditions met starting from startSearchIndex, if any, or empty slice if no entry is found matching the conditions.
-func pivotWatchEntryCheck(lows []float64, pivotLowIndexes []int, entryWatchPivotCount, startSearchIndex int) []int {
+func pivotWatchEntryCheck(lowsOrHighs []float64, pivotLowIndexes []int, entryWatchPivotCount, startSearchIndex int, directionIsLong bool) []int {
 	if len(pivotLowIndexes) < entryWatchPivotCount {
 		return []int{}
 	}
 
-	//find index in pivot lows slice to start searching entry from
+	//find index in pivot lowsOrHighs slice to start searching entry from
 	retIndexes := []int{}
 	searhStartPLSliIndex := 0
 	startIndexSearchIncrement := 0
@@ -48,17 +53,24 @@ func pivotWatchEntryCheck(lows []float64, pivotLowIndexes []int, entryWatchPivot
 		}
 	}
 
-	//check for lower lows in series, count = entryWatchPivotCount
+	//check for lower lowsOrHighs in series, count = entryWatchPivotCount
 	for i := searhStartPLSliIndex; i < len(pivotLowIndexes); i++ {
-		//compare previous lows, count = entryWatchPivotCount
+		//compare previous lowsOrHighs, count = entryWatchPivotCount
 		entryConditionsTrue := true
 		for j := 0; j < entryWatchPivotCount-1; j++ {
 			// fmt.Printf(colorPurple+"i=%v / j=%v / pivotLowIndexes=%v\n"+colorReset, i, j, pivotLowIndexes)
 			ciEarlier := pivotLowIndexes[i-j-1]
 			ciLater := pivotLowIndexes[i-j]
-			if !(lows[ciLater] < lows[ciEarlier]) {
-				entryConditionsTrue = false
-				break
+			if directionIsLong {
+				if !(lowsOrHighs[ciLater] < lowsOrHighs[ciEarlier]) {
+					entryConditionsTrue = false
+					break
+				}
+			} else {
+				if !(lowsOrHighs[ciLater] > lowsOrHighs[ciEarlier]) {
+					entryConditionsTrue = false
+					break
+				}
 			}
 		}
 
@@ -72,7 +84,7 @@ func pivotWatchEntryCheck(lows []float64, pivotLowIndexes []int, entryWatchPivot
 	return retIndexes
 }
 
-func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candlestick, possibleEntryPLIndexes, allPivotLows []int, dataPoints []StrategyDataPoint, retData *StrategyDataPoint, newLabels *(map[string]map[int]string), maxDurationCandles int, slPerc, tpPerc, startTrailPerc, trailingPerc float64, tpMap map[float64]float64) StrategyDataPoint {
+func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candlestick, possibleEntryPLIndexes, allPivotLows []int, dataPoints []StrategyDataPoint, retData *StrategyDataPoint, newLabels *(map[string]map[int]string), maxDurationCandles int, slPerc, tpPerc, startTrailPerc, trailingPerc float64, tpMap map[float64]float64, directionIsLong bool) StrategyDataPoint {
 	// fmt.Printf(colorGreen+"<%v> adding %+v\n"+colorReset, relCandleIndex, retData)
 
 	duplicateFound := false
@@ -89,12 +101,18 @@ func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candle
 	//find actual entry index from pivot low
 	actualEntryIndex := -1
 	for i := entryIndex + 1; i < len(candles); i++ {
-		if candles[i].High > candles[entryIndex].High {
-			actualEntryIndex = i
-			break
+		if directionIsLong {
+			if candles[i].High > candles[entryIndex].High {
+				actualEntryIndex = i
+				break
+			}
+		} else {
+			if candles[i].Low < candles[entryIndex].Low {
+				actualEntryIndex = i
+				break
+			}
 		}
 	}
-
 	if actualEntryIndex > 0 {
 		retData.EntryTime = candles[actualEntryIndex].DateTime()
 		retData.EntryTradeOpenCandle = candles[actualEntryIndex]
@@ -111,10 +129,17 @@ func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candle
 			}
 			if (plSliIndexOfEntryPL-pivotLowsToEnter-1) >= 0 && plSliIndexOfEntryPL < len(allPivotLows) {
 				firstEntryPivotIndex := allPivotLows[plSliIndexOfEntryPL-(pivotLowsToEnter-1)]
-				firstEntryPivot := candles[firstEntryPivotIndex].Low
 				lastEntryPivotIndex := allPivotLows[plSliIndexOfEntryPL]
-				lastEntryPivot := candles[lastEntryPivotIndex].Low
 
+				var firstEntryPivot float64
+				var lastEntryPivot float64
+				if directionIsLong {
+					firstEntryPivot = candles[firstEntryPivotIndex].Low
+					lastEntryPivot = candles[lastEntryPivotIndex].Low
+				} else {
+					firstEntryPivot = candles[firstEntryPivotIndex].High
+					lastEntryPivot = candles[lastEntryPivotIndex].High
+				}
 				// if relCandleIndex < 5000 {
 				// 	fmt.Printf(colorGreen+"first= %v / last= %v \n"+colorReset, firstEntryPivotIndex, lastEntryPivotIndex)
 				// }
@@ -127,15 +152,19 @@ func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candle
 					// if relCandleIndex < 5000 {
 					// 	fmt.Printf(colorCyan+"<%v> plSliIndexOfEntryPL= %v (%v) / pl1= %v / pl2 = %v\n __ %v\n"+colorReset, relCandleIndex, plSliIndexOfEntryPL, allPivotLows[plSliIndexOfEntryPL], allPivotLows[plSliIndexOfEntryPL-i], allPivotLows[plSliIndexOfEntryPL-i-1], allPivotLows)
 					// }
-
-					pl1 := candles[allPivotLows[plSliIndexOfEntryPL-i]].Low
-					pl2 := candles[allPivotLows[plSliIndexOfEntryPL-i-1]].Low
-					priceDiffPercTotal = priceDiffPercTotal + math.Abs(((pl2-pl1)/pl2)*100)
+					if directionIsLong {
+						pl1 := candles[allPivotLows[plSliIndexOfEntryPL-i]].Low
+						pl2 := candles[allPivotLows[plSliIndexOfEntryPL-i-1]].Low
+						priceDiffPercTotal = priceDiffPercTotal + math.Abs(((pl2-pl1)/pl2)*100)
+					} else {
+						pl1 := candles[allPivotLows[plSliIndexOfEntryPL-i]].High
+						pl2 := candles[allPivotLows[plSliIndexOfEntryPL-i-1]].High
+						priceDiffPercTotal = priceDiffPercTotal + math.Abs(((pl1-pl2)/pl1)*100)
+					}
 				}
 				retData.AveragePriceDiffPercEntryPivots = priceDiffPercTotal / float64(pivotLowsToEnter)
 			}
 		}
-
 		retData.MaxExitIndex = actualEntryIndex + maxDurationCandles
 
 		retData.SLPrice = slPerc * candles[relCandleIndex].Close
@@ -152,7 +181,12 @@ func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candle
 			})
 			//convert to struct
 			for i, profitPerc := range keys {
-				tpPrice := retData.EntryTradeOpenCandle.Close * (1 + (profitPerc / 100))
+				var tpPrice float64
+				if directionIsLong {
+					tpPrice = retData.EntryTradeOpenCandle.Close * (1 + (profitPerc / 100))
+				} else {
+					tpPrice = retData.EntryTradeOpenCandle.Close * (1 - (profitPerc / 100))
+				}
 				retData.MultiTPs = append(retData.MultiTPs, MultiTPPoint{
 					Order:            i + 1,
 					IsDone:           false,
@@ -180,7 +214,7 @@ func logEntry(relCandleIndex, pivotLowsToEnter, entryIndex int, candles []Candle
 	return *retData
 }
 
-func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckIndex int, candles []Candlestick) (int, float64, string, []MultiTPPoint, StrategyDataPoint) {
+func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckIndex int, candles []Candlestick, directionIsLong bool) (int, float64, string, []MultiTPPoint, StrategyDataPoint) {
 	// if relCandleIndex < 2100 && relCandleIndex > 1550 {
 	// 	fmt.Printf(colorPurple+"<%v> checkSL sl= %v / startCheckIndex= %v / entryData= %+v\n", relCandleIndex, slPrice, startCheckIndex, entryData)
 	// }
@@ -192,14 +226,26 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 
 	//check SL + TP
 	for i := startCheckIndex; i <= relCandleIndex; i++ {
-		//sl
-		if candles[i].Low <= entryData.SLPrice && entryData.SLPrice > 0 {
-			return i, entryData.SLPrice, "SL", nil, *entryData
-		}
+		if directionIsLong {
+			//sl
+			if candles[i].Low <= entryData.SLPrice && entryData.SLPrice > 0 {
+				return i, entryData.SLPrice, "SL", nil, *entryData
+			}
 
-		//tp
-		if candles[i].High >= entryData.TPPrice && entryData.TPPrice > 0 {
-			return i, entryData.TPPrice, "TP", nil, *entryData
+			//tp
+			if candles[i].High >= entryData.TPPrice && entryData.TPPrice > 0 {
+				return i, entryData.TPPrice, "TP", nil, *entryData
+			}
+		} else {
+			//sl
+			if candles[i].High >= entryData.SLPrice && entryData.SLPrice > 0 {
+				return i, entryData.SLPrice, "SL", nil, *entryData
+			}
+
+			//tp
+			if candles[i].Low <= entryData.TPPrice && entryData.TPPrice > 0 {
+				return i, entryData.TPPrice, "TP", nil, *entryData
+			}
 		}
 
 		//multi-tp (map)
@@ -217,13 +263,22 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 					continue
 				}
 
-				if tpPoint.Price > 0.0 && candles[i].High >= tpPoint.Price && !tpPoint.IsDone {
-					// fmt.Printf(colorYellow+"<%v> TRIGGERED multi TP / high= %v / tpPoint= %+v\n", i, candles[i].High, tpPoint)
-
-					p = tpPoint
-					p.IsDone = true
-					//add price to exit price slice (in case multiple TPs)
-					retTPPoints = append(retTPPoints, p)
+				if directionIsLong {
+					if tpPoint.Price > 0.0 && candles[i].High >= tpPoint.Price && !tpPoint.IsDone {
+						// fmt.Printf(colorYellow+"<%v> TRIGGERED multi TP / high= %v / tpPoint= %+v\n", i, candles[i].Low, tpPoint)
+						p = tpPoint
+						p.IsDone = true
+						//add price to exit price slice (in case multiple TPs)
+						retTPPoints = append(retTPPoints, p)
+					}
+				} else {
+					if tpPoint.Price > 0.0 && candles[i].Low <= tpPoint.Price && !tpPoint.IsDone {
+						// fmt.Printf(colorYellow+"<%v> TRIGGERED multi TP / high= %v / tpPoint= %+v\n", i, candles[i].Low, tpPoint)
+						p = tpPoint
+						p.IsDone = true
+						//add price to exit price slice (in case multiple TPs)
+						retTPPoints = append(retTPPoints, p)
+					}
 				}
 
 				updatedTPs = append(updatedTPs, p)
@@ -275,27 +330,54 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 		// }
 
 		if entryData.StartTrailPerc > 0 && entryData.TrailingPerc > 0 {
-			if entryData.TrailingStarted {
-				//adjust trailing min + max
-				if candles[i].High > entryData.TrailingMax {
-					(*entryData).TrailingMax = candles[i].High
-				}
+			if directionIsLong {
+				if entryData.TrailingStarted {
+					//adjust trailing min + max
+					if candles[i].High > entryData.TrailingMax {
+						(*entryData).TrailingMax = candles[i].High
+					}
 
-				//check if hit trailing stop
-				trailStopoutPrice := (1 - (entryData.TrailingPerc / 100)) * entryData.TrailingMax
-				if candles[i].Low <= trailStopoutPrice {
-					return i, trailStopoutPrice, "TRAIL", nil, *entryData
+					//check if hit trailing stop
+					trailStopoutPrice := (1 - (entryData.TrailingPerc / 100)) * entryData.TrailingMax
+					if candles[i].Low <= trailStopoutPrice {
+						return i, trailStopoutPrice, "TRAIL", nil, *entryData
+					}
+				} else {
+					//check if should activate trailing stop
+					startTrailPrice := candles[entryData.ActualEntryIndex].Close * (1 + (entryData.StartTrailPerc / 100))
+					if candles[i].High >= startTrailPrice {
+						(*entryData).TrailingStarted = true
+						(*entryData).TrailingMax = candles[i].High //only track trailing max for strategy simulate, trailing min only needed for scanning purposes
+
+						// if relCandleIndex < 200 {
+						// 	fmt.Printf(colorGreen+"<%v> TRAIL_STOP(%v) triggered @ $%v \n > %+v\n\n"+colorReset, relCandleIndex, startTrailPrice, candles[i].Low, entryData)
+						// }
+					}
 				}
 			} else {
-				//check if should activate trailing stop
-				startTrailPrice := candles[entryData.ActualEntryIndex].Close * (1 + (entryData.StartTrailPerc / 100))
-				if candles[i].High >= startTrailPrice {
-					(*entryData).TrailingStarted = true
-					(*entryData).TrailingMax = candles[i].High //only track trailing max for strategy simulate, trailing min only needed for scanning purposes
+				if entryData.TrailingStarted {
+					//adjust trailing min + max
+					if candles[i].Low < entryData.TrailingMax {
+						(*entryData).TrailingMax = candles[i].Low
+					}
 
-					// if relCandleIndex < 200 {
-					// 	fmt.Printf(colorGreen+"<%v> TRAIL_STOP(%v) triggered @ $%v \n > %+v\n\n"+colorReset, relCandleIndex, startTrailPrice, candles[i].High, entryData)
-					// }
+					//check if hit trailing stop
+					trailStopoutPrice := (1 + (entryData.TrailingPerc / 100)) * entryData.TrailingMax
+					if candles[i].High >= trailStopoutPrice {
+						// fmt.Printf("\ntrailStopoutPrice: %v\n", trailStopoutPrice)
+						return i, trailStopoutPrice, "TRAIL", nil, *entryData
+					}
+				} else {
+					//check if should activate trailing stop
+					startTrailPrice := candles[entryData.ActualEntryIndex].Close * (1 - (entryData.StartTrailPerc / 100))
+					if candles[i].Low <= startTrailPrice {
+						(*entryData).TrailingStarted = true
+						(*entryData).TrailingMax = candles[i].Low //only track trailing max for strategy simulate, trailing min only needed for scanning purposes
+
+						// if relCandleIndex < 200 {
+						// 	fmt.Printf(colorGreen+"<%v> TRAIL_STOP(%v) triggered @ $%v \n > %+v\n\n"+colorReset, relCandleIndex, startTrailPrice, candles[i].Low, entryData)
+						// }
+					}
 				}
 			}
 		}
@@ -304,7 +386,7 @@ func checkTrendBreak(entryData *StrategyDataPoint, relCandleIndex, startCheckInd
 	return -1, -1.0, "", nil, StrategyDataPoint{}
 }
 
-func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels *(map[string]map[int]string), retData *StrategyDataPoint, action string) {
+func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels *(map[string]map[int]string), retData *StrategyDataPoint, action string, directionIsLong bool) {
 	(*retData).BreakIndex = breakIndex
 	(*retData).BreakTime = candles[breakIndex].DateTime()
 	(*retData).EndAction = action
@@ -312,8 +394,14 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 	//find highest point between second entry pivot and trend break
 	trendExtentIndex := retData.ActualEntryIndex //rolling compare of highest high index
 	for i := retData.ActualEntryIndex + 1; i < breakIndex; i++ {
-		if candles[i].High > candles[trendExtentIndex].High {
-			trendExtentIndex = i
+		if directionIsLong {
+			if candles[i].High > candles[trendExtentIndex].High {
+				trendExtentIndex = i
+			}
+		} else {
+			if candles[i].Low < candles[trendExtentIndex].Low {
+				trendExtentIndex = i
+			}
 		}
 	}
 	(*newLabels)["middle"][relCandleIndex-trendExtentIndex] = fmt.Sprintf("$/%v", retData.ActualEntryIndex)
@@ -323,38 +411,69 @@ func breakTrend(candles []Candlestick, breakIndex, relCandleIndex int, newLabels
 	//find lowest point between entry and extent
 	maxDrawdownIndex := retData.ActualEntryIndex //rolling compare of highest high index
 	for i := retData.ActualEntryIndex + 1; i < trendExtentIndex; i++ {
-		if candles[i].Low < candles[maxDrawdownIndex].Low {
-			maxDrawdownIndex = i
+		if directionIsLong {
+			if candles[i].Low < candles[maxDrawdownIndex].Low {
+				maxDrawdownIndex = i
+			}
+		} else {
+			if candles[i].High > candles[maxDrawdownIndex].High {
+				maxDrawdownIndex = i
+			}
 		}
 	}
 	(*newLabels)["middle"][relCandleIndex-maxDrawdownIndex] = fmt.Sprintf("?/%v", retData.ActualEntryIndex)
-	(*retData).MaxDrawdownPerc = ((candles[retData.ActualEntryIndex].Close - candles[maxDrawdownIndex].Low) / candles[retData.ActualEntryIndex].Close) * 100
+	var startTrailPrice float64
+	var trailingMaxDrawdownPerc float64
+	trailingStarted := false
 
-	(*retData).Growth = ((candles[trendExtentIndex].High - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
+	if directionIsLong {
+		(*retData).MaxDrawdownPerc = ((candles[retData.ActualEntryIndex].Close - candles[maxDrawdownIndex].Low) / candles[retData.ActualEntryIndex].Close) * 100
+		(*retData).Growth = ((candles[trendExtentIndex].High - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
+		//trailing tp data log
+		startTrailPrice = (1 + (retData.StartTrailPerc / 100)) * candles[retData.ActualEntryIndex].Close
+		trailingMaxDrawdownPerc = -1.0
+	} else {
+		(*retData).MaxDrawdownPerc = ((candles[retData.ActualEntryIndex].Close - candles[maxDrawdownIndex].High) / candles[retData.ActualEntryIndex].Close) * 100
+		(*retData).Growth = ((candles[trendExtentIndex].Low - retData.EntryTradeOpenCandle.Close) / retData.EntryTradeOpenCandle.Close) * 100
+		//trailing tp data log
+		startTrailPrice = (1 - (retData.StartTrailPerc / 100)) * candles[retData.ActualEntryIndex].Close
+		trailingMaxDrawdownPerc = 1.0
+	}
+
 	// fmt.Printf(colorGreen+"break= %v / extent= %v / high[extent]= %v / entryClose=%v\n"+colorReset, breakIndex, trendExtentIndex, high[trendExtentIndex], retData.EntryTradeOpenCandle.Close)
-
 	// trendEndTime, _ := time.Parse(httpTimeFormat, candles[breakIndex].DateTime())
 	entryTime, _ := time.Parse(httpTimeFormat, retData.EntryTime)
 	trendExtentTime, _ := time.Parse(httpTimeFormat, candles[trendExtentIndex].DateTime())
 	(*retData).Duration = trendExtentTime.Sub(entryTime).Minutes() //log extent duration, not whole trade duration
 	(*newLabels)["bottom"][relCandleIndex-breakIndex] = fmt.Sprintf("X/%v", retData.ActualEntryIndex)
 
-	//trailing tp data log
-	startTrailPrice := (1 + (retData.StartTrailPerc / 100)) * candles[retData.ActualEntryIndex].Close
-	trailingStarted := false
-	trailingMaxDrawdownPerc := -1.0
 	for i := retData.ActualEntryIndex; i <= trendExtentIndex; i++ {
 		//only start logging data once trailing started
-		if !trailingStarted && candles[i].High >= startTrailPrice {
-			trailingStarted = true
+		if directionIsLong {
+			if !trailingStarted && candles[i].High >= startTrailPrice {
+				trailingStarted = true
+			}
+		} else {
+			if !trailingStarted && candles[i].Low <= startTrailPrice {
+				trailingStarted = true
+			}
 		}
 
 		if trailingStarted {
-			if retData.TrailingMax <= 0.0 || candles[i].High > retData.TrailingMax {
-				(*retData).TrailingMax = candles[i].High
-			}
-			if retData.TrailingMin <= 0.0 || candles[i].Low > retData.TrailingMin {
-				(*retData).TrailingMin = candles[i].Low
+			if directionIsLong {
+				if retData.TrailingMax <= 0.0 || candles[i].High > retData.TrailingMax {
+					(*retData).TrailingMax = candles[i].High
+				}
+				if retData.TrailingMin <= 0.0 || candles[i].Low > retData.TrailingMin {
+					(*retData).TrailingMin = candles[i].Low
+				}
+			} else {
+				if retData.TrailingMax <= 0.0 || candles[i].Low < retData.TrailingMax {
+					(*retData).TrailingMax = candles[i].Low
+				}
+				if retData.TrailingMin <= 0.0 || candles[i].High < retData.TrailingMin {
+					(*retData).TrailingMin = candles[i].High
+				}
 			}
 
 			trailingMaxDrawdownPerc = ((retData.TrailingMax - retData.TrailingMin) / retData.TrailingMax) * 100

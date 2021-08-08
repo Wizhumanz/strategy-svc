@@ -27,8 +27,10 @@ func strat1(
 	emas []float64,
 	volumeAverage []float64,
 	volatility, volumeIndex float64,
-) (map[string]map[int]string, int, map[string]string) {
+) (map[string]map[int]string, int, map[string]string, bool) {
 	//TODO: pass these 2 from frontend
+
+	tradeIsLong := true
 	strategy.OrderSlippagePerc = 0.15
 	strategy.ExchangeTradeFeePerc = 0.075
 
@@ -56,7 +58,7 @@ func strat1(
 	// 		// min, max := findMinAndMax([]float64{ema1, ema2, ema3, ema4})
 	// 		layout := "2006-01-02T15:04:05.0000000Z"
 	// 		time, _ := time.Parse(layout, candles[len(candles)-1].PeriodStart)
-	// 		if strategy.GetPosLongSize() == 0 {
+	// 		if strategy.GetPositionSize() == 0 {
 	// 			pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle = machineLearningModel(volume1-preVolume1, volume2-preVolume2, volume3-preVolume3, volatility, volumeIndex, fmt.Sprint(time.Hour()*60+time.Minute()), fmt.Sprint(int(time.Weekday())), fmt.Sprint(int(time.Month())))
 	// 			preVolume1, preVolume2, preVolume3 = volume1, volume2, volume3
 	// 		}
@@ -68,7 +70,7 @@ func strat1(
 	// }
 	tpSingle := 1.0
 	// fmt.Println(pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
-	// fmt.Println(candles[len(candles)-1].PeriodStart, strategy.GetPosLongSize())
+	// fmt.Println(candles[len(candles)-1].PeriodStart, strategy.GetPositionSize())
 	tpMap := map[float64]float64{
 		// 1.0: 20,
 		// 1.5: 20,
@@ -205,13 +207,18 @@ func strat1(
 	} else if len(stored.Trades) > 0 && len(latestActions) > 0 && (latestActions[0].Action == "MULTI-TP" && (relCandleIndex <= (stored.Trades[len(stored.Trades)-1].BreakIndex + tpCooldownCandles))) {
 		newLabels["middle"][0] = "ф"
 	} else if len(stored.PivotLows) >= 4 {
-		if strategy.GetPosLongSize() > 0 {
+		// fmt.Printf("\nstrategy.GetPositionSize(): %v\n", strategy.GetPositionSize())
+		if strategy.GetPositionSize() > 0 {
 			//manage pos
 			// fmt.Printf(colorYellow+"checking existing trend %v %v\n"+colorReset, relCandleIndex, candles[len(candles)-1].DateTime)
 			latestEntryData := stored.Trades[len(stored.Trades)-1]
+			// fmt.Printf("\nlatestEntryData: %v\n", latestEntryData)
+			// fmt.Printf("\nrelCandleIndex: %v\n", relCandleIndex)
+			// fmt.Printf("\nstored.Trades: %v\n", stored.Trades)
 
 			//check sl + tp + max duration
-			breakIndex, breakPrice, action, multiTPs, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles)
+			breakIndex, breakPrice, action, multiTPs, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles, tradeIsLong)
+			// fmt.Printf("\nall: %v, %v, %v, %v, %v\n", breakIndex, breakPrice, action, multiTPs, updatedEntryData)
 
 			if len(updatedEntryData.MultiTPs) > 0 && updatedEntryData.MultiTPs[0].Price > 0.0 {
 				latestEntryData = updatedEntryData
@@ -223,35 +230,47 @@ func strat1(
 
 			if breakIndex > 0 && breakPrice > 0 && action != "MULTI-TP" {
 				// fmt.Printf(colorYellow+"%v %v (%v)\n"+colorReset, action, breakPrice, breakIndex)
+				// fmt.Printf("\nbreakPrice: %v\n", breakPrice)
 
-				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action)
+				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action, tradeIsLong)
+				// fmt.Println("1")
 				stored.Trades = append(stored.Trades, latestEntryData)
-				(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot)
+				(*strategy).CloseLong(breakPrice, 100, -1, relCandleIndex, action, candles[len(candles)-1], bot, tradeIsLong)
 			} else if breakIndex > 0 && action == "MULTI-TP" {
 				// if relCandleIndex < 3000 {
 				// 	for _, p := range multiTPs {
 				// 		fmt.Printf(colorYellow+"<%v> MULTI-TP %+v\n"+colorReset, relCandleIndex, p)
 				// 	}
 				// }
+				// fmt.Println(multiTPs)
 
 				if len(multiTPs) > 0 && multiTPs[0].Price > 0 {
 					for _, tpPoint := range multiTPs {
 						if tpPoint.Order == tpPoint.TotalPointsInSet {
 							// fmt.Printf(colorGreen+"<%v> BREAK TREND point= %+v\n latestEntry= %+v\n", relCandleIndex, tpPoint, latestEntryData)
-							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action)
+							breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action, tradeIsLong)
+							// fmt.Println("2")
 							stored.Trades = append(stored.Trades, latestEntryData) //TODO: how to append trade when not all TPs hit?
 						}
-						(*strategy).CloseLong(tpPoint.Price, -1, tpPoint.CloseSize, relCandleIndex, action, candles[len(candles)-1], bot)
+						// fmt.Printf("\ntpPoint.Price: %v\n", tpPoint.Price)
+						(*strategy).CloseLong(tpPoint.Price, -1, tpPoint.CloseSize, relCandleIndex, action, candles[len(candles)-1], bot, tradeIsLong)
 					}
 				}
 			}
 
 			if len(updatedEntryData.MultiTPs) > 0 && updatedEntryData.MultiTPs[0].Price > 0.0 {
+				// fmt.Println("3")
 				stored.Trades[len(stored.Trades)-1] = latestEntryData //entry data will be updated if multi TP
 			}
 		} else {
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
-			possibleEntryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, pivotLowsToEnter, 0)
+			var possibleEntryIndexes []int
+			if tradeIsLong {
+				possibleEntryIndexes = pivotWatchEntryCheck(low, stored.PivotLows, pivotLowsToEnter, 0, tradeIsLong)
+			} else {
+				possibleEntryIndexes = pivotWatchEntryCheck(high, stored.PivotHighs, pivotLowsToEnter, 0, tradeIsLong)
+			}
+			// fmt.Printf("\npossibleEntryIndexes: %v\n", possibleEntryIndexes)
 
 			if len(possibleEntryIndexes) > 0 {
 				//check if latest possible entry eligible
@@ -322,9 +341,18 @@ func strat1(
 				//entry pivots price diff cannot be within block windows
 				entryPivotsDiffOK := false
 				lastPLIndex := latestPossibleEntry
-				lastPL := candles[lastPLIndex].Low
-				firstPLIndex := stored.PivotLows[len(stored.PivotLows)-1-(pivotLowsToEnter-1)]
-				firstPL := candles[firstPLIndex].Low
+				var lastPL float64
+				var firstPLIndex int
+				var firstPL float64
+				if tradeIsLong {
+					lastPL = candles[lastPLIndex].Low
+					firstPLIndex = stored.PivotLows[len(stored.PivotLows)-1-(pivotLowsToEnter-1)]
+					firstPL = candles[firstPLIndex].Low
+				} else {
+					lastPL = candles[lastPLIndex].High
+					firstPLIndex = stored.PivotHighs[len(stored.PivotHighs)-1-(pivotLowsToEnter-1)]
+					firstPL = candles[firstPLIndex].High
+				}
 				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
 				// fmt.Printf(colorYellow+"<%v> %v / %v\n"+colorReset, relCandleIndex, entryPivotsPriceDiffPerc, entryPivotTradeZones)
 				for _, window := range entryPivotTradeZones {
@@ -342,24 +370,36 @@ func strat1(
 				r := rand.Intn(40)
 				randOK := r == 1
 				randOK = true
+				if tradeIsLong {
+					if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK && randOK {
+						newEntryData := StrategyDataPoint{}
+						newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap, tradeIsLong)
+						newEntryData.ActualEntryIndex = relCandleIndex
 
-				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK && randOK {
-					newEntryData := StrategyDataPoint{}
-					newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
-					newEntryData.ActualEntryIndex = relCandleIndex
+						// if relCandleIndex < 300 {
+						// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
+						// }
 
-					// if relCandleIndex < 300 {
-					// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
-					// }
+						//enter long
+						completedMultiTPs := (*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, newEntryData.MultiTPs, candles[len(candles)-1], tradeIsLong, bot)
+						newEntryData.MultiTPs = completedMultiTPs
+						stored.Trades = append(stored.Trades, newEntryData)
+					}
+				} else {
+					if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotHighs[len(stored.PivotHighs)-1] && timeOK && entryPivotsDiffOK && randOK {
+						newEntryData := StrategyDataPoint{}
+						newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotHighs, stored.Trades, &newEntryData, &newLabels, maxDurationCandles, 1+(slPerc/100), -1, -1, -1, tpMap, tradeIsLong)
+						newEntryData.ActualEntryIndex = relCandleIndex
 
-					// fmt.Printf("\npivotLowsToEnter: %v / maxDurationCandles: %v / slPerc: %v / slCooldownCandles: %v / tpSingle: %v", pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
+						// if relCandleIndex < 300 {
+						// 	fmt.Printf(colorCyan+"<%v> ENTER possibleEntries= %v \n newEntryData=%+v\n", relCandleIndex, possibleEntryIndexes, newEntryData)
+						// }
 
-					//enter long
-					completedMultiTPs := (*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, newEntryData.MultiTPs, candles[len(candles)-1], true, bot)
-					newEntryData.MultiTPs = completedMultiTPs
-					// fmt.Printf("<%v> %+v\n", relCandleIndex, newEntryData.MultiTPs)
-
-					stored.Trades = append(stored.Trades, newEntryData)
+						//enter long
+						completedMultiTPs := (*strategy).Buy(close[relCandleIndex], newEntryData.SLPrice, newEntryData.TPPrice, newEntryData.StartTrailPerc, newEntryData.TrailingPerc, risk, int(lev), relCandleIndex, newEntryData.MultiTPs, candles[len(candles)-1], tradeIsLong, bot)
+						newEntryData.MultiTPs = completedMultiTPs
+						stored.Trades = append(stored.Trades, newEntryData)
+					}
 				}
 			}
 		}
@@ -371,7 +411,7 @@ func strat1(
 	*storage = stored
 
 	if len(stored.PivotHighs)%(pivotLowsToEnter+1) == 0 && len(stored.PivotLows)%(pivotLowsToEnter+1) != 0 {
-		return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - 0, settings
+		return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - 0, settings, tradeIsLong
 	}
-	return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - (len(stored.PivotLows) % (pivotLowsToEnter + 1)), settings
+	return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - (len(stored.PivotLows) % (pivotLowsToEnter + 1)), settings, tradeIsLong
 }

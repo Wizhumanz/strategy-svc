@@ -18,6 +18,7 @@ func scanPivotTrends(
 		99.0: 100,
 	}
 
+	tradeIsLong := true
 	pivotLowsToEnter := 4
 	maxDurationCandles := 1000
 	slPerc := 3.0
@@ -72,7 +73,7 @@ func scanPivotTrends(
 			latestEntryData := stored.ScanPoints[len(stored.ScanPoints)-1]
 
 			//check sl + tp + max duration
-			breakIndex, breakPrice, action, _, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles)
+			breakIndex, breakPrice, action, _, updatedEntryData := checkTrendBreak(&latestEntryData, relCandleIndex, relCandleIndex, candles, tradeIsLong)
 
 			if len(updatedEntryData.MultiTPs) > 0 && updatedEntryData.MultiTPs[0].Price > 0.0 {
 				latestEntryData = updatedEntryData
@@ -83,7 +84,7 @@ func scanPivotTrends(
 			// }
 
 			if breakIndex > 0 && breakPrice > 0 && action != "MULTI-TP" {
-				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action)
+				breakTrend(candles, breakIndex, relCandleIndex, &newLabels, &latestEntryData, action, tradeIsLong)
 				stored.ScanPoints = append(stored.ScanPoints, latestEntryData)
 				stored.WatchingTrend = false
 				retData = latestEntryData
@@ -94,7 +95,7 @@ func scanPivotTrends(
 			}
 		} else {
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
-			possibleEntryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, pivotLowsToEnter, 0)
+			possibleEntryIndexes := pivotWatchEntryCheck(low, stored.PivotLows, pivotLowsToEnter, 0, tradeIsLong)
 
 			if len(possibleEntryIndexes) > 0 {
 				//check if latest possible entry eligible
@@ -171,7 +172,7 @@ func scanPivotTrends(
 
 				if latestPossibleEntry > minTradingIndex && latestPossibleEntry == stored.PivotLows[len(stored.PivotLows)-1] && timeOK && entryPivotsDiffOK {
 					newEntryData := StrategyDataPoint{}
-					newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.ScanPoints, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap)
+					newEntryData = logEntry(relCandleIndex, pivotLowsToEnter, latestPossibleEntry, candles, possibleEntryIndexes, stored.PivotLows, stored.ScanPoints, &newEntryData, &newLabels, maxDurationCandles, 1-(slPerc/100), -1, -1, -1, tpMap, tradeIsLong)
 					newEntryData.ActualEntryIndex = relCandleIndex
 					stored.ScanPoints = append(stored.ScanPoints, newEntryData)
 					stored.WatchingTrend = true

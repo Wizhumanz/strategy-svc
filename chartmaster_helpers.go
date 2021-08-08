@@ -233,7 +233,7 @@ func getCachedCandleData(ticker, period string, start, end time.Time) []Candlest
 var totalCandles []CandlestickChartData
 var previousEquity float64
 
-func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, smas []float64, emas []float64, volumeAverage []float64, volatility float64, settings map[string]string) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
+func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataPoint, c Candlestick, strat StrategyExecutor, relIndex int, labels map[string]map[int]string, allCandles []Candlestick, smas []float64, emas []float64, volumeAverage []float64, volatility float64, settings map[string]string, tradeIslong bool) ([]CandlestickChartData, ProfitCurveDataPoint, []SimulatedTradeDataPoint) {
 	// fmt.Printf(colorYellow+"<%v> len(cArr)= %v / labels= %v\n", relIndex, len(cArr), labels)
 
 	//candlestick
@@ -421,9 +421,14 @@ func saveDisplayData(cArr []CandlestickChartData, profitCurve []ProfitCurveDataP
 				sd.ExitDateTime = a.DateTime
 				sd.ExitPrice = a.Price
 				sd.PosSize = a.PosSize
-				sd.RawProfitPerc = ((a.Price - entryPrice) / entryPrice) * 100
+				if tradeIslong {
+					sd.RawProfitPerc = ((a.Price - entryPrice) / entryPrice) * 100
+					sd.Profit = (a.PosSize * a.Price) - (a.PosSize * entryPrice)
+				} else {
+					sd.RawProfitPerc = -((a.Price - entryPrice) / entryPrice) * 100
+					sd.Profit = -((a.PosSize * a.Price) - (a.PosSize * entryPrice))
+				}
 				sd.TotalFees = a.ExchangeFee
-				sd.Profit = (a.PosSize * a.Price) - (a.PosSize * entryPrice)
 				sd.Settings = settings
 				// fmt.Printf(colorCyan+"<%v> a.PosSize= %v / a.Price= %v / entryPrice= %v\n"+colorReset, relIndex, a.PosSize, a.Price, entryPrice)
 			} else if a.Action == "ENTER" {
@@ -914,7 +919,7 @@ func computeBacktest(
 	packetSize int,
 	userID, rid string,
 	startTime, endTime time.Time,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, []float64, []float64, float64, float64) (map[string]map[int]string, int, map[string]string),
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, []float64, []float64, float64, float64) (map[string]map[int]string, int, map[string]string, bool),
 	packetSender func(string, string, []CandlestickChartData, []ProfitCurveData, []SimulatedTradeData),
 	chunksArr *[]*[]Candlestick,
 	c chan time.Time,
@@ -980,10 +985,10 @@ func computeBacktest(
 				smas, emas, volumeAverage, volatility, volumeIndex := calcIndicators(allCandles, relIndex)
 
 				settings := make(map[string]string)
-
+				var tradeIslong bool
 				// if len(emas) >= 4 {
 				// if candlesSkipNum == 0 {
-				labels, _, settings = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas, volumeAverage, volatility, volumeIndex)
+				labels, _, settings, tradeIslong = userStrat(allCandles, risk, lev, accSz, allOpens, allHighs, allLows, allCloses, relIndex, &strategySim, &store, Bot{}, emas, volumeAverage, volatility, volumeIndex)
 				// } else {
 				// 	candlesSkipNum--
 				// }
@@ -993,7 +998,7 @@ func computeBacktest(
 				var pcData ProfitCurveDataPoint
 				var simTradeData []SimulatedTradeDataPoint
 
-				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, settings)
+				chunkAddedCandles, pcData, simTradeData = saveDisplayData(chunkAddedCandles, chunkAddedPCData, candle, strategySim, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, settings, tradeIslong)
 
 				if pcData.Equity > 0 {
 					chunkAddedPCData = append(chunkAddedPCData, pcData)
@@ -1146,7 +1151,7 @@ func computeScan(
 				smas, emas, volumeAverage, volatility, _ := calcIndicators(allCandles, relIndex)
 
 				//save res data
-				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, nil)
+				chunkAddedCandles, _, _ = saveDisplayData(chunkAddedCandles, nil, candle, StrategyExecutor{}, relIndex, labels, allCandles, smas, emas, volumeAverage, volatility, nil, true)
 				duplicateFound := false
 				for _, v := range chunkAddedScanData {
 					if v.EntryLastPLIndex == pivotScanData.EntryLastPLIndex {
