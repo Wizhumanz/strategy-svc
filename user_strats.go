@@ -66,7 +66,7 @@ func strat1(
 	// 		runMLPeriod += 1
 	// 	}
 	// }
-	tpSingle := 2.0
+	tpSingle := 1.0
 	// fmt.Println(pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
 	// fmt.Println(candles[len(candles)-1].PeriodStart, strategy.GetPosLongSize())
 	tpMap := map[float64]float64{
@@ -79,9 +79,9 @@ func strat1(
 		tpSingle: 100,
 	}
 
-	pivotLowsToEnter := 4
-	maxDurationCandles := 1000
-	slPerc := 3.0
+	pivotLowsToEnter := 6
+	maxDurationCandles := 500
+	slPerc := 1.0
 	slCooldownCandles := 35
 	tpCooldownCandles := 0
 
