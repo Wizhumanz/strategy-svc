@@ -552,6 +552,8 @@ func (strat *StrategyExecutor) CloseLong(price, posPercToClose, closeSz float64,
 			strat.availableEquity = strat.availableEquity + actualCloseCap
 			strat.positionSize = strat.positionSize - orderSize
 			strat.totalEquity = strat.availableEquity + (strat.positionSize * price) //run this line on every iteration to constantly update equity (including unrealized PnL)
+
+			fmt.Println(strat.totalEquity)
 		} else {
 			actualClosePrice = (1 + (strat.OrderSlippagePerc / 100)) * price //TODO: modify to + for shorting
 			actualCloseCap := (1 + (strat.ExchangeTradeFeePerc / 100)) * (actualClosePrice * orderSize)

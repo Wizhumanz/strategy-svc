@@ -16,18 +16,19 @@ import (
 // var runMLPeriod int = 11
 // var preVolume1, preVolume2, preVolume3 float64
 // var firstTime bool = true
+var prevEmas []float64
 
 func strat1(
 	candles []Candlestick, risk, lev, accSz float64,
 	open, high, low, close []float64,
-	// ema1, ema2, ema3, ema4 float64,
 	relCandleIndex int,
 	strategy *StrategyExecutor,
 	storage *interface{}, bot Bot,
+	smas []float64,
 	emas []float64,
 	volumeAverage []float64,
 	volatility, volumeIndex float64,
-) (map[string]map[int]string, int, map[string]string, bool) {
+) (map[string]map[int]string, int, map[string]string, bool, float64) {
 	//TODO: pass these 2 from frontend
 
 	tradeIsLong := false
@@ -68,7 +69,7 @@ func strat1(
 	// 		runMLPeriod += 1
 	// 	}
 	// }
-	tpSingle := 1.0
+	tpSingle := 3.0
 	// fmt.Println(pivotLowsToEnter, maxDurationCandles, slPerc, slCooldownCandles, tpSingle)
 	// fmt.Println(candles[len(candles)-1].PeriodStart, strategy.GetPositionSize())
 	tpMap := map[float64]float64{
@@ -81,10 +82,10 @@ func strat1(
 		tpSingle: 100,
 	}
 
-	pivotLowsToEnter := 6
-	maxDurationCandles := 500
-	slPerc := 1.0
-	slCooldownCandles := 35
+	pivotLowsToEnter := 5
+	maxDurationCandles := 300
+	slPerc := 2.0
+	slCooldownCandles := 0
 	tpCooldownCandles := 0
 
 	settings["pivotLowsToEnter"] = fmt.Sprint(pivotLowsToEnter)
@@ -164,6 +165,8 @@ func strat1(
 		"middle": map[int]string{},
 		"bottom": map[int]string{},
 	}
+
+	// Display relCandleIndex in middle
 	// newLabels["middle"][0] = fmt.Sprintf("%v", relCandleIndex)
 
 	var stored PivotsStore
@@ -256,13 +259,17 @@ func strat1(
 				stored.Trades[len(stored.Trades)-1] = latestEntryData //entry data will be updated if multi TP
 			}
 		} else {
+			// if len(emas) >= 4 && previousEma > 0 && emas[3]-previousEma <= -0.1
 			// fmt.Printf(colorCyan+"<%v> SEARCH new entry\n", relCandleIndex)
 			var possibleEntryIndexes []int
+			// tradeIsLong = true
 			if tradeIsLong {
 				possibleEntryIndexes = pivotWatchEntryCheck(low, stored.PivotLows, pivotLowsToEnter, 0, tradeIsLong)
 			} else {
 				possibleEntryIndexes = pivotWatchEntryCheck(high, stored.PivotHighs, pivotLowsToEnter, 0, tradeIsLong)
 			}
+
+			// fmt.Printf("\nPossibleEntryIndexes: %v\n", possibleEntryIndexes)
 			if len(possibleEntryIndexes) > 0 {
 				//check if latest possible entry eligible
 				var lastTradeExitIndex int
@@ -344,6 +351,9 @@ func strat1(
 					firstPLIndex = stored.PivotHighs[len(stored.PivotHighs)-1-(pivotLowsToEnter-1)]
 					firstPL = candles[firstPLIndex].High
 				}
+
+				// tradeIsLong = false
+
 				var entryPivotsPriceDiffPerc float64 = math.Abs(((firstPL - lastPL) / firstPL) * 100)
 				// fmt.Printf(colorYellow+"<%v> %v / %v\n"+colorReset, relCandleIndex, entryPivotsPriceDiffPerc, entryPivotTradeZones)
 				for _, window := range entryPivotTradeZones {
@@ -396,13 +406,50 @@ func strat1(
 		}
 	}
 
+	var ratio float64
+
+	if len(stored.PivotHighs) > 5 {
+		volatilityPeriods := []int{5}
+		var totalVarianceGreen float64
+		var totalVarianceRed float64
+
+		// CALCULATE VOLATILITY
+		for _, a := range volatilityPeriods {
+			// for c := relCandleIndex - a; c < relCandleIndex; c++ {
+			totalVarianceGreen += math.Pow((candles[stored.PivotHighs[len(stored.PivotHighs)-a]].Close - smas[stored.PivotHighs[len(stored.PivotHighs)-a]]), 2)
+			totalVarianceRed += math.Pow((candles[stored.PivotLows[len(stored.PivotLows)-a]].Close - smas[stored.PivotLows[len(stored.PivotLows)-a]]), 2)
+			// fmt.Println(candles[c].PeriodStart, candles[c].Volume)
+			// }
+		}
+		totalVarianceGreen = totalVarianceGreen / float64(volatilityPeriods[0])
+		totalVarianceRed = totalVarianceRed / float64(volatilityPeriods[0])
+		standardDeviationGreen := math.Sqrt(totalVarianceGreen)
+		standardDeviationRed := math.Sqrt(totalVarianceRed)
+		ratio = standardDeviationGreen / standardDeviationRed
+	}
+	// newLabels["middle"][0] = fmt.Sprintf("%.1f", ratio)
+
 	// if relCandleIndex < 250 && relCandleIndex > 120 {
 	// 	fmt.Printf(colorRed+"<%v> pl=%v\nph=%v\n"+colorReset, relCandleIndex, stored.PivotLows, stored.PivotHighs)
 	// }
 	*storage = stored
 
-	if len(stored.PivotHighs)%(pivotLowsToEnter+1) == 0 && len(stored.PivotLows)%(pivotLowsToEnter+1) != 0 {
-		return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - 0, settings, tradeIsLong
+	if len(emas) >= 4 && len(prevEmas) > 3 && prevEmas[0] <= prevEmas[1] && emas[0] >= emas[1] {
+		newLabels["middle"][0] = "E"
+		// fmt.Println(previousEma - emas[3])
 	}
-	return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - (len(stored.PivotLows) % (pivotLowsToEnter + 1)), settings, tradeIsLong
+
+	if len(emas) >= 4 && len(prevEmas) > 3 && prevEmas[0] >= prevEmas[1] && emas[0] <= emas[1] {
+		newLabels["middle"][0] = "X"
+		// fmt.Println(previousEma - emas[3])
+	}
+
+	if len(emas) >= 4 {
+		prevEmas = emas
+	}
+
+	if len(stored.PivotHighs)%(pivotLowsToEnter+1) == 0 && len(stored.PivotLows)%(pivotLowsToEnter+1) != 0 {
+		return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - 0, settings, tradeIsLong, ratio
+	}
+	return newLabels, pivotLowsToEnter*2 - (len(stored.PivotHighs) % (pivotLowsToEnter + 1)) - (len(stored.PivotLows) % (pivotLowsToEnter + 1)), settings, tradeIsLong, ratio
 }

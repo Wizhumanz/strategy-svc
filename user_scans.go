@@ -19,9 +19,9 @@ func scanPivotTrends(
 	}
 
 	tradeIsLong := false
-	pivotLowsToEnter := 6
-	maxDurationCandles := 500
-	slPerc := 1.0
+	pivotLowsToEnter := 3
+	maxDurationCandles := 1400
+	slPerc := 4.0
 	slCooldownCandles := 35
 	// tpCooldownCandles := 35
 

@@ -52,7 +52,7 @@ func minuteTicker(period string) *time.Ticker {
 
 func executeLiveStrategy(
 	bot Bot,
-	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, []float64, []float64, float64, float64) (map[string]map[int]string, int, map[string]string, bool)) {
+	userStrat func([]Candlestick, float64, float64, float64, []float64, []float64, []float64, []float64, int, *StrategyExecutor, *interface{}, Bot, []float64, []float64, []float64, float64, float64) (map[string]map[int]string, int, map[string]string, bool, float64)) {
 	if bot.Ticker == "" || bot.Period == "" {
 		_, file, line, _ := runtime.Caller(0)
 		go Log(loggingInJSON(fmt.Sprintf("ticker or period nil| ticker = %v, period = %v\n", bot.Ticker, bot.Period)),
@@ -249,7 +249,7 @@ func executeLiveStrategy(
 						highs,
 						lows,
 						closes,
-						runningIndex, &stratExec, &stratStore, bot, nil, nil, 0, 0)
+						runningIndex, &stratExec, &stratStore, bot, nil, nil, nil, 0, 0)
 
 					//save state in strat store obj
 					var readStore PivotsStore
